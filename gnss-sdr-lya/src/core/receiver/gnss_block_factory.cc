@@ -30,6 +30,7 @@
 #include "beidou_b1c_dll_pll_tracking.h"
 #include "beidou_b1c_dummy_telemetry_decoder.h"
 #include "beidou_b1c_pcps_acquisition.h"
+#include "beidou_b1c_telemetry_decoder.h"
 #include "beidou_b1i_dll_pll_tracking.h"
 #include "beidou_b1i_pcps_acquisition.h"
 #include "beidou_b1i_telemetry_decoder.h"
@@ -756,6 +757,10 @@ std::unique_ptr<TelemetryDecoderInterface> get_tlm_block(
         {
             return std::make_unique<BeidouB1iTelemetryDecoder>(configuration, role, in_streams, out_streams);
         }
+    else if (implementation == "BEIDOU_B1C_Telemetry_Decoder")
+        {
+            return std::make_unique<BeidouB1cTelemetryDecoder>(configuration, role, in_streams, out_streams);
+        }
     else if (implementation == "BEIDOU_B1C_Dummy_Telemetry_Decoder")
         {
             return std::make_unique<BeidouB1cDummyTelemetryDecoder>(configuration, role, in_streams, out_streams);
@@ -1059,9 +1064,13 @@ std::unique_ptr<GNSSBlockInterface> GNSSBlockFactory::GetChannel(
               << ", Tracking Implementation: " << configuration->property(trk_role_name + impl_prop, "Invalid"s)
               << ", Telemetry Decoder implementation: " << configuration->property(tlm_role_name + impl_prop, "Invalid"s);
 
+    LOG(INFO) << "Creating acquisition block for Channel " << channel << " role " << acq_role_name;
     auto acq_ = GetAcqBlock(configuration, acq_role_name, 1, 0);
+    LOG(INFO) << "Creating tracking block for Channel " << channel << " role " << trk_role_name;
     auto trk_ = GetTrkBlock(configuration, trk_role_name, 1, 1);
+    LOG(INFO) << "Creating telemetry decoder block for Channel " << channel << " role " << tlm_role_name;
     auto tlm_ = GetTlmBlock(configuration, tlm_role_name, 1, 1);
+    LOG(INFO) << "Creating channel wrapper for Channel " << channel;
 
     if (acq_ == nullptr or trk_ == nullptr or tlm_ == nullptr)
         {
@@ -1103,7 +1112,7 @@ std::vector<std::unique_ptr<GNSSBlockInterface>> GNSSBlockFactory::GetChannels(
         }
     catch (const std::exception& e)
         {
-            LOG(WARNING) << e.what();
+            LOG(WARNING) << "Exception while creating GNSS channels: " << e.what();
         }
 
     return channels;

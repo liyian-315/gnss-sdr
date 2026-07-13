@@ -21,6 +21,11 @@ set(SYSTEM_PARAMETERS_SOURCES
     galileo_inav_message.cc
     galileo_ism.cc
     galileo_reduced_ced.cc
+    beidou_cnav1_almanac.cc
+    beidou_cnav1_ephemeris.cc
+    beidou_cnav1_iono.cc
+    beidou_cnav1_navigation_message.cc
+    beidou_cnav1_utc_model.cc
     beidou_dnav_navigation_message.cc
     beidou_dnav_ephemeris.cc
     sbas_ephemeris.cc
@@ -69,6 +74,11 @@ set(SYSTEM_PARAMETERS_HEADERS
     glonass_gnav_almanac.h
     glonass_gnav_utc_model.h
     glonass_gnav_navigation_message.h
+    beidou_cnav1_almanac.h
+    beidou_cnav1_ephemeris.h
+    beidou_cnav1_iono.h
+    beidou_cnav1_navigation_message.h
+    beidou_cnav1_utc_model.h
     beidou_dnav_navigation_message.h
     beidou_dnav_ephemeris.h
     beidou_dnav_iono.h
