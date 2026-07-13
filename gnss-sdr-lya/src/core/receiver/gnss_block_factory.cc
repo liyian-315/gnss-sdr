@@ -27,6 +27,7 @@
 #include "acquisition_interface.h"
 #include "array_signal_conditioner.h"
 #include "beamformer_filter.h"
+#include "beidou_b1c_pcps_acquisition.h"
 #include "beidou_b1i_dll_pll_tracking.h"
 #include "beidou_b1i_pcps_acquisition.h"
 #include "beidou_b1i_telemetry_decoder.h"
@@ -254,6 +255,7 @@ const auto signal_mapping = std::vector<std::pair<std::string, std::string>>{
     {"E6", "GALILEO E6 (B/C HAS)"},
     {"1G", "GLONASS L1 C/A"},
     {"2G", "GLONASS L2 C/A"},
+    {"B1C", "BEIDOU B1C"},
     {"B1", "BEIDOU B1I"},
     {"B3", "BEIDOU B3I"},
     {"7X", "GALILEO E5b I (I/NAV OS)"},
@@ -530,6 +532,10 @@ std::unique_ptr<AcquisitionInterface> get_acq_block(
     else if (implementation == "GLONASS_L2_CA_PCPS_Acquisition")
         {
             return std::make_unique<GlonassL2CaPcpsAcquisition>(configuration, role, in_streams, out_streams);
+        }
+    else if (implementation == "BEIDOU_B1C_PCPS_Acquisition")
+        {
+            return std::make_unique<BeidouB1cPcpsAcquisition>(configuration, role, in_streams, out_streams);
         }
     else if (implementation == "BEIDOU_B1I_PCPS_Acquisition")
         {

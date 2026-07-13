@@ -260,6 +260,7 @@ private:
         evGAL_E6,
         evGLO_1G,
         evGLO_2G,
+        evBDS_B1C,
         evBDS_B1,
         evBDS_B3,
         evQZS_J1,

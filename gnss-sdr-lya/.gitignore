@@ -53,3 +53,33 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# CMake / local build directories
+/build*/
+/cmake-build-*/
+/CMakeFiles/
+/CMakeCache.txt
+/CTestTestfile.cmake
+/cmake_install.cmake
+/cmake_uninstall.cmake
+/install_manifest.txt
+
+# Local logs and generated reports
+*.log
+*.gz
+
+# GNSS-SDR local run artifacts
+*.mat
+*.dat
+*.rinex
+*.obs
+*.nav
+*.kml
+*.geojson
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# OS/editor clutter
+.DS_Store

@@ -87,6 +87,7 @@ const auto signal_mapping = std::unordered_map<std::string, std::pair<std::strin
     {"5X", {"Galileo", "E5a"}},
     {"7X", {"Galileo", "E5b"}},
     {"E6", {"Galileo", "E6"}},
+    {"B1C", {"Beidou", "B1C"}},
     {"B1", {"Beidou", "B1"}},
     {"B3", {"Beidou", "B3"}},
     {"1G", {"Glonass", "L1"}},
@@ -233,6 +234,7 @@ void GNSSFlowgraph::init()
     mapStringValues_["E6"] = evGAL_E6;
     mapStringValues_["1G"] = evGLO_1G;
     mapStringValues_["2G"] = evGLO_2G;
+    mapStringValues_["B1C"] = evBDS_B1C;
     mapStringValues_["B1"] = evBDS_B1;
     mapStringValues_["B3"] = evBDS_B3;
     mapStringValues_["J1"] = evQZS_J1;
@@ -1148,6 +1150,7 @@ int GNSSFlowgraph::connect_signal_conditioners_to_channels()
                                     break;
                                 case evGLO_1G:
                                 case evGLO_2G:
+                                case evBDS_B1C:
                                 case evBDS_B1:
                                 case evBDS_B3:
                                     acq_fs = fs;
@@ -2186,6 +2189,13 @@ bool GNSSFlowgraph::is_multiband() const
                     multiband = true;
                 }
         }
+    if (configuration_->property("Channels_B1C.count", 0) > 0)
+        {
+            if ((configuration_->property("Channels_B1.count", 0) > 0) || (configuration_->property("Channels_B3.count", 0) > 0))
+                {
+                    multiband = true;
+                }
+        }
     if (configuration_->property("Channels_B1.count", 0) > 0)
         {
             if (configuration_->property("Channels_B3.count", 0) > 0)
@@ -2242,6 +2252,7 @@ Gnss_Signal GNSSFlowgraph::search_next_signal(const std::string& searched_signal
         case evGPS_1C:
         case evGAL_1B:
         case evGLO_1G:
+        case evBDS_B1C:
         case evBDS_B1:
         case evQZS_J1:
             is_primary_frequency = true;

@@ -26,6 +26,7 @@ set(ACQ_ADAPTER_SOURCES
     galileo_e6_pcps_acquisition.cc
     glonass_l1_ca_pcps_acquisition.cc
     glonass_l2_ca_pcps_acquisition.cc
+    beidou_b1c_pcps_acquisition.cc
     beidou_b1i_pcps_acquisition.cc
     beidou_b3i_pcps_acquisition.cc
     qzss_l1_pcps_acquisition.cc
@@ -53,6 +54,7 @@ set(ACQ_ADAPTER_HEADERS
     galileo_e6_pcps_acquisition.h
     glonass_l1_ca_pcps_acquisition.h
     glonass_l2_ca_pcps_acquisition.h
+    beidou_b1c_pcps_acquisition.h
     beidou_b1i_pcps_acquisition.h
     beidou_b3i_pcps_acquisition.h
     qzss_l1_pcps_acquisition.h

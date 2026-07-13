@@ -36,11 +36,12 @@
 #include <complex>
 #include <cstdint>
 
-#if HAS_SPAN
+#if HAS_STD_SPAN
 #include <span>
 namespace gsl = std;
 #else
-#include <gsl/gsl>
+#include <gsl-lite/gsl-lite.hpp>
+namespace gsl = gsl_lite;
 #endif
 
 //! Generates BeiDou B1c Data Primary codes for the desired SV ID
