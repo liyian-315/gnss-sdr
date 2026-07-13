@@ -1,0 +1,1028 @@
+BUILD_START
+[  0%] Performing configure step for 'volk_gnsssdr_module'
+[  0%] Building CXX object src/algorithms/conditioner/adapters/CMakeFiles/conditioner_adapters.dir/array_signal_conditioner.cc.o
+[  0%] Building CXX object src/algorithms/conditioner/adapters/CMakeFiles/conditioner_adapters.dir/signal_conditioner.cc.o
+[  1%] Built target telemetry_decoder_libswiftcnav
+[  2%] Built target gnss_sdr_flags
+[  2%] Building CXX object src/algorithms/observables/libs/CMakeFiles/observables_libs.dir/obs_conf.cc.o
+-- The C compiler identification is GNU 13.3.0
+[  2%] Linking CXX static library libobservables_libs.a
+[  3%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/Accuracy.c.o
+[  3%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/AccuracyOpt.c.o
+[  3%] Built target observables_libs
+[  3%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/AcquisAssist.c.o
+[  3%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/AcquisElement.c.o
+[  3%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/AddionalAngleFields.c.o
+[  3%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/AddionalDopplerFields.c.o
+[  3%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/AdditionalAssistanceData.c.o
+[  4%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/AlertFlag.c.o
+[  4%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/AdditionalDopplerFields.c.o
+[  4%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/Almanac-KeplerianSet.c.o
+[  4%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/Almanac.c.o
+[  4%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/AlmanacElement.c.o
+[  4%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/AntiSpoofFlag.c.o
+[  4%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/AssistBTSData-R98-ExpOTD.c.o
+[  5%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/AssistBTSData.c.o
+[  5%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/AssistanceData.c.o
+[  5%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/BCCHCarrier.c.o
+[  5%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/BSIC.c.o
+[  5%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/BSICAndCarrier.c.o
+[  5%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/BTSPosition.c.o
+[  5%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/BadSignalElement.c.o
+[  6%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/CalcAssistanceBTS.c.o
+[  6%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/BitNumber.c.o
+[  6%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/CellID.c.o
+[  6%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/CellIDAndLAC.c.o
+[  6%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/ControlHeader.c.o
+[  6%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/DGANSSSgnElement.c.o
+[  7%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/EOTDQuality.c.o
+[  7%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/DGPSCorrections.c.o
+[  7%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/EnvironmentCharacter.c.o
+[  7%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/EphemerisSubframe1Reserved.c.o
+[  7%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/ErrorCodes.c.o
+[  7%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/ExpOTDUncertainty.c.o
+[  7%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/ExpectedOTD.c.o
+[  8%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/Ext-GeographicalInformation.c.o
+[  8%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/Extended-reference.c.o
+[  8%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/ExtensionContainer.c.o
+[  8%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/FineRTD.c.o
+[  8%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/FixType.c.o
+[  8%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/FrameDrift.c.o
+[  8%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/FrameNumber.c.o
+[  9%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSS-AssistData.c.o
+[  9%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSS-ControlHeader.c.o
+[  9%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSS-MsrSetElement.c.o
+[  9%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSS-SgnElement.c.o
+[  9%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSS-SgnTypeElement.c.o
+-- The CXX compiler identification is GNU 13.3.0
+[  9%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSAlmanacElement.c.o
+[  9%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSAlmanacModel.c.o
+[ 10%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSAssistanceData.c.o
+[ 10%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSClockModel.c.o
+[ 10%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSCommonAssistData.c.o
+[ 10%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSDataBit.c.o
+[ 10%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSDataBitAssist.c.o
+[ 10%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSDiffCorrections.c.o
+[ 11%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSGenericAssistDataElement.c.o
+[ 11%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSIonoStormFlags.c.o
+[ 11%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSIonosphereModel.c.o
+[ 11%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSIonosphericModel.c.o
+[ 11%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSLocationInfo.c.o
+[ 11%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSMeasureInfo.c.o
+[ 11%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSNavModel.c.o
+[ 12%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSOrbitModel.c.o
+[ 12%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSPositioningMethod.c.o
+[ 12%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSRealTimeIntegrity.c.o
+[ 12%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSRefLocation.c.o
+[ 12%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSRefMeasurementAssist.c.o
+[ 12%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSRefMeasurementElement.c.o
+[ 12%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSRefTimeInfo.c.o
+[ 13%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSReferenceTime.c.o
+[ 13%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSSatelliteElement.c.o
+[ 13%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSSignalID.c.o
+[ 13%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSTOD-GSMTimeAssociation.c.o
+[ 13%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSTOD.c.o
+[ 13%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSTODUncertainty.c.o
+[ 13%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSTODm.c.o
+[ 14%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSTimeModelElement.c.o
+[ 14%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GANSSUTCModel.c.o
+[ 14%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GPS-AssistData.c.o
+[ 14%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GPS-MeasureInfo.c.o
+[ 14%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GPS-MsrElement.c.o
+[ 14%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GPS-MsrSetElement.c.o
+[ 14%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GPSAssistanceData.c.o
+[ 16%] Linking CXX static library libconditioner_adapters.a
+[ 16%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GPSTOW23b.c.o
+[ 16%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GPSReferenceTimeUncertainty.c.o
+[ 16%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GPSTOW24b.c.o
+[ 16%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GPSTOWAssist.c.o
+[ 16%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GPSTOWAssistElement.c.o
+[ 16%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GPSTime.c.o
+[ 17%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GPSTimeAssistanceMeasurements.c.o
+[ 17%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GPSWeek.c.o
+[ 17%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/GSMTime.c.o
+[ 17%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/IonosphericModel.c.o
+[ 17%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/LAC.c.o
+[ 17%] Built target conditioner_adapters
+[ 17%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/LocErrorReason.c.o
+[ 17%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/LocationError.c.o
+-- Detecting C compiler ABI info
+[ 18%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/LocationInfo.c.o
+[ 18%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/MeasureResponseTime.c.o
+[ 18%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/MethodType.c.o
+[ 18%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/MoreAssDataToBeSent.c.o
+[ 18%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/ModuloTimeSlot.c.o
+[ 18%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/MpathIndic.c.o
+[ 18%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/MsrAssistBTS-R98-ExpOTD.c.o
+[ 19%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/MsrAssistBTS.c.o
+[ 19%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/MsrAssistData.c.o
+[ 19%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/MsrAssistData-R98-ExpOTD.c.o
+[ 19%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/MsrPosition-Req.c.o
+[ 19%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/MsrPosition-Rsp.c.o
+[ 19%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/MultiFrameCarrier.c.o
+[ 19%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/MultiFrameOffset.c.o
+[ 20%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/MultipleSets.c.o
+[ 20%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/NULL.c.o
+[ 20%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/NavModel-KeplerianSet.c.o
+[ 20%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/NavModelElement.c.o
+[ 20%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/NavigationModel.c.o
+[ 20%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/NeighborIdentity.c.o
+[ 21%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/NumOfMeasurements.c.o
+[ 21%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/OTD-MeasureInfo-5-Ext.c.o
+[ 21%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/OTD-FirstSetMsrs.c.o
+[ 21%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/OTD-MeasureInfo-R98-Ext.c.o
+[ 21%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/OTD-MeasureInfo.c.o
+[ 21%] Building CXX object src/core/system_parameters/CMakeFiles/core_system_parameters.dir/beidou_dnav_navigation_message.cc.o
+[ 21%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/OTD-Measurement.c.o
+[ 21%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/OTD-MeasurementWithID.c.o
+[ 22%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/OTD-MsrElementFirst-R98-Ext.c.o
+[ 22%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/OTD-MsrElementFirst.c.o
+[ 22%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/OTD-MsrElementRest.c.o
+[ 22%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/OTD-MsrsOfOtherSets.c.o
+[ 22%] Building CXX object src/core/system_parameters/CMakeFiles/core_system_parameters.dir/galileo_cnav_message.cc.o
+[ 23%] Building CXX object src/core/system_parameters/CMakeFiles/core_system_parameters.dir/galileo_fnav_message.cc.o
+[ 23%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/OTDValue.c.o
+[ 23%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/PDU.c.o
+[ 23%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/PositionData.c.o
+[ 23%] Building CXX object src/core/system_parameters/CMakeFiles/core_system_parameters.dir/galileo_has_data.cc.o
+[ 24%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/PositionMethod.c.o
+[ 24%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/PositionInstruct.c.o
+[ 24%] Building CXX object src/core/system_parameters/CMakeFiles/core_system_parameters.dir/galileo_inav_message.cc.o
+[ 24%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/ProtocolError.c.o
+[ 24%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/RRLP-Component.c.o
+[ 24%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/RefLocation.c.o
+[ 24%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/RefQuality.c.o
+[ 24%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/ReferenceAssistData.c.o
+[ 24%] Building CXX object src/core/system_parameters/CMakeFiles/core_system_parameters.dir/glonass_gnav_ephemeris.cc.o
+[ 25%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/ReferenceFrame.c.o
+[ 25%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/ReferenceIdentity.c.o
+[ 25%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/ReferenceIdentityType.c.o
+[ 25%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/ReferenceRelation.c.o
+[ 25%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/ReferenceTime.c.o
+[ 25%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/ReferenceWGS84.c.o
+[ 26%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/Rel-5-MsrPosition-Rsp-Extension.c.o
+[ 26%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/Rel-5-ProtocolError-Extension.c.o
+[ 26%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/Rel-7-MsrPosition-Rsp-Extension.c.o
+[ 26%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/Rel-98-MsrPosition-Rsp-Extension.c.o
+[ 26%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/Rel5-AssistanceData-Extension.c.o
+[ 26%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/Rel5-MsrPosition-Req-Extension.c.o
+[ 27%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/Rel7-AssistanceData-Extension.c.o
+[ 27%] Building CXX object src/core/system_parameters/CMakeFiles/core_system_parameters.dir/glonass_gnav_navigation_message.cc.o
+[ 28%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/Rel7-MsrPosition-Req-Extension.c.o
+[ 28%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/Rel98-AssistanceData-Extension.c.o
+[ 28%] Building CXX object src/core/system_parameters/CMakeFiles/core_system_parameters.dir/gnss_ephemeris.cc.o
+[ 28%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/Rel98-Ext-ExpOTD.c.o
+-- Detecting C compiler ABI info - done
+[ 28%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/Rel98-MsrPosition-Req-Extension.c.o
+[ 28%] Building CXX object src/core/system_parameters/CMakeFiles/core_system_parameters.dir/gnss_satellite.cc.o
+[ 28%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/RelDistance.c.o
+[ 28%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/RelativeAlt.c.o
+[ 28%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/RequestIndex.c.o
+[ 28%] Building CXX object src/core/system_parameters/CMakeFiles/core_system_parameters.dir/gnss_signal.cc.o
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+[ 29%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/RequiredResponseTime.c.o
+[ 29%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/RoughRTD.c.o
+[ 29%] Building CXX object src/core/system_parameters/CMakeFiles/core_system_parameters.dir/gps_cnav_navigation_message.cc.o
+[ 29%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SVID.c.o
+[ 29%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SVIDMASK.c.o
+[ 29%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SatElement.c.o
+[ 29%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SatStatus.c.o
+[ 29%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SatelliteID.c.o
+-- Detecting CXX compiler ABI info
+[ 30%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOf-BadSatelliteSet.c.o
+[ 30%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOf-GANSSDataBits.c.o
+[ 31%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfAcquisElement.c.o
+[ 31%] Building CXX object src/core/system_parameters/CMakeFiles/core_system_parameters.dir/gps_ephemeris.cc.o
+[ 31%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfAlmanacElement.c.o
+[ 31%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfBadSignalElement.c.o
+[ 31%] Building CXX object src/core/system_parameters/CMakeFiles/core_system_parameters.dir/gps_navigation_message.cc.o
+[ 32%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfDGANSSSgnElement.c.o
+[ 32%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfGANSS-MsrSetElement.c.o
+[ 32%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfGANSS-SgnElement.c.o
+[ 32%] Building CXX object src/core/system_parameters/CMakeFiles/core_system_parameters.dir/osnma_data.cc.o
+[ 32%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfGANSS-SgnTypeElement.c.o
+[ 32%] Building CXX object src/core/system_parameters/CMakeFiles/core_system_parameters.dir/osnma_dsm_reader.cc.o
+[ 32%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfGANSSAlmanacElement.c.o
+[ 32%] Building CXX object src/core/system_parameters/CMakeFiles/core_system_parameters.dir/reed_solomon.cc.o
+[ 32%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfGANSSGenericAssistDataElement.c.o
+[ 32%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfGANSSRefMeasurementElement.c.o
+[ 32%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfGANSSSatelliteElement.c.o
+[ 33%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfGANSSTimeModel.c.o
+[ 33%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfGPS-MsrElement.c.o
+[ 33%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfGPS-MsrSetElement.c.o
+[ 33%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfMsrAssistBTS-R98-ExpOTD.c.o
+[ 33%] Building CXX object src/core/system_parameters/CMakeFiles/core_system_parameters.dir/sbas_ephemeris.cc.o
+[ 33%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfMsrAssistBTS.c.o
+[ 33%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfNavModelElement.c.o
+[ 33%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfOTD-FirstSetMsrs-R98-Ext.c.o
+[ 34%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfOTD-FirstSetMsrs.c.o
+[ 34%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfOTD-MsrElementRest.c.o
+[ 34%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfOTD-MsrsOfOtherSets.c.o
+[ 34%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfReferenceIdentityType.c.o
+[ 34%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfSatElement.c.o
+[ 34%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfSgnTypeElement.c.o
+[ 34%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfStandardClockModelElement.c.o
+[ 35%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfSystemInfoAssistBTS-R98-ExpOTD.c.o
+-- Detecting CXX compiler ABI info - done
+[ 35%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SeqOfSystemInfoAssistBTS.c.o
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+[ 35%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SgnTypeElement.c.o
+[ 35%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/StandardClockModelElement.c.o
+[ 35%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/StdResolution.c.o
+[ 36%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SystemInfoAssistBTS-R98-ExpOTD.c.o
+[ 36%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SystemInfoAssistBTS.c.o
+[ 36%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SystemInfoAssistData-R98-ExpOTD.c.o
+[ 36%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SystemInfoAssistData.c.o
+[ 36%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/SystemInfoIndex.c.o
+[ 36%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/TA0.c.o
+[ 36%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/TA1.c.o
+-- Looking for C++ include filesystem
+[ 36%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/TA2.c.o
+[ 37%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/TLMReservedBits.c.o
+[ 37%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/TLMWord.c.o
+[ 37%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/TOA-MeasurementsOfRef.c.o
+[ 37%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/TimeRelation.c.o
+[ 37%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/TimeSlot.c.o
+[ 37%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/TimeSlotScheme.c.o
+[ 38%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/UTCModel.c.o
+[ 38%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/UlPseudoSegInd.c.o
+[ 38%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/UncompressedEphemeris.c.o
+[ 38%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/UseMultipleSets.c.o
+[ 38%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/VelocityEstimate.c.o
+[ 38%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-rrlp/converter-sample.c.o
+[ 38%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/AltitudeInfo.c.o
+[ 38%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/CPICH-Ec-N0.c.o
+[ 39%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/CPICH-RSCP.c.o
+[ 39%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/CdmaCellInformation.c.o
+[ 39%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/CellInfo.c.o
+[ 39%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/CellMeasuredResults.c.o
+[ 39%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/CellMeasuredResultsList.c.o
+[ 39%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/CellParametersID.c.o
+[ 40%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/DUMMY.c.o
+[ 40%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/EncodingType.c.o
+[ 40%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/FQDN.c.o
+[ 40%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/FormatIndicator.c.o
+[ 40%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/FrequencyInfo.c.o
+[ 40%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/FrequencyInfoFDD.c.o
+[ 40%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/FrequencyInfoTDD.c.o
+[ 41%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/GeneralizedTime.c.o
+[ 41%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/GsmCellInformation.c.o
+[ 41%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/Horandveruncert.c.o
+[ 41%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/Horandvervel.c.o
+[ 41%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/Horveluncert.c.o
+[ 41%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/Horvel.c.o
+[ 41%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/IA5String.c.o
+[ 42%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/KeyIdentity.c.o
+[ 42%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/IPAddress.c.o
+[ 42%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/KeyIdentity4.c.o
+[ 42%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/LocationId.c.o
+[ 42%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/MAC.c.o
+[ 42%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/MeasuredResults.c.o
+[ 42%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/MeasuredResultsList.c.o
+[ 43%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/NMRelement.c.o
+[ 43%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/NMR.c.o
+[ 43%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/Notification.c.o
+[ 43%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/NotificationType.c.o
+[ 43%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/Pathloss.c.o
+[ 43%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/PosMethod.c.o
+[ 44%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/PosPayLoad.c.o
+[ 44%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/PosTechnology.c.o
+[ 44%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/PosProtocol.c.o
+[ 44%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/Position.c.o
+[ 44%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/PositionEstimate.c.o
+[ 44%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/PrefMethod.c.o
+[ 44%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/PrimaryCCPCH-RSCP.c.o
+[ 44%] Linking CXX static library libcore_system_parameters.a
+[ 45%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/PrimaryCPICH-Info.c.o
+[ 45%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/QoP.c.o
+[ 45%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/RequestedAssistData.c.o
+[ 45%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/SETAuthKey.c.o
+[ 45%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/SETCapabilities.c.o
+[ 45%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/SETId.c.o
+[ 45%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/SLPAddress.c.o
+[ 46%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/SLPMode.c.o
+[ 46%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/SUPLEND.c.o
+[ 46%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/SUPLINIT.c.o
+[ 46%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/SUPLPOS.c.o
+[ 46%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/SUPLPOSINIT.c.o
+-- Looking for C++ include filesystem - found
+-- Performing Test CXX_FILESYSTEM_NO_LINK_NEEDED
+[ 46%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/SUPLRESPONSE.c.o
+[ 46%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/SUPLSTART.c.o
+[ 47%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/SatelliteInfo.c.o
+[ 47%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/SatelliteInfoElement.c.o
+[ 47%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/SessionID.c.o
+[ 47%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/SetSessionID.c.o
+[ 47%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/SlpSessionID.c.o
+[ 47%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/Status.c.o
+[ 47%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/StatusCode.c.o
+[ 48%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/TimeslotISCP-List.c.o
+[ 48%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/TGSN.c.o
+[ 48%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/TimeslotISCP.c.o
+[ 48%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/UARFCN.c.o
+[ 48%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/ULP-PDU.c.o
+[ 48%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/UTCTime.c.o
+[ 49%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/UTRA-CarrierRSSI.c.o
+[ 49%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/UlpMessage.c.o
+[ 49%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/Velocity.c.o
+[ 49%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/Ver.c.o
+[ 49%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/Version.c.o
+[ 49%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/VisibleString.c.o
+[ 49%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/WcdmaCellInformation.c.o
+[ 50%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/asn-supl/XNavigationModel.c.o
+[ 50%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/BIT_STRING.c.o
+[ 50%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/BOOLEAN.c.o
+[ 50%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/ENUMERATED.c.o
+[ 50%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/INTEGER.c.o
+[ 50%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/NativeEnumerated.c.o
+[ 50%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/NativeInteger.c.o
+[ 51%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/asn_SEQUENCE_OF.c.o
+[ 51%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/OCTET_STRING.c.o
+[ 51%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/asn_SET_OF.c.o
+[ 51%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/asn_codecs_prim.c.o
+[ 51%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/ber_decoder.c.o
+[ 51%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/ber_tlv_length.c.o
+[ 51%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/ber_tlv_tag.c.o
+[ 52%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/constr_CHOICE.c.o
+[ 52%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/constr_SEQUENCE.c.o
+[ 52%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/constr_SET_OF.c.o
+[ 52%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/constr_SEQUENCE_OF.c.o
+[ 52%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/constr_TYPE.c.o
+[ 52%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/constraints.c.o
+[ 53%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/der_encoder.c.o
+[ 53%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/per_decoder.c.o
+[ 53%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/per_encoder.c.o
+[ 53%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/per_opentype.c.o
+[ 53%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/per_support.c.o
+[ 53%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/xer_decoder.c.o
+[ 53%] Built target core_system_parameters
+[ 53%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/xer_encoder.c.o
+[ 54%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/types/xer_support.c.o
+[ 54%] Building C object src/core/libs/supl/CMakeFiles/core_libs_supl.dir/supl.c.o
+[ 54%] Running cpp protocol buffer compiler on /mnt/d/work/project/usrp_gnss/gnss-sdr/docs/protobuf/gnss_synchro.proto
+[ 54%] Building CXX object src/core/monitor/CMakeFiles/core_monitor.dir/gnss_synchro.pb.cc.o
+[ 54%] Building CXX object src/core/monitor/CMakeFiles/core_monitor.dir/gnss_synchro_monitor.cc.o
+-- Performing Test CXX_FILESYSTEM_NO_LINK_NEEDED - Success
+-- Found FILESYSTEM: TRUE  
+-- Performing Test HAVE_CX_LIMITED_RANGE
+[ 54%] Building CXX object src/core/monitor/CMakeFiles/core_monitor.dir/gnss_synchro_udp_sink.cc.o
+-- Performing Test HAVE_CX_LIMITED_RANGE - Success
+-- Performing Test HAVE_C_LIMITED_RANGE
+-- Performing Test HAVE_C_LIMITED_RANGE - Success
+-- Build type set to Release.
+-- Found Git: /usr/bin/git (found version "2.43.0") 
+-- Extracting version information from git...
+[ 54%] Linking C static library libcore_libs_supl.a
+-- Could NOT find CPUFEATURES (missing: CPUFEATURES_LIBRARIES CPUFEATURES_INCLUDE_DIR) 
+-- Building volk-gnsssdr with cpu_features
+-- Looking for dlfcn.h
+-- Looking for dlfcn.h - found
+-- Looking for getauxval
+-- Looking for getauxval - found
+-- Looking for elf_aux_info
+-- Looking for elf_aux_info - not found
+-- User set python executable /usr/bin/python3
+-- Found Python: /usr/bin/python3 (found version "3.12.3") found components: Interpreter 
+-- Python checking for mako >= 0.4.2
+-- Python checking for mako >= 0.4.2 - found
+-- Looking for aligned_alloc
+-- Looking for aligned_alloc - found
+-- Disabling use of ORC
+-- Could NOT find Doxygen (missing: DOXYGEN_EXECUTABLE) 
+-- QA Testing is enabled.
+--   Modify using: -DENABLE_TESTING=ON/OFF
+-- System profiling is disabled.
+--   Modify using: -DENABLE_PROFILING=ON/OFF
+-- Looking for cpuid.h
+[ 54%] Built target core_libs_supl
+-- Looking for cpuid.h - found
+-- Looking for intrin.h
+-- Looking for intrin.h - not found
+-- Looking for fenv.h
+-- Looking for fenv.h - found
+-- Compiler name: GNU
+-- Performing Test HAVE_WERROR_UNUSED_CMD_LINE_ARG
+-- Performing Test HAVE_WERROR_UNUSED_CMD_LINE_ARG - Failed
+-- x86* CPU detected
+[ 55%] Linking CXX static library libcore_monitor.a
+[ 55%] Built target core_monitor
+-- Checking RVV intrinsics - not found
+-- Performing Test have_mfloat_abi_softfp
+-- Performing Test have_mfloat_abi_softfp - Failed
+-- Performing Test have_mfloat_abi_hard
+-- Performing Test have_mfloat_abi_hard - Failed
+-- Performing Test have_funsafe_math_optimizations
+-- Performing Test have_funsafe_math_optimizations - Success
+-- Performing Test have_mfpu_neon
+-- Performing Test have_mfpu_neon - Failed
+-- Performing Test have_m32
+-- Performing Test have_m32 - Failed
+-- Performing Test have_m64
+-- Performing Test have_m64 - Success
+-- Performing Test have_mpopcnt
+-- Performing Test have_mpopcnt - Success
+-- Performing Test have_mmmx
+-- Performing Test have_mmmx - Success
+-- Performing Test have_mfma
+-- Performing Test have_mfma - Success
+-- Performing Test have_msse
+-- Performing Test have_msse - Success
+-- Performing Test have_msse2
+-- Performing Test have_msse2 - Success
+-- Performing Test have_msse3
+-- Performing Test have_msse3 - Success
+-- Performing Test have_mssse3
+-- Performing Test have_mssse3 - Success
+-- Performing Test have_msse4a
+-- Performing Test have_msse4a - Success
+-- Performing Test have_msse4_1
+-- Performing Test have_msse4_1 - Success
+-- Performing Test have_msse4_2
+-- Performing Test have_msse4_2 - Success
+-- Performing Test have_mavx
+-- Performing Test have_mavx - Success
+-- Performing Test have_mavx2
+-- Performing Test have_mavx2 - Success
+-- Performing Test have_mavx512f
+-- Performing Test have_mavx512f - Success
+-- Performing Test have_mavx512cd
+-- Performing Test have_mavx512cd - Success
+-- Skipping rvv due to missing RVV intrinsics support
+-- Skipping rvvseg due to missing RVV intrinsics support
+-- Performing Test neon_compile_result
+-- Performing Test neon_compile_result - Failed
+-- Compiler doesn't support NEON, Overruled arch neon
+-- Compiler doesn't support NEON, Overruled arch neonv7
+-- Compiler doesn't support NEON, Overruled arch neonv8
+-- ORC support not found, Overruled arch orc
+-- CPU width is 64 bits, Overruled arch 32
+-- machine is not riscv64, Overruled arch riscv64
+-- Available architectures: generic;64;popcount;mmx;fma;sse;sse2;norc;sse3;ssse3;sse4_a;sse4_1;sse4_2;avx;avx2;avx512f;avx512cd
+-- Available machines: generic;sse2_64_mmx;sse3_64_mmx;ssse3_64_mmx;sse4_a_64_mmx;sse4_1_64_mmx;sse4_2_64_mmx;avx_64_mmx;avx2_64_mmx;avx512f_64_mmx;avx512cd_64_mmx
+-- BUILD TYPE = RELEASE
+-- Base cflags = -O3 -DNDEBUG  -fcx-limited-range -Wall -Werror=incompatible-pointer-types -Werror=pointer-sign
+-- BUILD INFO ::: generic ::: GNU ::: -O3 -DNDEBUG  -fcx-limited-range -Wall -Werror=incompatible-pointer-types -Werror=pointer-sign 
+-- BUILD INFO ::: sse2_64_mmx ::: GNU ::: -O3 -DNDEBUG  -fcx-limited-range -Wall -Werror=incompatible-pointer-types -Werror=pointer-sign -m64 -mmmx -msse -msse2
+-- BUILD INFO ::: sse3_64_mmx ::: GNU ::: -O3 -DNDEBUG  -fcx-limited-range -Wall -Werror=incompatible-pointer-types -Werror=pointer-sign -m64 -mmmx -msse -msse2 -msse3
+-- BUILD INFO ::: ssse3_64_mmx ::: GNU ::: -O3 -DNDEBUG  -fcx-limited-range -Wall -Werror=incompatible-pointer-types -Werror=pointer-sign -m64 -mmmx -msse -msse2 -msse3 -mssse3
+-- BUILD INFO ::: sse4_a_64_mmx ::: GNU ::: -O3 -DNDEBUG  -fcx-limited-range -Wall -Werror=incompatible-pointer-types -Werror=pointer-sign -m64 -mmmx -msse -msse2 -msse3 -msse4a -mpopcnt
+-- BUILD INFO ::: sse4_1_64_mmx ::: GNU ::: -O3 -DNDEBUG  -fcx-limited-range -Wall -Werror=incompatible-pointer-types -Werror=pointer-sign -m64 -mmmx -msse -msse2 -msse3 -mssse3 -msse4.1
+-- BUILD INFO ::: sse4_2_64_mmx ::: GNU ::: -O3 -DNDEBUG  -fcx-limited-range -Wall -Werror=incompatible-pointer-types -Werror=pointer-sign -m64 -mmmx -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mpopcnt
+-- BUILD INFO ::: avx_64_mmx ::: GNU ::: -O3 -DNDEBUG  -fcx-limited-range -Wall -Werror=incompatible-pointer-types -Werror=pointer-sign -m64 -mmmx -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mpopcnt -mavx
+-- BUILD INFO ::: avx2_64_mmx ::: GNU ::: -O3 -DNDEBUG  -fcx-limited-range -Wall -Werror=incompatible-pointer-types -Werror=pointer-sign -m64 -mmmx -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mpopcnt -mavx -mfma -mavx2
+-- BUILD INFO ::: avx512f_64_mmx ::: GNU ::: -O3 -DNDEBUG  -fcx-limited-range -Wall -Werror=incompatible-pointer-types -Werror=pointer-sign -m64 -mmmx -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mpopcnt -mavx -mfma -mavx2 -mavx512f
+-- BUILD INFO ::: avx512cd_64_mmx ::: GNU ::: -O3 -DNDEBUG  -fcx-limited-range -Wall -Werror=incompatible-pointer-types -Werror=pointer-sign -m64 -mmmx -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mpopcnt -mavx -mfma -mavx2 -mavx512f -mavx512cd
+-- Compiler Version: cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0 \nCopyright (C) 2023 Free Software Foundation, Inc. \nThis is free software see the source for copying conditions.  There is NO \nwarranty not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+-- The ASM compiler identification is GNU
+-- Found assembler: /usr/bin/cc
+-- c flags:  -fcx-limited-range -Wall -Werror=incompatible-pointer-types -Werror=pointer-sign;
+-- asm flags: 
+-- c flags:  -fcx-limited-range -Wall -Werror=incompatible-pointer-types -Werror=pointer-sign;
+-- asm flags: 
+-- Did not find liborc and orcc, disabling orc support...
+-- Loading version 0.0.21 into constants...
+-- Using install prefix: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install
+-- Configuring done (70.0s)
+-- Generating done (3.0s)
+-- Build files have been written to: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/build
+[ 56%] Performing build step for 'volk_gnsssdr_module'
+gmake[3]: warning: jobserver unavailable: using -j1.  Add '+' to parent make rule.
+[  1%] Building C object cpu_features/CMakeFiles/utils.dir/src/filesystem.c.o
+[  2%] Building C object cpu_features/CMakeFiles/utils.dir/src/stack_line_reader.c.o
+[  4%] Building C object cpu_features/CMakeFiles/utils.dir/src/string_view.c.o
+[  4%] Built target utils
+[  5%] Building C object cpu_features/CMakeFiles/unix_based_hardware_detection.dir/src/hwcaps_linux_or_android.c.o
+[  6%] Building C object cpu_features/CMakeFiles/unix_based_hardware_detection.dir/src/hwcaps_freebsd_or_openbsd.c.o
+[  8%] Building C object cpu_features/CMakeFiles/unix_based_hardware_detection.dir/src/hwcaps.c.o
+[  8%] Built target unix_based_hardware_detection
+[  9%] Building C object cpu_features/CMakeFiles/cpu_features.dir/src/impl_aarch64_cpuid.c.o
+[ 10%] Building C object cpu_features/CMakeFiles/cpu_features.dir/src/impl_aarch64_freebsd_or_openbsd.c.o
+[ 12%] Building C object cpu_features/CMakeFiles/cpu_features.dir/src/impl_aarch64_linux_or_android.c.o
+[ 13%] Building C object cpu_features/CMakeFiles/cpu_features.dir/src/impl_aarch64_macos_or_iphone.c.o
+[ 14%] Building C object cpu_features/CMakeFiles/cpu_features.dir/src/impl_aarch64_windows.c.o
+[ 16%] Building C object cpu_features/CMakeFiles/cpu_features.dir/src/impl_arm_linux_or_android.c.o
+[ 17%] Building C object cpu_features/CMakeFiles/cpu_features.dir/src/impl_loongarch_linux.c.o
+[ 18%] Building C object cpu_features/CMakeFiles/cpu_features.dir/src/impl_mips_linux_or_android.c.o
+[ 20%] Building C object cpu_features/CMakeFiles/cpu_features.dir/src/impl_ppc_linux.c.o
+[ 21%] Building C object cpu_features/CMakeFiles/cpu_features.dir/src/impl_riscv_linux.c.o
+[ 22%] Building C object cpu_features/CMakeFiles/cpu_features.dir/src/impl_s390x_linux.c.o
+[ 24%] Building C object cpu_features/CMakeFiles/cpu_features.dir/src/impl_x86_freebsd.c.o
+[ 25%] Building C object cpu_features/CMakeFiles/cpu_features.dir/src/impl_x86_linux_or_android.c.o
+[ 27%] Building C object cpu_features/CMakeFiles/cpu_features.dir/src/impl_x86_macos.c.o
+[ 28%] Building C object cpu_features/CMakeFiles/cpu_features.dir/src/impl_x86_windows.c.o
+[ 29%] Linking C static library libcpu_features.a
+[ 29%] Built target cpu_features
+[ 31%] Generating volk_gnsssdr_machines.h
+[ 32%] Generating ../include/volk_gnsssdr/volk_gnsssdr.h
+[ 33%] Generating ../include/volk_gnsssdr/volk_gnsssdr_config_fixed.h
+[ 35%] Generating ../include/volk_gnsssdr/volk_gnsssdr_cpu.h
+[ 36%] Generating ../include/volk_gnsssdr/volk_gnsssdr_typedefs.h
+[ 37%] Generating volk_gnsssdr.c
+[ 39%] Generating volk_gnsssdr_cpu.c
+[ 40%] Generating volk_gnsssdr_machine_avx2_64_mmx.c
+[ 41%] Generating volk_gnsssdr_machine_avx512cd_64_mmx.c
+[ 43%] Generating volk_gnsssdr_machine_avx512f_64_mmx.c
+[ 44%] Generating volk_gnsssdr_machine_avx_64_mmx.c
+[ 45%] Generating volk_gnsssdr_machine_generic.c
+[ 47%] Generating volk_gnsssdr_machine_sse2_64_mmx.c
+[ 48%] Generating volk_gnsssdr_machine_sse3_64_mmx.c
+[ 50%] Generating volk_gnsssdr_machine_sse4_1_64_mmx.c
+[ 51%] Generating volk_gnsssdr_machine_sse4_2_64_mmx.c
+[ 52%] Generating volk_gnsssdr_machine_sse4_a_64_mmx.c
+[ 54%] Generating volk_gnsssdr_machine_ssse3_64_mmx.c
+[ 55%] Generating volk_gnsssdr_machines.c
+[ 56%] Building C object lib/CMakeFiles/volk_gnsssdr_obj.dir/constants.c.o
+[ 58%] Building C object lib/CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_prefs.c.o
+[ 59%] Building C object lib/CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_rank_archs.c.o
+[ 60%] Building C object lib/CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_malloc.c.o
+[ 62%] Building C object lib/CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr.c.o
+[ 63%] Building C object lib/CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_cpu.c.o
+[ 64%] Building C object lib/CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machines.c.o
+[ 66%] Building C object lib/CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_generic.c.o
+[ 67%] Building C object lib/CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_sse2_64_mmx.c.o
+[ 68%] Building C object lib/CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_sse3_64_mmx.c.o
+[ 70%] Building C object lib/CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_ssse3_64_mmx.c.o
+[ 71%] Building C object lib/CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_sse4_a_64_mmx.c.o
+[ 72%] Building C object lib/CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_sse4_1_64_mmx.c.o
+[ 74%] Building C object lib/CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_sse4_2_64_mmx.c.o
+[ 75%] Building C object lib/CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_avx_64_mmx.c.o
+[ 77%] Building C object lib/CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_avx2_64_mmx.c.o
+[ 78%] Building C object lib/CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_avx512f_64_mmx.c.o
+[ 79%] Building C object lib/CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_avx512cd_64_mmx.c.o
+[ 79%] Built target volk_gnsssdr_obj
+[ 81%] Linking C shared library libvolk_gnsssdr.so
+[ 81%] Built target volk_gnsssdr
+[ 82%] Linking C static library libvolk_gnsssdr.a
+[ 82%] Built target volk_gnsssdr_static
+[ 83%] Building CXX object lib/CMakeFiles/volk_gnsssdr_test_all.dir/testqa.cc.o
+[ 85%] Building CXX object lib/CMakeFiles/volk_gnsssdr_test_all.dir/qa_utils.cc.o
+[ 86%] Linking CXX executable volk_gnsssdr_test_all
+[ 86%] Built target volk_gnsssdr_test_all
+[ 87%] Building CXX object apps/CMakeFiles/volk_gnsssdr_profile.dir/volk_gnsssdr_profile.cc.o
+[ 89%] Building CXX object apps/CMakeFiles/volk_gnsssdr_profile.dir/__/lib/qa_utils.cc.o
+[ 90%] Building CXX object apps/CMakeFiles/volk_gnsssdr_profile.dir/volk_gnsssdr_option_helpers.cc.o
+[ 91%] Linking CXX executable volk_gnsssdr_profile
+[ 91%] Built target volk_gnsssdr_profile
+[ 93%] Building CXX object apps/CMakeFiles/volk_gnsssdr-config-info.dir/volk_gnsssdr-config-info.cc.o
+[ 94%] Building CXX object apps/CMakeFiles/volk_gnsssdr-config-info.dir/volk_gnsssdr_option_helpers.cc.o
+[ 95%] Linking CXX executable volk_gnsssdr-config-info
+[ 95%] Built target volk_gnsssdr-config-info
+[ 97%] Generating __init__.pyc, cfg.pyc, volk_gnsssdr_modtool_generate.pyc
+[ 98%] Generating __init__.pyo, cfg.pyo, volk_gnsssdr_modtool_generate.pyo
+[ 98%] Built target pygen_python_volk_gnsssdr_modtool_85480
+[100%] Shebangin volk_gnsssdr_modtool
+[100%] Built target pygen_python_volk_gnsssdr_modtool_ca73e
+[ 56%] Performing install step for 'volk_gnsssdr_module'
+[  1%] Built target pygen_python_volk_gnsssdr_modtool_ca73e
+[  4%] Built target pygen_python_volk_gnsssdr_modtool_85480
+[  8%] Built target unix_based_hardware_detection
+[ 12%] Built target utils
+[ 33%] Built target cpu_features
+[ 83%] Built target volk_gnsssdr_obj
+[ 86%] Built target volk_gnsssdr_static
+[ 86%] Built target volk_gnsssdr
+[ 90%] Built target volk_gnsssdr-config-info
+[ 94%] Built target volk_gnsssdr_test_all
+[100%] Built target volk_gnsssdr_profile
+Install the project...
+-- Install configuration: "Release"
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/libcpu_features.a
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/cpu_features/cpu_features_macros.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/cpu_features/cpu_features_cache_info.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/cpu_features/cpuinfo_x86.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/cmake/CpuFeatures/CpuFeaturesTargets.cmake
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/cmake/CpuFeatures/CpuFeaturesTargets-release.cmake
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/cmake/CpuFeatures/CpuFeaturesConfig.cmake
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/cmake/CpuFeatures/CpuFeaturesConfigVersion.cmake
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/pkgconfig/volk_gnsssdr.pc
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/asm
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/asm/orc
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16ic_16i_rotator_dotprodxnpuppet_16ic.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16ic_16i_rotator_dot_prod_16ic_xn.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16ic_conjugate_16ic.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16ic_convert_32fc.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16ic_resamplerfastpuppet_16ic.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16ic_resamplerfastxnpuppet_16ic.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16ic_resamplerxnpuppet_16ic.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16ic_resampler_fast_16ic.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16ic_rotatorpuppet_16ic.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16ic_s32fc_x2_rotator_16ic.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16ic_x2_dotprodxnpuppet_16ic.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16ic_x2_dot_prod_16ic.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16ic_x2_dot_prod_16ic_xn.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16ic_x2_multiply_16ic.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16ic_x2_rotator_dotprodxnpuppet_16ic.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16ic_x2_rotator_dot_prod_16ic_xn.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16ic_xn_resampler_16ic_xn.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16ic_xn_resampler_fast_16ic_xn.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16i_resamplerxnpuppet_16i.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_16i_xn_resampler_16i_xn.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_32fc_32f_high_dynamic_rotator_dotprodxnpuppet_32fc.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_32fc_32f_high_dynamic_rotator_dot_prod_32fc_xn.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_32fc_32f_rotator_dotprodxnpuppet_32fc.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_32fc_32f_rotator_dot_prod_32fc_xn.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_32fc_convert_16ic.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_32fc_convert_8ic.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_32fc_resamplerxnpuppet_32fc.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_32fc_x2_rotator_dotprodxnpuppet_32fc.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_32fc_x2_rotator_dot_prod_32fc_xn.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_32fc_xn_resampler_32fc_xn.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_32f_high_dynamics_resamplerxnpuppet_32f.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_32f_index_max_32u.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_32f_resamplerxnpuppet_32f.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_32f_sincos_32fc.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_32f_xn_high_dynamics_resampler_32f_xn.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_32f_xn_resampler_32f_xn.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_64f_accumulator_64f.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_8ic_conjugate_8ic.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_8ic_magnitude_squared_8i.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_8ic_x2_dot_prod_8ic.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_8ic_x2_multiply_8ic.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_8i_accumulator_s8i.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_8i_index_max_16u.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_8i_max_s8i.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_8i_x2_add_8i.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_8u_x2_multiply_8u.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_s32f_sincospuppet_32fc.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_s32f_sincos_32fc.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_alloc.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_prefs.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_complex.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_common.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/saturation_arithmetic.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_avx_intrinsics.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_sse_intrinsics.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_sse3_intrinsics.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_neon_intrinsics.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_cpu.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_config_fixed.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_typedefs.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_malloc.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/volk_gnsssdr_sine_table.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/include/volk_gnsssdr/constants.h
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/cmake/volk_gnsssdr/VolkGnsssdrConfig.cmake
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/cmake/volk_gnsssdr/VolkGnsssdrConfigVersion.cmake
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/cmake/volk_gnsssdr/VolkGnsssdrTargets.cmake
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/cmake/volk_gnsssdr/VolkGnsssdrTargets-release.cmake
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/libvolk_gnsssdr.so.0.0.21
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/libvolk_gnsssdr.so
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/libvolk_gnsssdr.a
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/bin/volk_gnsssdr_profile
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/bin/volk_gnsssdr-config-info
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/python3.12/dist-packages/volk_gnsssdr_modtool/__init__.py
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/python3.12/dist-packages/volk_gnsssdr_modtool/cfg.py
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/python3.12/dist-packages/volk_gnsssdr_modtool/volk_gnsssdr_modtool_generate.py
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/python3.12/dist-packages/volk_gnsssdr_modtool/__init__.pyc
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/python3.12/dist-packages/volk_gnsssdr_modtool/cfg.pyc
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/python3.12/dist-packages/volk_gnsssdr_modtool/volk_gnsssdr_modtool_generate.pyc
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/python3.12/dist-packages/volk_gnsssdr_modtool/__init__.pyo
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/python3.12/dist-packages/volk_gnsssdr_modtool/cfg.pyo
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/lib/python3.12/dist-packages/volk_gnsssdr_modtool/volk_gnsssdr_modtool_generate.pyo
+-- Installing: /mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/install/bin/volk_gnsssdr_modtool
+[ 56%] Completed 'volk_gnsssdr_module'
+[ 57%] Built target volk_gnsssdr_module
+[ 57%] Building CXX object src/algorithms/data_type_adapter/gnuradio_blocks/CMakeFiles/data_type_gr_blocks.dir/cshort_to_gr_complex.cc.o
+[ 57%] Building CXX object src/algorithms/data_type_adapter/gnuradio_blocks/CMakeFiles/data_type_gr_blocks.dir/interleaved_byte_to_complex_byte.cc.o
+[ 57%] Building CXX object src/algorithms/data_type_adapter/gnuradio_blocks/CMakeFiles/data_type_gr_blocks.dir/interleaved_byte_to_complex_short.cc.o
+[ 57%] Building CXX object src/algorithms/data_type_adapter/gnuradio_blocks/CMakeFiles/data_type_gr_blocks.dir/interleaved_short_to_complex_short.cc.o
+[ 57%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/beidou_b1i_signal_replica.cc.o
+[ 57%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/beidou_b3i_signal_replica.cc.o
+[ 57%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/byte_x2_to_complex_byte.cc.o
+[ 57%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/complex_byte_to_float_x2.cc.o
+[ 58%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/complex_float_to_complex_byte.cc.o
+[ 58%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/conjugate_cc.cc.o
+[ 58%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/conjugate_ic.cc.o
+[ 58%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/conjugate_sc.cc.o
+[ 58%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/cshort_to_float_x2.cc.o
+[ 58%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/galileo_e1_signal_replica.cc.o
+[ 58%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/galileo_e5_signal_replica.cc.o
+[ 59%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/geofunctions.cc.o
+[ 59%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/galileo_e6_signal_replica.cc.o
+[ 59%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/glonass_l1_signal_replica.cc.o
+[ 59%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/glonass_l2_signal_replica.cc.o
+[ 59%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/gnss_sdr_create_directory.cc.o
+[ 59%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/gnss_sdr_string_literals.cc.o
+[ 59%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/gnss_signal_replica.cc.o
+[ 60%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/gps_l2c_signal_replica.cc.o
+[ 60%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/gps_l5_signal_replica.cc.o
+[ 60%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/gps_sdr_signal_replica.cc.o
+[ 60%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/item_type_helpers.cc.o
+[ 60%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/pass_through.cc.o
+[ 60%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/qzss_signal_replica.cc.o
+[ 61%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/sensor_data/sensor_data_aggregator.cc.o
+[ 61%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/sensor_data/sensor_data_file.cc.o
+[ 61%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/sensor_data/sensor_data_resampler.cc.o
+[ 61%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/sensor_data/sensor_data_source.cc.o
+[ 61%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/sensor_data/sensor_data_source_configuration.cc.o
+[ 61%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/sensor_data/sensor_data_type.cc.o
+[ 61%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/sensor_data/sensor_identifier.cc.o
+[ 62%] Building CXX object src/algorithms/libs/CMakeFiles/algorithms_libs.dir/short_x2_to_cshort.cc.o
+[ 62%] Linking CXX static library libdata_type_gr_blocks.a
+[ 62%] Built target data_type_gr_blocks
+[ 62%] Linking CXX static library libalgorithms_libs.a
+[ 62%] Built target algorithms_libs
+[ 62%] Building CXX object src/algorithms/signal_generator/gnuradio_blocks/CMakeFiles/signal_generator_gr_blocks.dir/signal_generator_c.cc.o
+[ 62%] Building CXX object src/algorithms/resampler/gnuradio_blocks/CMakeFiles/resampler_gr_blocks.dir/direct_resampler_conditioner_cb.cc.o
+[ 62%] Building CXX object src/algorithms/acquisition/libs/CMakeFiles/acquisition_libs.dir/acq_conf.cc.o
+[ 62%] Building CXX object src/algorithms/observables/gnuradio_blocks/CMakeFiles/obs_gr_blocks.dir/hybrid_observables_gs.cc.o
+[ 62%] Building CXX object src/algorithms/resampler/gnuradio_blocks/CMakeFiles/resampler_gr_blocks.dir/direct_resampler_conditioner_cc.cc.o
+[ 62%] Building CXX object src/algorithms/resampler/gnuradio_blocks/CMakeFiles/resampler_gr_blocks.dir/direct_resampler_conditioner_cs.cc.o
+[ 62%] Building CXX object src/algorithms/input_filter/gnuradio_blocks/CMakeFiles/input_filter_gr_blocks.dir/beamformer.cc.o
+[ 62%] Building CXX object src/algorithms/input_filter/gnuradio_blocks/CMakeFiles/input_filter_gr_blocks.dir/notch_cc.cc.o
+[ 63%] Building CXX object src/algorithms/input_filter/gnuradio_blocks/CMakeFiles/input_filter_gr_blocks.dir/notch_lite_cc.cc.o
+[ 63%] Building CXX object src/algorithms/telemetry_decoder/libs/CMakeFiles/telemetry_decoder_libs.dir/tlm_conf.cc.o
+[ 64%] Building CXX object src/algorithms/telemetry_decoder/libs/CMakeFiles/telemetry_decoder_libs.dir/tlm_crc_stats.cc.o
+[ 64%] Building CXX object src/algorithms/input_filter/gnuradio_blocks/CMakeFiles/input_filter_gr_blocks.dir/pulse_blanking_cc.cc.o
+[ 64%] Building CXX object src/algorithms/data_type_adapter/adapters/CMakeFiles/data_type_adapters.dir/byte_to_short.cc.o
+[ 64%] Building CXX object src/algorithms/data_type_adapter/adapters/CMakeFiles/data_type_adapters.dir/cshort_to_grcomplex.cc.o
+[ 64%] Building CXX object src/algorithms/telemetry_decoder/libs/CMakeFiles/telemetry_decoder_libs.dir/tlm_utils.cc.o
+[ 64%] Building CXX object src/algorithms/telemetry_decoder/libs/CMakeFiles/telemetry_decoder_libs.dir/viterbi_decoder.cc.o
+[ 64%] Building CXX object src/algorithms/data_type_adapter/adapters/CMakeFiles/data_type_adapters.dir/ibyte_to_cbyte.cc.o
+[ 64%] Building CXX object src/algorithms/data_type_adapter/adapters/CMakeFiles/data_type_adapters.dir/ibyte_to_complex.cc.o
+[ 64%] Building CXX object src/algorithms/tracking/libs/CMakeFiles/tracking_libs.dir/bayesian_estimation.cc.o
+[ 64%] Building CXX object src/algorithms/libs/rtklib/CMakeFiles/algorithms_libs_rtklib.dir/rtklib_conversions.cc.o
+[ 64%] Building CXX object src/algorithms/tracking/libs/CMakeFiles/tracking_libs.dir/bit_synchronizer.cc.o
+[ 64%] Linking CXX static library libacquisition_libs.a
+[ 64%] Built target acquisition_libs
+[ 64%] Building CXX object src/algorithms/tracking/libs/CMakeFiles/tracking_libs.dir/cpu_multicorrelator.cc.o
+[ 64%] Building CXX object src/algorithms/telemetry_decoder/libs/CMakeFiles/telemetry_decoder_libs.dir/viterbi_decoder_sbas.cc.o
+[ 64%] Building CXX object src/algorithms/data_type_adapter/adapters/CMakeFiles/data_type_adapters.dir/ibyte_to_cshort.cc.o
+[ 64%] Building CXX object src/algorithms/libs/rtklib/CMakeFiles/algorithms_libs_rtklib.dir/rtklib_ephemeris.cc.o
+[ 64%] Building CXX object src/algorithms/data_type_adapter/adapters/CMakeFiles/data_type_adapters.dir/ishort_to_complex.cc.o
+[ 64%] Building CXX object src/algorithms/tracking/libs/CMakeFiles/tracking_libs.dir/cpu_multicorrelator_16sc.cc.o
+[ 65%] Building CXX object src/algorithms/tracking/libs/CMakeFiles/tracking_libs.dir/cpu_multicorrelator_real_codes.cc.o
+[ 65%] Building CXX object src/algorithms/libs/rtklib/CMakeFiles/algorithms_libs_rtklib.dir/rtklib_ionex.cc.o
+[ 65%] Building CXX object src/algorithms/tracking/libs/CMakeFiles/tracking_libs.dir/dll_pll_conf.cc.o
+[ 65%] Building CXX object src/algorithms/libs/rtklib/CMakeFiles/algorithms_libs_rtklib.dir/rtklib_lambda.cc.o
+[ 65%] Linking CXX static library libresampler_gr_blocks.a
+[ 65%] Built target resampler_gr_blocks
+[ 65%] Building CXX object src/algorithms/tracking/libs/CMakeFiles/tracking_libs.dir/exponential_smoother.cc.o
+[ 65%] Building CXX object src/algorithms/resampler/adapters/CMakeFiles/resampler_adapters.dir/direct_resampler_conditioner.cc.o
+[ 65%] Linking CXX static library libtelemetry_decoder_libs.a
+[ 65%] Built target telemetry_decoder_libs
+[ 65%] Building CXX object src/algorithms/libs/rtklib/CMakeFiles/algorithms_libs_rtklib.dir/rtklib_pntpos.cc.o
+[ 66%] Building CXX object src/algorithms/data_type_adapter/adapters/CMakeFiles/data_type_adapters.dir/ishort_to_cshort.cc.o
+[ 67%] Building CXX object src/algorithms/libs/rtklib/CMakeFiles/algorithms_libs_rtklib.dir/rtklib_ppp.cc.o
+[ 67%] Building CXX object src/algorithms/libs/rtklib/CMakeFiles/algorithms_libs_rtklib.dir/rtklib_preceph.cc.o
+[ 67%] Building CXX object src/algorithms/libs/rtklib/CMakeFiles/algorithms_libs_rtklib.dir/rtklib_rtcm.cc.o
+[ 68%] Building CXX object src/algorithms/resampler/adapters/CMakeFiles/resampler_adapters.dir/mmse_resampler_conditioner.cc.o
+[ 68%] Building CXX object src/algorithms/libs/rtklib/CMakeFiles/algorithms_libs_rtklib.dir/rtklib_rtcm2.cc.o
+[ 68%] Building CXX object src/algorithms/libs/rtklib/CMakeFiles/algorithms_libs_rtklib.dir/rtklib_rtcm3.cc.o
+[ 68%] Building CXX object src/algorithms/tracking/libs/CMakeFiles/tracking_libs.dir/kf_conf.cc.o
+[ 68%] Building CXX object src/algorithms/tracking/libs/CMakeFiles/tracking_libs.dir/lock_detectors.cc.o
+[ 68%] Building CXX object src/algorithms/libs/rtklib/CMakeFiles/algorithms_libs_rtklib.dir/rtklib_rtkcmn.cc.o
+[ 68%] Building CXX object src/algorithms/libs/rtklib/CMakeFiles/algorithms_libs_rtklib.dir/rtklib_rtkpos.cc.o
+[ 68%] Building CXX object src/algorithms/tracking/libs/CMakeFiles/tracking_libs.dir/nonlinear_tracking.cc.o
+[ 69%] Building CXX object src/algorithms/libs/rtklib/CMakeFiles/algorithms_libs_rtklib.dir/rtklib_rtksvr.cc.o
+[ 69%] Building CXX object src/algorithms/libs/rtklib/CMakeFiles/algorithms_libs_rtklib.dir/rtklib_sbas.cc.o
+[ 69%] Building CXX object src/algorithms/libs/rtklib/CMakeFiles/algorithms_libs_rtklib.dir/rtklib_solution.cc.o
+[ 69%] Building CXX object src/algorithms/tracking/libs/CMakeFiles/tracking_libs.dir/tcp_communication.cc.o
+[ 69%] Building CXX object src/algorithms/libs/rtklib/CMakeFiles/algorithms_libs_rtklib.dir/rtklib_stream.cc.o
+[ 70%] Building CXX object src/algorithms/tracking/libs/CMakeFiles/tracking_libs.dir/tracking_2nd_DLL_filter.cc.o
+[ 70%] Building CXX object src/algorithms/libs/rtklib/CMakeFiles/algorithms_libs_rtklib.dir/rtklib_tides.cc.o
+[ 70%] Building CXX object src/algorithms/tracking/libs/CMakeFiles/tracking_libs.dir/tracking_2nd_PLL_filter.cc.o
+[ 70%] Building CXX object src/algorithms/tracking/libs/CMakeFiles/tracking_libs.dir/tracking_FLL_PLL_filter.cc.o
+[ 70%] Building CXX object src/algorithms/tracking/libs/CMakeFiles/tracking_libs.dir/tracking_discriminators.cc.o
+[ 70%] Building CXX object src/algorithms/tracking/libs/CMakeFiles/tracking_libs.dir/tracking_loop_filter.cc.o
+[ 70%] Linking CXX static library libobs_gr_blocks.a
+[ 70%] Built target obs_gr_blocks
+[ 71%] Building CXX object src/algorithms/observables/adapters/CMakeFiles/obs_adapters.dir/hybrid_observables.cc.o
+[ 71%] Linking CXX static library libresampler_adapters.a
+[ 71%] Built target resampler_adapters
+[ 71%] Linking CXX static library libsignal_generator_gr_blocks.a
+[ 71%] Built target signal_generator_gr_blocks
+[ 71%] Linking CXX static library libdata_type_adapters.a
+[ 71%] Building CXX object src/algorithms/signal_generator/adapters/CMakeFiles/signal_generator_adapters.dir/signal_generator.cc.o
+[ 71%] Built target data_type_adapters
+[ 71%] Linking CXX static library libinput_filter_gr_blocks.a
+[ 71%] Built target input_filter_gr_blocks
+[ 71%] Building CXX object src/algorithms/input_filter/adapters/CMakeFiles/input_filter_adapters.dir/beamformer_filter.cc.o
+[ 71%] Building CXX object src/algorithms/input_filter/adapters/CMakeFiles/input_filter_adapters.dir/fir_filter.cc.o
+[ 71%] Building CXX object src/algorithms/input_filter/adapters/CMakeFiles/input_filter_adapters.dir/freq_xlating_fir_filter.cc.o
+[ 71%] Building CXX object src/algorithms/input_filter/adapters/CMakeFiles/input_filter_adapters.dir/notch_filter.cc.o
+[ 71%] Building CXX object src/algorithms/input_filter/adapters/CMakeFiles/input_filter_adapters.dir/notch_filter_lite.cc.o
+[ 71%] Building CXX object src/algorithms/input_filter/adapters/CMakeFiles/input_filter_adapters.dir/pulse_blanking_filter.cc.o
+[ 71%] Linking CXX static library libalgorithms_libs_rtklib.a
+[ 71%] Built target algorithms_libs_rtklib
+[ 71%] Running cpp protocol buffer compiler on /mnt/d/work/project/usrp_gnss/gnss-sdr/docs/protobuf/monitor_pvt.proto
+[ 71%] Running cpp protocol buffer compiler on /mnt/d/work/project/usrp_gnss/gnss-sdr/docs/protobuf/galileo_ephemeris.proto
+[ 71%] Running cpp protocol buffer compiler on /mnt/d/work/project/usrp_gnss/gnss-sdr/docs/protobuf/gps_ephemeris.proto
+[ 71%] Building CXX object src/algorithms/PVT/libs/CMakeFiles/pvt_libs.dir/monitor_pvt.pb.cc.o
+[ 72%] Building CXX object src/algorithms/PVT/libs/CMakeFiles/pvt_libs.dir/gps_ephemeris.pb.cc.o
+[ 72%] Building CXX object src/algorithms/PVT/libs/CMakeFiles/pvt_libs.dir/galileo_ephemeris.pb.cc.o
+[ 72%] Building CXX object src/algorithms/PVT/libs/CMakeFiles/pvt_libs.dir/an_packet_printer.cc.o
+[ 72%] Building CXX object src/algorithms/PVT/libs/CMakeFiles/pvt_libs.dir/geohash.cc.o
+[ 72%] Building CXX object src/algorithms/PVT/libs/CMakeFiles/pvt_libs.dir/geojson_printer.cc.o
+[ 72%] Building CXX object src/algorithms/PVT/libs/CMakeFiles/pvt_libs.dir/gpx_printer.cc.o
+[ 72%] Building CXX object src/algorithms/PVT/libs/CMakeFiles/pvt_libs.dir/has_simple_printer.cc.o
+[ 73%] Building CXX object src/algorithms/PVT/libs/CMakeFiles/pvt_libs.dir/monitor_ephemeris_udp_sink.cc.o
+[ 73%] Building CXX object src/algorithms/PVT/libs/CMakeFiles/pvt_libs.dir/monitor_pvt_udp_sink.cc.o
+[ 73%] Building CXX object src/algorithms/PVT/libs/CMakeFiles/pvt_libs.dir/kml_printer.cc.o
+[ 73%] Building CXX object src/algorithms/PVT/libs/CMakeFiles/pvt_libs.dir/nmea_printer.cc.o
+[ 73%] Building CXX object src/algorithms/PVT/libs/CMakeFiles/pvt_libs.dir/pvt_kf.cc.o
+[ 73%] Building CXX object src/algorithms/PVT/libs/CMakeFiles/pvt_libs.dir/pvt_solution.cc.o
+[ 73%] Building CXX object src/algorithms/PVT/libs/CMakeFiles/pvt_libs.dir/rinex_printer.cc.o
+[ 73%] Linking CXX static library libobs_adapters.a
+[ 73%] Built target obs_adapters
+[ 74%] Building CXX object src/algorithms/PVT/libs/CMakeFiles/pvt_libs.dir/rtcm.cc.o
+[ 75%] Linking CXX static library libsignal_generator_adapters.a
+[ 75%] Built target signal_generator_adapters
+[ 75%] Building CXX object src/algorithms/PVT/libs/CMakeFiles/pvt_libs.dir/rtcm_printer.cc.o
+[ 75%] Building CXX object src/algorithms/PVT/libs/CMakeFiles/pvt_libs.dir/rtklib_solver.cc.o
+[ 75%] Building CXX object src/algorithms/PVT/libs/CMakeFiles/pvt_libs.dir/signal_enabled_flags.cc.o
+[ 75%] Linking CXX static library libtracking_libs.a
+[ 75%] Built target tracking_libs
+[ 75%] Building CXX object src/algorithms/tracking/gnuradio_blocks/CMakeFiles/tracking_gr_blocks.dir/dll_pll_veml_tracking.cc.o
+[ 75%] Building CXX object src/algorithms/tracking/gnuradio_blocks/CMakeFiles/tracking_gr_blocks.dir/galileo_e1_tcp_connector_tracking_cc.cc.o
+[ 75%] Building CXX object src/algorithms/tracking/gnuradio_blocks/CMakeFiles/tracking_gr_blocks.dir/gps_l1_ca_gaussian_tracking_cc.cc.o
+[ 76%] Building CXX object src/algorithms/tracking/gnuradio_blocks/CMakeFiles/tracking_gr_blocks.dir/gps_l1_ca_tcp_connector_tracking_cc.cc.o
+[ 76%] Building CXX object src/algorithms/tracking/gnuradio_blocks/CMakeFiles/tracking_gr_blocks.dir/kf_tracking.cc.o
+[ 77%] Linking CXX static library libinput_filter_adapters.a
+[ 77%] Built target input_filter_adapters
+[ 77%] Linking CXX static library libpvt_libs.a
+[ 77%] Linking CXX static library libtracking_gr_blocks.a
+[ 77%] Built target tracking_gr_blocks
+[ 77%] Building CXX object src/algorithms/tracking/adapters/CMakeFiles/tracking_adapters.dir/base_dll_pll_tracking.cc.o
+[ 77%] Building CXX object src/algorithms/tracking/adapters/CMakeFiles/tracking_adapters.dir/beidou_b1i_dll_pll_tracking.cc.o
+[ 78%] Building CXX object src/algorithms/tracking/adapters/CMakeFiles/tracking_adapters.dir/beidou_b3i_dll_pll_tracking.cc.o
+[ 78%] Building CXX object src/algorithms/tracking/adapters/CMakeFiles/tracking_adapters.dir/galileo_e1_dll_pll_veml_tracking.cc.o
+[ 78%] Building CXX object src/algorithms/tracking/adapters/CMakeFiles/tracking_adapters.dir/galileo_e1_tcp_connector_tracking.cc.o
+[ 78%] Building CXX object src/algorithms/tracking/adapters/CMakeFiles/tracking_adapters.dir/galileo_e5a_dll_pll_tracking.cc.o
+[ 78%] Building CXX object src/algorithms/tracking/adapters/CMakeFiles/tracking_adapters.dir/galileo_e5b_dll_pll_tracking.cc.o
+[ 78%] Building CXX object src/algorithms/tracking/adapters/CMakeFiles/tracking_adapters.dir/galileo_e6_dll_pll_tracking.cc.o
+[ 78%] Building CXX object src/algorithms/tracking/adapters/CMakeFiles/tracking_adapters.dir/glonass_l1_ca_dll_pll_tracking.cc.o
+[ 79%] Building CXX object src/algorithms/tracking/adapters/CMakeFiles/tracking_adapters.dir/gps_l1_ca_dll_pll_tracking.cc.o
+[ 79%] Building CXX object src/algorithms/tracking/adapters/CMakeFiles/tracking_adapters.dir/glonass_l2_ca_dll_pll_tracking.cc.o
+[ 79%] Building CXX object src/algorithms/tracking/adapters/CMakeFiles/tracking_adapters.dir/gps_l1_ca_gaussian_tracking.cc.o
+[ 79%] Building CXX object src/algorithms/tracking/adapters/CMakeFiles/tracking_adapters.dir/gps_l1_ca_kf_tracking.cc.o
+[ 79%] Building CXX object src/algorithms/tracking/adapters/CMakeFiles/tracking_adapters.dir/gps_l1_ca_tcp_connector_tracking.cc.o
+[ 79%] Building CXX object src/algorithms/tracking/adapters/CMakeFiles/tracking_adapters.dir/gps_l2_m_dll_pll_tracking.cc.o
+[ 80%] Building CXX object src/algorithms/tracking/adapters/CMakeFiles/tracking_adapters.dir/gps_l5_dll_pll_tracking.cc.o
+[ 80%] Building CXX object src/algorithms/tracking/adapters/CMakeFiles/tracking_adapters.dir/qzss_l1_dll_pll_tracking.cc.o
+[ 80%] Building CXX object src/algorithms/tracking/adapters/CMakeFiles/tracking_adapters.dir/qzss_l5_dll_pll_tracking.cc.o
+[ 80%] Built target pvt_libs
+[ 80%] Running cpp protocol buffer compiler on /mnt/d/work/project/usrp_gnss/gnss-sdr/docs/protobuf/nav_message.proto
+[ 80%] Building CXX object src/algorithms/PVT/gnuradio_blocks/CMakeFiles/pvt_gr_blocks.dir/rtklib_pvt_gs.cc.o
+[ 80%] Building CXX object src/core/libs/CMakeFiles/core_libs.dir/INIReader.cc.o
+[ 80%] Building CXX object src/core/libs/CMakeFiles/core_libs.dir/channel_event.cc.o
+[ 80%] Building CXX object src/core/libs/CMakeFiles/core_libs.dir/channel_status_msg_receiver.cc.o
+[ 80%] Building CXX object src/core/libs/CMakeFiles/core_libs.dir/command_event.cc.o
+[ 80%] Building CXX object src/core/libs/CMakeFiles/core_libs.dir/galileo_e6_has_msg_receiver.cc.o
+[ 81%] Building CXX object src/core/libs/CMakeFiles/core_libs.dir/galileo_tow_map.cc.o
+[ 81%] Building CXX object src/core/libs/CMakeFiles/core_libs.dir/gnss_crypto.cc.o
+[ 81%] Building CXX object src/core/libs/CMakeFiles/core_libs.dir/gnss_sdr_sample_counter.cc.o
+[ 81%] Building CXX object src/core/libs/CMakeFiles/core_libs.dir/gnss_sdr_supl_client.cc.o
+[ 81%] Building CXX object src/core/libs/CMakeFiles/core_libs.dir/ini.cc.o
+[ 81%] Building CXX object src/core/libs/CMakeFiles/core_libs.dir/nav_message_monitor.cc.o
+[ 81%] Building CXX object src/core/libs/CMakeFiles/core_libs.dir/nav_message_udp_sink.cc.o
+[ 82%] Building CXX object src/core/libs/CMakeFiles/core_libs.dir/osnma_helper.cc.o
+[ 82%] Building CXX object src/core/libs/CMakeFiles/core_libs.dir/osnma_msg_receiver.cc.o
+[ 82%] Building CXX object src/core/libs/CMakeFiles/core_libs.dir/osnma_nav_data_manager.cc.o
+[ 82%] Building CXX object src/core/libs/CMakeFiles/core_libs.dir/string_converter.cc.o
+[ 82%] Building CXX object src/core/libs/CMakeFiles/core_libs.dir/nav_message.pb.cc.o
+[ 82%] Linking CXX static library libtracking_adapters.a
+[ 82%] Built target tracking_adapters
+[ 82%] Linking CXX static library libpvt_gr_blocks.a
+[ 82%] Built target pvt_gr_blocks
+[ 82%] Building CXX object src/algorithms/PVT/adapters/CMakeFiles/pvt_adapters.dir/rtklib_pvt.cc.o
+[ 82%] Linking CXX static library libcore_libs.a
+[ 82%] Built target core_libs
+[ 82%] Building CXX object src/algorithms/signal_source/libs/CMakeFiles/signal_source_libs.dir/gnss_sdr_timestamp.cc.o
+[ 82%] Building CXX object src/algorithms/channel/libs/CMakeFiles/channel_libs.dir/channel_fsm.cc.o
+[ 82%] Building CXX object src/algorithms/signal_source/libs/CMakeFiles/signal_source_libs.dir/gnss_sdr_valve.cc.o
+[ 82%] Building CXX object src/algorithms/channel/libs/CMakeFiles/channel_libs.dir/channel_msg_receiver_cc.cc.o
+[ 82%] Building CXX object src/algorithms/signal_source/libs/CMakeFiles/signal_source_libs.dir/rtl_tcp_commands.cc.o
+[ 82%] Building CXX object src/algorithms/signal_source/libs/CMakeFiles/signal_source_libs.dir/rtl_tcp_dongle_info.cc.o
+[ 82%] Building CXX object src/algorithms/telemetry_decoder/gnuradio_blocks/CMakeFiles/telemetry_decoder_gr_blocks.dir/beidou_b1i_telemetry_decoder_gs.cc.o
+[ 82%] Building CXX object src/algorithms/telemetry_decoder/gnuradio_blocks/CMakeFiles/telemetry_decoder_gr_blocks.dir/beidou_b3i_telemetry_decoder_gs.cc.o
+[ 82%] Building CXX object src/algorithms/telemetry_decoder/gnuradio_blocks/CMakeFiles/telemetry_decoder_gr_blocks.dir/galileo_telemetry_decoder_gs.cc.o
+[ 82%] Building CXX object src/algorithms/telemetry_decoder/gnuradio_blocks/CMakeFiles/telemetry_decoder_gr_blocks.dir/glonass_l1_ca_telemetry_decoder_gs.cc.o
+[ 83%] Building CXX object src/algorithms/telemetry_decoder/gnuradio_blocks/CMakeFiles/telemetry_decoder_gr_blocks.dir/glonass_l2_ca_telemetry_decoder_gs.cc.o
+[ 83%] Building CXX object src/algorithms/telemetry_decoder/gnuradio_blocks/CMakeFiles/telemetry_decoder_gr_blocks.dir/gps_l2c_telemetry_decoder_gs.cc.o
+[ 83%] Building CXX object src/algorithms/telemetry_decoder/gnuradio_blocks/CMakeFiles/telemetry_decoder_gr_blocks.dir/gps_l1_ca_telemetry_decoder_gs.cc.o
+[ 83%] Building CXX object src/algorithms/telemetry_decoder/gnuradio_blocks/CMakeFiles/telemetry_decoder_gr_blocks.dir/gps_l5_telemetry_decoder_gs.cc.o
+[ 83%] Building CXX object src/algorithms/telemetry_decoder/gnuradio_blocks/CMakeFiles/telemetry_decoder_gr_blocks.dir/sbas_l1_telemetry_decoder_gs.cc.o
+[ 83%] Building CXX object src/algorithms/telemetry_decoder/gnuradio_blocks/CMakeFiles/telemetry_decoder_gr_blocks.dir/telemetry_impl_interface.cc.o
+[ 84%] Linking CXX static library libpvt_adapters.a
+[ 84%] Built target pvt_adapters
+[ 84%] Linking CXX static library libsignal_source_libs.a
+[ 84%] Built target signal_source_libs
+[ 84%] Building CXX object src/algorithms/signal_source/gnuradio_blocks/CMakeFiles/signal_source_gr_blocks.dir/fifo_reader.cc.o
+[ 84%] Building CXX object src/algorithms/signal_source/gnuradio_blocks/CMakeFiles/signal_source_gr_blocks.dir/gr_complex_ip_packet_source.cc.o
+[ 84%] Building CXX object src/algorithms/signal_source/gnuradio_blocks/CMakeFiles/signal_source_gr_blocks.dir/labsat23_source.cc.o
+[ 84%] Building CXX object src/algorithms/signal_source/gnuradio_blocks/CMakeFiles/signal_source_gr_blocks.dir/rtl_tcp_signal_source_c.cc.o
+[ 85%] Building CXX object src/algorithms/signal_source/gnuradio_blocks/CMakeFiles/signal_source_gr_blocks.dir/unpack_2bit_samples.cc.o
+[ 85%] Building CXX object src/algorithms/signal_source/gnuradio_blocks/CMakeFiles/signal_source_gr_blocks.dir/unpack_byte_2bit_cpx_samples.cc.o
+[ 85%] Building CXX object src/algorithms/signal_source/gnuradio_blocks/CMakeFiles/signal_source_gr_blocks.dir/unpack_byte_2bit_samples.cc.o
+[ 85%] Building CXX object src/algorithms/signal_source/gnuradio_blocks/CMakeFiles/signal_source_gr_blocks.dir/unpack_byte_4bit_samples.cc.o
+[ 85%] Building CXX object src/algorithms/signal_source/gnuradio_blocks/CMakeFiles/signal_source_gr_blocks.dir/unpack_intspir_1bit_samples.cc.o
+[ 85%] Linking CXX static library libchannel_libs.a
+[ 85%] Built target channel_libs
+[ 85%] Building CXX object src/algorithms/signal_source/gnuradio_blocks/CMakeFiles/signal_source_gr_blocks.dir/unpack_ntlab_2bit_samples.cc.o
+[ 85%] Building CXX object src/algorithms/signal_source/gnuradio_blocks/CMakeFiles/signal_source_gr_blocks.dir/unpack_short_byte_samples.cc.o
+[ 85%] Building CXX object src/algorithms/acquisition/gnuradio_blocks/CMakeFiles/acquisition_gr_blocks.dir/galileo_e5a_noncoherent_iq_acquisition_caf_cc.cc.o
+[ 86%] Building CXX object src/algorithms/channel/adapters/CMakeFiles/channel_adapters.dir/channel.cc.o
+[ 86%] Building CXX object src/algorithms/acquisition/gnuradio_blocks/CMakeFiles/acquisition_gr_blocks.dir/galileo_pcps_8ms_acquisition_cc.cc.o
+[ 87%] Building CXX object src/algorithms/acquisition/gnuradio_blocks/CMakeFiles/acquisition_gr_blocks.dir/pcps_acquisition.cc.o
+[ 87%] Building CXX object src/algorithms/acquisition/gnuradio_blocks/CMakeFiles/acquisition_gr_blocks.dir/pcps_acquisition_fine_doppler_cc.cc.o
+[ 87%] Building CXX object src/algorithms/acquisition/gnuradio_blocks/CMakeFiles/acquisition_gr_blocks.dir/pcps_assisted_acquisition_cc.cc.o
+[ 87%] Building CXX object src/algorithms/acquisition/gnuradio_blocks/CMakeFiles/acquisition_gr_blocks.dir/pcps_cccwsr_acquisition_cc.cc.o
+[ 87%] Building CXX object src/algorithms/acquisition/gnuradio_blocks/CMakeFiles/acquisition_gr_blocks.dir/pcps_quicksync_acquisition_cc.cc.o
+[ 87%] Linking CXX static library libtelemetry_decoder_gr_blocks.a
+[ 87%] Built target telemetry_decoder_gr_blocks
+[ 88%] Building CXX object src/algorithms/signal_source/gnuradio_blocks/CMakeFiles/signal_source_gr_blocks.dir/unpack_spir_gss6450_samples.cc.o
+[ 88%] Linking CXX static library libchannel_adapters.a
+[ 88%] Built target channel_adapters
+[ 88%] Building CXX object src/algorithms/acquisition/gnuradio_blocks/CMakeFiles/acquisition_gr_blocks.dir/pcps_tong_acquisition_cc.cc.o
+[ 89%] Building CXX object src/algorithms/telemetry_decoder/adapters/CMakeFiles/telemetry_decoder_adapters.dir/beidou_b3i_telemetry_decoder.cc.o
+[ 89%] Building CXX object src/algorithms/telemetry_decoder/adapters/CMakeFiles/telemetry_decoder_adapters.dir/galileo_e1b_telemetry_decoder.cc.o
+[ 89%] Building CXX object src/algorithms/telemetry_decoder/adapters/CMakeFiles/telemetry_decoder_adapters.dir/beidou_b1i_telemetry_decoder.cc.o
+[ 89%] Building CXX object src/algorithms/telemetry_decoder/adapters/CMakeFiles/telemetry_decoder_adapters.dir/galileo_e5a_telemetry_decoder.cc.o
+[ 89%] Building CXX object src/algorithms/telemetry_decoder/adapters/CMakeFiles/telemetry_decoder_adapters.dir/galileo_e5b_telemetry_decoder.cc.o
+[ 89%] Building CXX object src/algorithms/telemetry_decoder/adapters/CMakeFiles/telemetry_decoder_adapters.dir/galileo_e6_telemetry_decoder.cc.o
+[ 90%] Building CXX object src/algorithms/telemetry_decoder/adapters/CMakeFiles/telemetry_decoder_adapters.dir/glonass_l1_ca_telemetry_decoder.cc.o
+[ 90%] Building CXX object src/algorithms/telemetry_decoder/adapters/CMakeFiles/telemetry_decoder_adapters.dir/glonass_l2_ca_telemetry_decoder.cc.o
+[ 90%] Building CXX object src/algorithms/telemetry_decoder/adapters/CMakeFiles/telemetry_decoder_adapters.dir/gps_l1_ca_telemetry_decoder.cc.o
+[ 90%] Building CXX object src/algorithms/telemetry_decoder/adapters/CMakeFiles/telemetry_decoder_adapters.dir/gps_l2c_telemetry_decoder.cc.o
+[ 90%] Building CXX object src/algorithms/telemetry_decoder/adapters/CMakeFiles/telemetry_decoder_adapters.dir/gps_l5_telemetry_decoder.cc.o
+[ 90%] Building CXX object src/algorithms/telemetry_decoder/adapters/CMakeFiles/telemetry_decoder_adapters.dir/qzss_l1_telemetry_decoder.cc.o
+[ 90%] Building CXX object src/algorithms/telemetry_decoder/adapters/CMakeFiles/telemetry_decoder_adapters.dir/qzss_l5_telemetry_decoder.cc.o
+[ 91%] Building CXX object src/algorithms/telemetry_decoder/adapters/CMakeFiles/telemetry_decoder_adapters.dir/sbas_l1_telemetry_decoder.cc.o
+[ 91%] Building CXX object src/algorithms/telemetry_decoder/adapters/CMakeFiles/telemetry_decoder_adapters.dir/telemetry_decoder_adapter_base.cc.o
+[ 91%] Linking CXX static library libsignal_source_gr_blocks.a
+[ 91%] Built target signal_source_gr_blocks
+[ 91%] Building CXX object src/algorithms/signal_source/adapters/CMakeFiles/signal_source_adapters.dir/custom_udp_signal_source.cc.o
+[ 91%] Building CXX object src/algorithms/signal_source/adapters/CMakeFiles/signal_source_adapters.dir/fifo_signal_source.cc.o
+[ 91%] Building CXX object src/algorithms/signal_source/adapters/CMakeFiles/signal_source_adapters.dir/file_signal_source.cc.o
+[ 91%] Building CXX object src/algorithms/signal_source/adapters/CMakeFiles/signal_source_adapters.dir/file_source_base.cc.o
+[ 92%] Linking CXX static library libacquisition_gr_blocks.a
+[ 92%] Built target acquisition_gr_blocks
+[ 93%] Building CXX object src/algorithms/signal_source/adapters/CMakeFiles/signal_source_adapters.dir/file_timestamp_signal_source.cc.o
+[ 93%] Building CXX object src/algorithms/signal_source/adapters/CMakeFiles/signal_source_adapters.dir/four_bit_cpx_file_signal_source.cc.o
+[ 93%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/base_pcps_acquisition.cc.o
+[ 93%] Building CXX object src/algorithms/signal_source/adapters/CMakeFiles/signal_source_adapters.dir/gen_signal_source.cc.o
+[ 93%] Building CXX object src/algorithms/signal_source/adapters/CMakeFiles/signal_source_adapters.dir/labsat_signal_source.cc.o
+[ 93%] Building CXX object src/algorithms/signal_source/adapters/CMakeFiles/signal_source_adapters.dir/multichannel_file_signal_source.cc.o
+[ 93%] Building CXX object src/algorithms/signal_source/adapters/CMakeFiles/signal_source_adapters.dir/nsr_file_signal_source.cc.o
+[ 93%] Building CXX object src/algorithms/signal_source/adapters/CMakeFiles/signal_source_adapters.dir/ntlab_file_signal_source.cc.o
+[ 94%] Building CXX object src/algorithms/signal_source/adapters/CMakeFiles/signal_source_adapters.dir/signal_source_base.cc.o
+[ 94%] Building CXX object src/algorithms/signal_source/adapters/CMakeFiles/signal_source_adapters.dir/rtl_tcp_signal_source.cc.o
+[ 94%] Building CXX object src/algorithms/signal_source/adapters/CMakeFiles/signal_source_adapters.dir/spir_file_signal_source.cc.o
+[ 94%] Building CXX object src/algorithms/signal_source/adapters/CMakeFiles/signal_source_adapters.dir/spir_gss6450_file_signal_source.cc.o
+[ 94%] Building CXX object src/algorithms/signal_source/adapters/CMakeFiles/signal_source_adapters.dir/two_bit_cpx_file_signal_source.cc.o
+[ 94%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/base_pcps_acquisition_custom.cc.o
+[ 94%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/beidou_b1i_pcps_acquisition.cc.o
+[ 94%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/beidou_b3i_pcps_acquisition.cc.o
+[ 94%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/galileo_e1_pcps_8ms_ambiguous_acquisition.cc.o
+[ 94%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/galileo_e1_pcps_ambiguous_acquisition.cc.o
+[ 94%] Building CXX object src/algorithms/signal_source/adapters/CMakeFiles/signal_source_adapters.dir/two_bit_packed_file_signal_source.cc.o
+[ 95%] Building CXX object src/algorithms/signal_source/adapters/CMakeFiles/signal_source_adapters.dir/uhd_signal_source.cc.o
+[ 95%] Linking CXX static library libtelemetry_decoder_adapters.a
+[ 95%] Built target telemetry_decoder_adapters
+[ 95%] Building CXX object src/algorithms/signal_source/adapters/CMakeFiles/signal_source_adapters.dir/zmq_signal_source.cc.o
+[ 96%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/galileo_e1_pcps_cccwsr_ambiguous_acquisition.cc.o
+[ 96%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/galileo_e1_pcps_quicksync_ambiguous_acquisition.cc.o
+[ 96%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/galileo_e1_pcps_tong_ambiguous_acquisition.cc.o
+[ 96%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/galileo_e5a_noncoherent_iq_acquisition_caf.cc.o
+[ 96%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/galileo_e5a_pcps_acquisition.cc.o
+[ 96%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/galileo_e5b_pcps_acquisition.cc.o
+[ 96%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/galileo_e6_pcps_acquisition.cc.o
+[ 97%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/glonass_l1_ca_pcps_acquisition.cc.o
+[ 97%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/glonass_l2_ca_pcps_acquisition.cc.o
+[ 97%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/gps_l1_ca_pcps_acquisition.cc.o
+[ 97%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/gps_l1_ca_pcps_acquisition_fine_doppler.cc.o
+[ 97%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/gps_l1_ca_pcps_assisted_acquisition.cc.o
+[ 97%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/gps_l1_ca_pcps_quicksync_acquisition.cc.o
+[ 97%] Linking CXX static library libsignal_source_adapters.a
+[ 97%] Built target signal_source_adapters
+[ 97%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/gps_l1_ca_pcps_tong_acquisition.cc.o
+[ 98%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/gps_l2_m_pcps_acquisition.cc.o
+[ 98%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/gps_l5i_pcps_acquisition.cc.o
+[ 98%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/qzss_l1_pcps_acquisition.cc.o
+[ 98%] Building CXX object src/algorithms/acquisition/adapters/CMakeFiles/acquisition_adapters.dir/qzss_l5i_pcps_acquisition.cc.o
+[ 98%] Linking CXX static library libacquisition_adapters.a
+[ 98%] Built target acquisition_adapters
+[ 98%] Building CXX object src/core/receiver/CMakeFiles/core_receiver.dir/control_thread.cc.o
+[ 98%] Building CXX object src/core/receiver/CMakeFiles/core_receiver.dir/file_configuration.cc.o
+[ 98%] Building CXX object src/core/receiver/CMakeFiles/core_receiver.dir/gnss_block_factory.cc.o
+[ 98%] Building CXX object src/core/receiver/CMakeFiles/core_receiver.dir/gnss_flowgraph.cc.o
+[ 98%] Building CXX object src/core/receiver/CMakeFiles/core_receiver.dir/in_memory_configuration.cc.o
+[ 98%] Building CXX object src/core/receiver/CMakeFiles/core_receiver.dir/tcp_cmd_interface.cc.o
+[ 99%] Linking CXX static library libcore_receiver.a
+[ 99%] Built target core_receiver
+[ 99%] Building CXX object src/main/CMakeFiles/gnss-sdr.dir/main.cc.o
+[ 99%] Building CXX object utils/front-end-cal/CMakeFiles/front_end_cal_lib.dir/front_end_cal.cc.o
+[ 99%] Linking CXX executable gnss-sdr
+[ 99%] Built target gnss-sdr
+[ 99%] Linking CXX static library libfront_end_cal_lib.a
+[ 99%] Built target front_end_cal_lib
+[100%] Building CXX object utils/front-end-cal/CMakeFiles/front-end-cal.dir/main.cc.o
+[100%] Linking CXX executable front-end-cal
+[100%] Built target front-end-cal
+BUILD_EXIT=0

@@ -1,0 +1,13 @@
+# Target labels
+ volk_gnsssdr_module
+# Source files and their labels
+/mnt/d/work/project/usrp_gnss/gnss-sdr/build/CMakeFiles/volk_gnsssdr_module
+/mnt/d/work/project/usrp_gnss/gnss-sdr/build/CMakeFiles/volk_gnsssdr_module.rule
+/mnt/d/work/project/usrp_gnss/gnss-sdr/build/CMakeFiles/volk_gnsssdr_module-complete.rule
+/mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/src/volk_gnsssdr_module-stamp/volk_gnsssdr_module-build.rule
+/mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/src/volk_gnsssdr_module-stamp/volk_gnsssdr_module-configure.rule
+/mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/src/volk_gnsssdr_module-stamp/volk_gnsssdr_module-download.rule
+/mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/src/volk_gnsssdr_module-stamp/volk_gnsssdr_module-install.rule
+/mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/src/volk_gnsssdr_module-stamp/volk_gnsssdr_module-mkdir.rule
+/mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/src/volk_gnsssdr_module-stamp/volk_gnsssdr_module-patch.rule
+/mnt/d/work/project/usrp_gnss/gnss-sdr/build/volk_gnsssdr_module/src/volk_gnsssdr_module-stamp/volk_gnsssdr_module-update.rule

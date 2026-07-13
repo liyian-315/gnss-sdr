@@ -1,0 +1,47 @@
+[  1%] Built target gnss_sdr_flags
+[  2%] Built target conditioner_adapters
+[  3%] Built target telemetry_decoder_libswiftcnav
+[  3%] Built target observables_libs
+[  6%] Built target core_system_parameters
+[  7%] Built target core_monitor
+[  9%] Built target volk_gnsssdr_module
+[  9%] Built target data_type_gr_blocks
+[ 14%] Built target algorithms_libs
+[ 14%] Built target obs_gr_blocks
+[ 14%] Built target signal_generator_gr_blocks
+[ 14%] Built target resampler_gr_blocks
+[ 15%] Built target telemetry_decoder_libs
+[ 15%] Built target input_filter_gr_blocks
+[ 16%] Built target obs_adapters
+[ 18%] Built target data_type_adapters
+[ 19%] Built target signal_generator_adapters
+[ 20%] Built target resampler_adapters
+[ 22%] Built target algorithms_libs_rtklib
+[ 24%] Built target tracking_libs
+[ 25%] Built target input_filter_adapters
+[ 25%] Built target acquisition_libs
+[ 26%] Built target tracking_gr_blocks
+[ 29%] Built target pvt_libs
+[ 29%] Built target pvt_gr_blocks
+[ 32%] Built target tracking_adapters
+[ 33%] Built target pvt_adapters
+[ 81%] Built target core_libs_supl
+[ 83%] Built target core_libs
+[ 83%] Built target channel_libs
+[ 83%] Built target signal_source_libs
+[ 84%] Built target channel_adapters
+[ 85%] Built target telemetry_decoder_gr_blocks
+[ 87%] Built target signal_source_gr_blocks
+[ 90%] Built target telemetry_decoder_adapters
+[ 93%] Built target signal_source_adapters
+[ 94%] Building CXX object src/algorithms/acquisition/gnuradio_blocks/CMakeFiles/acquisition_gr_blocks.dir/pcps_acquisition.cc.o
+[ 95%] Linking CXX static library libacquisition_gr_blocks.a
+[ 95%] Built target acquisition_gr_blocks
+[ 98%] Built target acquisition_adapters
+[ 99%] Built target core_receiver
+[ 99%] Built target front_end_cal_lib
+[ 99%] Linking CXX executable gnss-sdr
+[ 99%] Linking CXX executable front-end-cal
+[ 99%] Built target gnss-sdr
+[100%] Built target front-end-cal
+BUILD6_EXIT=0
