@@ -28,6 +28,7 @@
 | 03 | `03_data_structures_interfaces.md` | 关键数据结构（Gnss_Synchro、Acq_Conf）与接口层级 | 需要传参 / 扩字段 / 加配置项时 | ✅ 初稿 |
 | 04 | `04_retrofit_plan_multipath_multisource.md` | 改造方案：多径识别 + 多源信号的切入点与设计 | 动手改造前 / 定方案时 | 🟡 规划中 |
 | 05 | `05_pitfalls_and_decisions_log.md` | 踩坑、关键决策、疑问（按日期追加） | 遇到怪问题 / 想知道"为什么这么做"时 | 🟡 持续追加 |
+| 06 | `06_b1c_b210_two_path_usage.md` | B1C + USRP B210 直采、两路径配置、编译运行步骤 | 在 Ubuntu 测试机上跑 B1C/B210 时 | 🟡 进行中 |
 
 > 图例：✅ 已成稿可用 · 🟡 进行中 · ⬜ 未开始
 
@@ -38,7 +39,7 @@
 > **维护约定**：每完成一个里程碑，更新这一节 + 在 `05_pitfalls_and_decisions_log.md` 追加一条。
 > 只改这里和相关的那一篇，不要动无关文档，省 token。
 
-**当前阶段：`工具就绪✅ → 等明天真实 B1I 数据`（手册见 `USAGE_B1I.md`）**
+**当前阶段：`B1C/B210 直采双路径原型已接入`（手册见 `06_b1c_b210_two_path_usage.md`）**
 
 🎯 **方向已锁定**（用户 2026-07-12 决策）：目标信号 **BeiDou B1I**；用途 **提升定位精度**（两条径要影响 PVT）；
 覆盖 **近距+远距**两种多径。方案为 **A（捕获双峰）+ B（跟踪多相关器）+ PVT 整合** 三阶段，详见 `04`。
@@ -46,7 +47,8 @@
 ⚠️ **关键认知**：不是把两条径的两个伪距都塞进 PVT（反射径偏长，直接塞会**变差**）；而是跟踪两条径 →
 判别直射(LOS) → 每星只送**一条干净/校正后**观测量进解算器，第二径走旁路做分析。（详见 `04 §0`）
 
-📌 **已对代码做的实质修改**（全在捕获层，详见 `05`）：① 注册 Signal_Generator；② 第二峰检测；③ `acquire_second_path`；④ 多径巡检日志。
+📌 **已对代码做的实质修改**（详见 `05` / `06`）：① 注册 Signal_Generator；② 第二峰检测；③ `acquire_second_path`；④ 多径巡检日志；
+⑤ B1C acquisition；⑥ `Signal_Path` 两路径通道；⑦ B1C tracking adapter；⑧ B210 直采配置。
 
 - [x] 读懂 acquisition 核心 + 整体架构 + 文档体系；双径可行性调研；锁定方向 + 分阶段方案
 - [x] **Stage 0**：WSL2 编译通过；注册 Signal_Generator；GPS L1 仿真链路 + h5py 分析
@@ -54,11 +56,13 @@
 - [x] **Stage 1b**：`acquire_second_path` + 两通道同 PRN（纯配置配对）。通道0跟直射、通道1跟反射
 - [x] **面向真实数据的工具就绪**：`USAGE_B1I.md` + `bds_b1i_multipath.conf`(扫描) + `bds_b1i_dualpath.conf`(双路径跟踪)
       + `analyze_multipath.py`。多径巡检日志(需 `GLOG_logtostderr=1`)。假数据烟测通过（B1I管线构建/运行 OK）
-- [ ] ⏳ **等真实 B1I 数据**（用户明天采集）：跑 survey 扫多径 → 双路径跟踪 → 看是否出双伪距
+- [x] **B1C/B210 直采原型**：`my_bds_b1c_multipath.conf` 改为 UHD/B210 实时采集，`Channels_C1.signal_paths=2`
+      自动给每颗星分配主径/第二径。B1C tracking adapter 已接入。
+- [ ] **B1C CNAV1 telemetry decoder**：目前仍是关键缺口；没有它，B1C TOW-backed pseudorange/PVT 可能无效。
 - [ ] Stage 2：跟踪域多相关器（近距<1码片多径）
 - [ ] Stage 3：LOS 判别 + PVT 整合（每星一条干净观测量；参考 `duplicated_satellites_test`）
 
-**下一步（明天）**：用户拿到真实 B1I 数据 → 按 `USAGE_B1I.md` 操作。之后据实测结果推进 Stage 2/3。
+**下一步**：在 Ubuntu + USRP B210 测试机按 `06_b1c_b210_two_path_usage.md` 编译运行；若要稳定输出有效 B1C 伪距/PVT，继续补 B1C CNAV1 电文解码。
 
 ---
 

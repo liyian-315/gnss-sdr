@@ -9,6 +9,46 @@
 
 ---
 
+## 2026-07-13
+
+### ✅ B1C + USRP B210 直采双路径原型
+
+**背景**：用户确认测试机为 USRP B210，要求 GNSS-SDR 本身采集后直接做多径检测，不要依赖固定采样文件；目标信号为 B1C，并要求每颗卫星两条路径持续跟踪并输出路径信息。
+
+**关键改造**：
+- 运行配置 `dev_notes/sim/my_bds_b1c_multipath.conf` 改为 `UHD_Signal_Source`，默认 `freq=1575420000`、`sampling_frequency=4000000`、`gain=50`、`antenna=RX2`。
+- B1C 在运行链路里使用 `C1`，因为 `Gnss_Synchro.Signal` 是两字符字段，不能直接塞 `B1C` 三字符。
+- `Channels_C1.signal_paths=2`：每颗 B1C PRN 自动生成 `Signal_Path=0/1` 两条通道；path 0 用主峰，path 1 自动用捕获阶段接受的第二峰。
+- 新增 `BEIDOU_B1C_DLL_PLL_Tracking` 适配器，并在 `dll_pll_veml_tracking.cc` 里接入 B1C pilot/data 本地码生成。
+- PVT/RTCM 侧只消费 `Signal_Path=0`，第二径保留在 tracking/observables/monitor dump 里做多径分析，避免反射径直接污染 RTKLIB。
+
+**验证**：
+- `tracking_gr_blocks` 编译通过。
+- `tracking_adapters` 编译通过，并生成包含 `beidou_b1c_dll_pll_tracking.cc.o` 的 `libtracking_adapters.a`。
+- `core_monitor` 编译通过，protobuf monitor 的 `signal_path` 字段可用。
+- `gnss_flowgraph.cc.o` 和 `gnss_block_factory.cc.o` 单独编译完成。
+- 当前 Windows/WSL `/mnt/d` 路径上完整 `gnss-sdr` Release 全量重编非常慢；已有 `build-wsl-codex/src/main/gnss-sdr` 可执行产物能输出 `gnss-sdr version 0.0.21`。测试机建议放 Linux 本地磁盘编译。
+
+### ⚠️ 坑：B1C CNAV1 电文解码尚未完成
+
+B1C acquisition 和 tracking 已经接入，但 native B1C CNAV1 telemetry decoder 还没有实现。
+
+影响：
+- 可以做 B210 直采、B1C 捕获、多径第二峰检测、两路径持续跟踪、tracking dump、monitor 输出。
+- 如果没有 B1C CNAV1 解码，带 TOW 的有效伪距和 PVT 可能仍然无效。
+- 配置里的 `TelemetryDecoder_C1.implementation=BEIDOU_B1C_Dummy_Telemetry_Decoder` 是直通占位，只负责把 tracking 输出继续送到 observables，不代表 B1C 电文解码已经完成。
+
+### ✅ 修复：B1C 配置不能使用 GPS L1 C/A telemetry decoder
+
+测试机日志显示：B210 已正常识别和调谐，但 Channel 0 实例化后工厂捕获 `std::exception`，随后 `Can't connect channel 0 internally`。原因是 `TelemetryDecoder_C1.implementation=GPS_L1_CA_Telemetry_Decoder` 不接受 `C1/B1C` 信号。
+
+处理：
+- 新增 `BEIDOU_B1C_Dummy_Telemetry_Decoder`。
+- 内部 GNU Radio block 输入/输出都是 `Gnss_Synchro`，原样透传，但强制 `Flag_valid_word=false`、`Flag_valid_pseudorange=false`。
+- 这样采集、捕获、两路径跟踪、dump/monitor 能跑通；有效伪距/PVT 仍等待 native B1C CNAV1 decoder。
+
+---
+
 ## 2026-07-12
 
 ### ✅ 工具就绪：面向真实 B1I 数据的多径检测 + 双路径跟踪（明天可直接用）

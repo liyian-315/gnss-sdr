@@ -28,6 +28,7 @@
 #include "array_signal_conditioner.h"
 #include "beamformer_filter.h"
 #include "beidou_b1c_dll_pll_tracking.h"
+#include "beidou_b1c_dummy_telemetry_decoder.h"
 #include "beidou_b1c_pcps_acquisition.h"
 #include "beidou_b1i_dll_pll_tracking.h"
 #include "beidou_b1i_pcps_acquisition.h"
@@ -754,6 +755,10 @@ std::unique_ptr<TelemetryDecoderInterface> get_tlm_block(
     else if (implementation == "BEIDOU_B1I_Telemetry_Decoder")
         {
             return std::make_unique<BeidouB1iTelemetryDecoder>(configuration, role, in_streams, out_streams);
+        }
+    else if (implementation == "BEIDOU_B1C_Dummy_Telemetry_Decoder")
+        {
+            return std::make_unique<BeidouB1cDummyTelemetryDecoder>(configuration, role, in_streams, out_streams);
         }
     else if (implementation == "BEIDOU_B3I_Telemetry_Decoder")
         {
