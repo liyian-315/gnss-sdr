@@ -39,7 +39,10 @@
 > **维护约定**：每完成一个里程碑，更新这一节 + 在 `05_pitfalls_and_decisions_log.md` 追加一条。
 > 只改这里和相关的那一篇，不要动无关文档，省 token。
 
-**当前阶段：`B1C/B210 直采双路径原型已接入`（手册见 `06_b1c_b210_two_path_usage.md`）**
+**当前阶段：`服务器编译通过 → 待 B210 实跑 B1I 双路径`（手册见 `06`）**
+
+> 🔧 **目标已澄清 = B1I**（非 B1C）。运行用 stock B1I 链路 + `signal_paths=2` 两路径机制；
+> B1C 那套代码本目标用不到（且 B1C 缺 CNAV1 电文解码，B1I 电文/伪距 stock 就有）。见 `05`(2026-07-14)。
 
 🎯 **方向已锁定**（用户 2026-07-12 决策）：目标信号 **BeiDou B1I**；用途 **提升定位精度**（两条径要影响 PVT）；
 覆盖 **近距+远距**两种多径。方案为 **A（捕获双峰）+ B（跟踪多相关器）+ PVT 整合** 三阶段，详见 `04`。
@@ -58,7 +61,9 @@
       + `analyze_multipath.py`。多径巡检日志(需 `GLOG_logtostderr=1`)。假数据烟测通过（B1I管线构建/运行 OK）
 - [x] **B1C/B210 直采原型**：`my_bds_b1c_multipath.conf` 改为 UHD/B210 实时采集，`Channels_C1.signal_paths=2`
       自动给每颗星分配主径/第二径。B1C tracking adapter 已接入。
-- [ ] **B1C CNAV1 telemetry decoder**：目前仍是关键缺口；没有它，B1C TOW-backed pseudorange/PVT 可能无效。
+- [x] **服务器(Ubuntu18.04/gcc7/GR3.7)编译通过**：老式 `mkdir build;cmake ..`(3.10.2 不支持 `-S/-B`) + 先清旧 build。产物 `gnss-sdr 0.0.21`。
+- [x] **B1I 双路径配置就绪**：`my_bds_b1i_twopath.conf`（stock B1I 链路 + `Channels_B1.signal_paths=2` + 多径检测 + dump）。⏳ 待 B210 实跑。
+- [ ] **B1C CNAV1 telemetry decoder**：B1C 专用缺口（**B1I 目标不需要**）；没有它 B1C TOW-backed pseudorange/PVT 可能无效。
 - [ ] Stage 2：跟踪域多相关器（近距<1码片多径）
 - [ ] Stage 3：LOS 判别 + PVT 整合（每星一条干净观测量；参考 `duplicated_satellites_test`）
 

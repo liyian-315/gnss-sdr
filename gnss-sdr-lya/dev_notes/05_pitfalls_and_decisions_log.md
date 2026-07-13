@@ -11,6 +11,27 @@
 
 ## 2026-07-13
 
+## 2026-07-14
+
+### ✅ 服务器(Ubuntu18.04/gcc7/GR3.7)编译通过 + B1I 双路径配置就绪
+- **服务器环境**：NUC7i7，`gcc 7.3.0 / Boost 1.65.1 / UHD 3.10.3 / cmake 3.10.2`（≈Ubuntu 18.04）。代码在此**编译通过**，产物 `gnss-sdr 0.0.21`。
+- **cmake 3.10.2 两个坑（之前报错主因）**：① `cmake -S . -B build` 语法要 cmake≥3.13，3.10.2 不支持 → 必须老式 `mkdir build && cd build && cmake ..`；② 拷来的旧 build 目录 CMakeCache 指向旧机路径 → 先 `rm -rf build*`。
+- **版本门槛其实都过**：GNSS-SDR 要求 cmake≥2.8.12 / Boost≥1.53 / GNU Radio≥3.7.3，18.04 全满足；代码在 gcc7/GR3.7 也能编（不只 24.04）。
+- **目标澄清 = B1I（不是 B1C）**：运行配置 `my_bds_b1c_multipath.conf`（名字有误导）其实是 **B1I**——`freq=1561098000`、`signal=B1`、全 `BEIDOU_B1I_*` stock 链路 + 多径检测。**B1C 那套代码本目标用不到**（且 B1C 缺 CNAV1 电文解码；B1I 电文/伪距 stock 就有，更适合"输出伪距"目标）。
+- **双路径机制确认(读码)**：`Gnss_Synchro::Signal_Path` 驱动——`pcps_acquisition.cc:689/798/811` 里 `Signal_Path==1` 的通道**自动**捕获第二峰；`rtklib_pvt_gs.cc:2077` 只放行 `Signal_Path==0`。`Channels_<sig>.signal_paths=2`(`gnss_flowgraph.cc:1568` 等)信号无关，B1I 直接可用。
+- **交付**：`dev_notes/sim/my_bds_b1i_twopath.conf`（B1I + `signal_paths=2` + dump）。服务器上可由 sed 从现有 B1I 配置生成（见对话）。
+- **待用户**：B210 实跑结果（MULTIPATH 日志 / 同 PRN 两通道 Tracking / observables 双径伪距）；**确认信号确为 B1I@1561.098MHz**（若实发 B1C 则捕不到）。
+
+### 🔎 Claude 重新接手（re-onboard）+ 报错排查中
+- **上下文**：项目已从 `D:\...\gnss-sdr` 迁到本副本 `D:\...\gnss-sdr-main-gaizao\gnss-sdr\gnss-sdr-lya`；用户在此加了大量 B1C 支持，"还在报错"，要求重新了解并排查。
+- **已确认（读 README/06/05 + 静态检查）**：B1C 接线**完整正确**——
+  - CMakeLists：`beidou_b1c_telemetry_decoder(_gs)` 和 `beidou_b1c_dummy_telemetry_decoder(_gs)` 均已加入 telemetry_decoder 的 adapters/gnuradio_blocks CMakeLists。
+  - 工厂 `gnss_block_factory.cc`：4 个 B1C 实现全注册（PCPS_Acquisition / DLL_PLL_Tracking / Telemetry_Decoder(真) / Dummy_Telemetry_Decoder），信号映射 `C1`/`B1C` 均在。
+  - → 说明报错**不是**"新块没注册/没进 CMake"这类常见问题。
+- **在 `/mnt/d` 上增量编译 8 分钟未编完也未报错**（印证 06 §4：Windows 挂载盘编大文件极慢）。已转后台全量编译 `build-wsl-codex/full_build.log` 复现。
+- **待用户补**：① 确切报错文本（编译错？运行错？哪台机/哪个 build？指向哪个文件行）；② **目标到底是 B1I 还是 B1C**——本副本全是 B1C(1575.42MHz)，但最新口径说"B1I 频率"；注意 **stock GNSS-SDR 本就有 B1I 全链路**，若真做 B1I 未必需要自建 B1C。
+- 最近活跃改动：`beidou_b1c_telemetry_decoder_gs.cc`(17:43)——正把 dummy 占位换成真 CNAV1 解码，报错很可能在此。
+
 ### ✅ B1C + USRP B210 直采双路径原型
 
 **背景**：用户确认测试机为 USRP B210，要求 GNSS-SDR 本身采集后直接做多径检测，不要依赖固定采样文件；目标信号为 B1C，并要求每颗卫星两条路径持续跟踪并输出路径信息。
