@@ -38,6 +38,7 @@ endif()
 
 set(TRACKING_ADAPTER_SOURCES
     base_dll_pll_tracking.cc
+    beidou_b1c_dll_pll_tracking.cc
     beidou_b1i_dll_pll_tracking.cc
     beidou_b3i_dll_pll_tracking.cc
     galileo_e1_dll_pll_veml_tracking.cc
@@ -60,6 +61,7 @@ set(TRACKING_ADAPTER_SOURCES
 
 set(TRACKING_ADAPTER_HEADERS
     base_dll_pll_tracking.h
+    beidou_b1c_dll_pll_tracking.h
     beidou_b1i_dll_pll_tracking.h
     beidou_b3i_dll_pll_tracking.h
     galileo_e1_dll_pll_veml_tracking.h

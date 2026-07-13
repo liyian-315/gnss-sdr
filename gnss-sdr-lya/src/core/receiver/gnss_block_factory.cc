@@ -27,6 +27,7 @@
 #include "acquisition_interface.h"
 #include "array_signal_conditioner.h"
 #include "beamformer_filter.h"
+#include "beidou_b1c_dll_pll_tracking.h"
 #include "beidou_b1c_pcps_acquisition.h"
 #include "beidou_b1i_dll_pll_tracking.h"
 #include "beidou_b1i_pcps_acquisition.h"
@@ -255,6 +256,7 @@ const auto signal_mapping = std::vector<std::pair<std::string, std::string>>{
     {"E6", "GALILEO E6 (B/C HAS)"},
     {"1G", "GLONASS L1 C/A"},
     {"2G", "GLONASS L2 C/A"},
+    {"C1", "BEIDOU B1C"},
     {"B1C", "BEIDOU B1C"},
     {"B1", "BEIDOU B1I"},
     {"B3", "BEIDOU B3I"},
@@ -652,6 +654,10 @@ std::unique_ptr<TrackingInterface> get_trk_block(
     else if (implementation == "BEIDOU_B1I_DLL_PLL_Tracking")
         {
             return std::make_unique<BeidouB1iDllPllTracking>(configuration, role, in_streams, out_streams);
+        }
+    else if (implementation == "BEIDOU_B1C_DLL_PLL_Tracking")
+        {
+            return std::make_unique<BeidouB1cDllPllTracking>(configuration, role, in_streams, out_streams);
         }
     else if (implementation == "BEIDOU_B3I_DLL_PLL_Tracking")
         {

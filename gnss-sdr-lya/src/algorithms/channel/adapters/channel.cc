@@ -57,6 +57,14 @@ Channel::Channel(const ConfigurationInterface* configuration,
 
     gnss_synchro_ = Gnss_Synchro();
     gnss_synchro_.Channel_ID = channel_;
+    const auto configured_signal_path = configuration->property(
+        "Channel" + std::to_string(channel_) + ".signal_path", 0);
+    if (configured_signal_path < 0 || configured_signal_path > 1)
+        {
+            throw std::invalid_argument("Channel" + std::to_string(channel_) +
+                                        ".signal_path must be 0 (strongest path) or 1 (second path)");
+        }
+    gnss_synchro_.Signal_Path = static_cast<uint32_t>(configured_signal_path);
     acq_->set_gnss_synchro(&gnss_synchro_);
     trk_->set_gnss_synchro(&gnss_synchro_);
 
@@ -199,6 +207,7 @@ void Channel::set_signal(const Gnss_Signal& gnss_signal)
     gnss_synchro_.Signal[2] = '\0';  // make sure that string length is only two characters
     gnss_synchro_.PRN = gnss_signal_.get_satellite().get_PRN();
     gnss_synchro_.System = gnss_signal_.get_satellite().get_system_short().c_str()[0];
+    gnss_synchro_.Signal_Path = gnss_signal_.get_signal_path();
     acq_->set_local_code();
     if (flag_enable_fpga_)
         {

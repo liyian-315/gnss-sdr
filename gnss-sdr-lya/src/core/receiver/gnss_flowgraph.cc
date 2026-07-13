@@ -87,6 +87,7 @@ const auto signal_mapping = std::unordered_map<std::string, std::pair<std::strin
     {"5X", {"Galileo", "E5a"}},
     {"7X", {"Galileo", "E5b"}},
     {"E6", {"Galileo", "E6"}},
+    {"C1", {"Beidou", "B1C"}},
     {"B1C", {"Beidou", "B1C"}},
     {"B1", {"Beidou", "B1"}},
     {"B3", {"Beidou", "B3"}},
@@ -234,6 +235,7 @@ void GNSSFlowgraph::init()
     mapStringValues_["E6"] = evGAL_E6;
     mapStringValues_["1G"] = evGLO_1G;
     mapStringValues_["2G"] = evGLO_2G;
+    mapStringValues_["C1"] = evBDS_B1C;
     mapStringValues_["B1C"] = evBDS_B1C;
     mapStringValues_["B1"] = evBDS_B1;
     mapStringValues_["B3"] = evBDS_B3;
@@ -1563,10 +1565,17 @@ int GNSSFlowgraph::assign_channels()
             const auto channel_count_option = "Channels_" + signal_str + ".count";
             const auto channel_count = configuration_->property(channel_count_option, uint64_t(0ULL));
             auto max_sat_count = available_signals.size();
+            const auto signal_paths = configuration_->property("Channels_" + signal_str + ".signal_paths", uint64_t(1ULL));
+            if (signal_paths < 1U || signal_paths > 2U)
+                {
+                    help_hint_ += " * Channels_" + signal_str + ".signal_paths must be 1 or 2.\n";
+                    top_block_->disconnect_all();
+                    return 1;
+                }
 
             if (gnss_system_str == "Glonass")
                 {
-                    max_sat_count += 8;  // satellites sharing same frequency number
+                    max_sat_count += 8 * signal_paths;  // satellites sharing same frequency number
                 }
 
             if (channel_count > max_sat_count - 1)
@@ -1609,7 +1618,10 @@ int GNSSFlowgraph::assign_channels()
                 {
                     const auto& mapping = signal_mapping.at(gnss_signal_str);
                     const auto& gnss_system_name = mapping.first;
-                    const auto gnss_signal = Gnss_Signal(Gnss_Satellite(gnss_system_name, sat), gnss_signal_str);
+                    const auto signal_path = configuration_->property(
+                        "Channel" + std::to_string(i) + ".signal_path", uint64_t(0ULL));
+                    const auto gnss_signal = Gnss_Signal(
+                        Gnss_Satellite(gnss_system_name, sat), gnss_signal_str, static_cast<uint32_t>(signal_path));
                     available_signals_map_.at(gnss_signal_str).remove(gnss_signal);
                     channels_.at(i)->set_signal(gnss_signal);
                 }
@@ -1936,12 +1948,17 @@ void GNSSFlowgraph::priorize_satellites(const std::vector<std::pair<int, Gnss_Sa
             for (const auto& signal_str : signal_str_vector)
                 {
                     auto& available_signals = available_signals_map_.at(signal_str);
-                    gs = Gnss_Signal(visible_satellite.second, signal_str);
-                    old_size = available_signals.size();
-                    available_signals.remove(gs);
-                    if (old_size > available_signals.size())
+                    const auto signal_paths = configuration_->property(
+                        "Channels_" + signal_str + ".signal_paths", uint64_t(1ULL));
+                    for (uint32_t signal_path = 0; signal_path < signal_paths; ++signal_path)
                         {
-                            available_signals.push_front(gs);
+                            gs = Gnss_Signal(visible_satellite.second, signal_str, signal_path);
+                            old_size = available_signals.size();
+                            available_signals.remove(gs);
+                            if (old_size > available_signals.size())
+                                {
+                                    available_signals.push_front(gs);
+                                }
                         }
                 }
         }
@@ -2103,10 +2120,16 @@ void GNSSFlowgraph::set_signals_list()
             if (configuration_->property(channel_count_option, 0) > 0)
                 {
                     auto& available_signals = available_signals_map_[signal_str];
+                    auto signal_paths = configuration_->property(
+                        "Channels_" + signal_str + ".signal_paths", uint64_t(1ULL));
+                    signal_paths = std::max(uint64_t(1U), std::min(uint64_t(2U), signal_paths));
 
                     for (const auto& prn : available_prn_map.at(gnss_system_str))
                         {
-                            available_signals.emplace_back(Gnss_Satellite(gnss_system_str, prn), signal_str);
+                            for (uint32_t signal_path = 0; signal_path < signal_paths; ++signal_path)
+                                {
+                                    available_signals.emplace_back(Gnss_Satellite(gnss_system_str, prn), signal_str, signal_path);
+                                }
                         }
                 }
         }
@@ -2189,7 +2212,7 @@ bool GNSSFlowgraph::is_multiband() const
                     multiband = true;
                 }
         }
-    if (configuration_->property("Channels_B1C.count", 0) > 0)
+    if ((configuration_->property("Channels_C1.count", 0) > 0) || (configuration_->property("Channels_B1C.count", 0) > 0))
         {
             if ((configuration_->property("Channels_B1.count", 0) > 0) || (configuration_->property("Channels_B3.count", 0) > 0))
                 {
@@ -2279,7 +2302,10 @@ Gnss_Signal GNSSFlowgraph::search_next_signal(const std::string& searched_signal
                                 {
                                     std::list<Gnss_Signal>::iterator it2;
                                     it2 = std::find_if(std::begin(available_signals), std::end(available_signals),
-                                        [&](Gnss_Signal const& sig) { return sig.get_satellite().get_PRN() == current_status.second->PRN; });
+                                        [&](Gnss_Signal const& sig) {
+                                            return sig.get_satellite().get_PRN() == current_status.second->PRN &&
+                                                   sig.get_signal_path() == current_status.second->Signal_Path;
+                                        });
 
                                     if (it2 != available_signals.end())
                                         {

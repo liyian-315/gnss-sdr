@@ -310,6 +310,7 @@ void pcps_acquisition::log_acquisition(const AcquisitionResult& result) const
                << ", test statistics threshold " << get_threshold()
                << ", code phase " << d_gnss_synchro->Acq_delay_samples
                << ", doppler " << static_cast<double>(result.doppler)
+               << ", signal path " << d_gnss_synchro->Signal_Path
                << ", input signal power " << d_input_power
                << ", Assist doppler_center " << d_doppler_center;
 
@@ -408,6 +409,7 @@ void pcps_acquisition::dump_results(const AcquisitionResult& result)
             write_matlab_var<1>("acq_doppler_hz", static_cast<float>(d_gnss_synchro->Acq_doppler_hz), matfp, dims_1d);
             write_matlab_var<1>("acq_delay_samples", static_cast<float>(d_gnss_synchro->Acq_delay_samples), matfp, dims_1d);
             write_matlab_var<1>("test_statistic", result.test_statistics, matfp, dims_1d);
+            write_matlab_var<1>("signal_path", d_gnss_synchro->Signal_Path, matfp, dims_1d);
             write_matlab_var<1>("threshold", get_threshold(), matfp, dims_1d);
             write_matlab_var<1>("input_power", d_input_power, matfp, dims_1d);
             write_matlab_var<1>("sample_counter", result.sample_count, matfp, dims_1d);
@@ -684,7 +686,7 @@ void pcps_acquisition::update_synchro(const AcquisitionResult& result)
     // multipath replica) to tracking instead of the main peak, so it locks the reflection
     // while a sibling channel on the same PRN tracks the direct path. Assumes make_2_steps
     // is off (the 2-step refinement targets the main peak, not the second one).
-    const bool use_second = d_acq_parameters.acquire_second_path && result.has_second_peak;
+    const bool use_second = (d_acq_parameters.acquire_second_path || d_gnss_synchro->Signal_Path == 1U) && result.has_second_peak;
     const uint32_t acq_code_phase = use_second ? result.index_time2 : result.index_time;
     const int32_t acq_doppler = use_second ? result.doppler2 : result.doppler;
 
@@ -793,7 +795,7 @@ void pcps_acquisition::acquisition_core(uint64_t sample_count)
     // Stage 1a retrofit: detect a second correlation peak (second path / multipath)
     // in the neighborhood of the main peak. Also required by an acquire_second_path
     // channel (Stage 1b), which hands that second peak to tracking.
-    if ((d_acq_parameters.multipath_detection || d_acq_parameters.acquire_second_path) && !d_step_two)
+    if ((d_acq_parameters.multipath_detection || d_acq_parameters.acquire_second_path || d_gnss_synchro->Signal_Path == 1U) && !d_step_two)
         {
             find_second_peak(result);
         }
@@ -806,7 +808,7 @@ void pcps_acquisition::acquisition_core(uint64_t sample_count)
         {
             // Stage 1b: an acquire_second_path channel declares success on a valid SECOND
             // peak (the reflection it is meant to track); otherwise the usual main-peak test.
-            const bool acq_positive = d_acq_parameters.acquire_second_path ? result.has_second_peak : (result.test_statistics > get_threshold());
+            const bool acq_positive = (d_acq_parameters.acquire_second_path || d_gnss_synchro->Signal_Path == 1U) ? result.has_second_peak : (result.test_statistics > get_threshold());
             if (acq_positive)
                 {
                     handle_threshold_reached(result);

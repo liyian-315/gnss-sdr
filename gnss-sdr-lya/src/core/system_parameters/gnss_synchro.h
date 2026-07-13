@@ -21,6 +21,7 @@
 #define GNSS_SDR_GNSS_SYNCHRO_H
 
 #include <boost/serialization/nvp.hpp>
+#include <boost/serialization/version.hpp>
 #include <cstdint>
 #include <utility>
 
@@ -43,10 +44,11 @@ public:
     ~Gnss_Synchro() = default;  //!< Default destructor
 
     // Satellite and signal info
-    char System{};         //!< Set by Channel::set_signal(Gnss_Signal gnss_signal)
-    char Signal[3]{};      //!< Set by Channel::set_signal(Gnss_Signal gnss_signal)
-    uint32_t PRN{};        //!< Set by Channel::set_signal(Gnss_Signal gnss_signal)
-    int32_t Channel_ID{};  //!< Set by Channel constructor
+    char System{};           //!< Set by Channel::set_signal(Gnss_Signal gnss_signal)
+    char Signal[3]{};        //!< Set by Channel::set_signal(Gnss_Signal gnss_signal)
+    uint32_t PRN{};          //!< Set by Channel::set_signal(Gnss_Signal gnss_signal)
+    int32_t Channel_ID{};    //!< Set by Channel constructor
+    uint32_t Signal_Path{};  //!< Signal path index: 0 is the strongest path, 1 is the second path
 
     // Acquisition
     double Acq_delay_samples{};          //!< Set by Acquisition processing block
@@ -96,6 +98,7 @@ public:
                 this->Signal[2] = rhs.Signal[2];
                 this->PRN = rhs.PRN;
                 this->Channel_ID = rhs.Channel_ID;
+                this->Signal_Path = rhs.Signal_Path;
                 this->Acq_delay_samples = rhs.Acq_delay_samples;
                 this->Acq_doppler_hz = rhs.Acq_doppler_hz;
                 this->Acq_samplestamp_samples = rhs.Acq_samplestamp_samples;
@@ -137,6 +140,7 @@ public:
                 this->Signal[2] = other.Signal[2];
                 this->PRN = other.PRN;
                 this->Channel_ID = other.Channel_ID;
+                this->Signal_Path = other.Signal_Path;
                 this->Acq_delay_samples = other.Acq_delay_samples;
                 this->Acq_doppler_hz = other.Acq_doppler_hz;
                 this->Acq_samplestamp_samples = other.Acq_samplestamp_samples;
@@ -167,6 +171,7 @@ public:
                 other.System = 0;
                 other.PRN = 0;
                 other.Channel_ID = 0;
+                other.Signal_Path = 0;
                 other.Acq_delay_samples = 0.0;
                 other.Acq_doppler_hz = 0.0;
                 other.Acq_samplestamp_samples = 0;
@@ -210,6 +215,10 @@ public:
         ar& BOOST_SERIALIZATION_NVP(Signal);
         ar& BOOST_SERIALIZATION_NVP(PRN);
         ar& BOOST_SERIALIZATION_NVP(Channel_ID);
+        if (version > 0)
+            {
+                ar& BOOST_SERIALIZATION_NVP(Signal_Path);
+            }
         // Acquisition
         ar& BOOST_SERIALIZATION_NVP(Acq_delay_samples);
         ar& BOOST_SERIALIZATION_NVP(Acq_doppler_hz);
@@ -240,6 +249,8 @@ public:
         ar& BOOST_SERIALIZATION_NVP(Flag_cycle_slip);
     }
 };
+
+BOOST_CLASS_VERSION(Gnss_Synchro, 1)
 
 
 /** \} */

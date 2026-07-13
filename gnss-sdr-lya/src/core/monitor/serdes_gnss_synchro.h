@@ -88,6 +88,7 @@ public:
                 obs->set_signal(sig);
                 obs->set_prn(gs.PRN);
                 obs->set_channel_id(gs.Channel_ID);
+                obs->set_signal_path(gs.Signal_Path);
 
                 obs->set_acq_delay_samples(gs.Acq_delay_samples);
                 obs->set_acq_doppler_hz(gs.Acq_doppler_hz);
@@ -134,6 +135,7 @@ public:
                 gs.Signal[2] = '\0';
                 gs.PRN = gs_read.prn();
                 gs.Channel_ID = gs_read.channel_id();
+                gs.Signal_Path = gs_read.signal_path();
 
                 gs.Acq_delay_samples = gs_read.acq_delay_samples();
                 gs.Acq_doppler_hz = gs_read.acq_doppler_hz();

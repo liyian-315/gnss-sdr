@@ -2071,13 +2071,16 @@ int rtklib_pvt_gs::work(int noutput_items, gr_vector_const_void_star& input_item
                                         }
                                 }
 
-                            if (store_valid_observable)
+                            // A reflected path is retained by the Observables block and
+                            // its monitors/dumps, but it must not be interpreted as an
+                            // additional satellite measurement by RTKLIB.
+                            if (store_valid_observable && in[i][epoch].Signal_Path == 0U)
                                 {
                                     // store valid observables in a map.
                                     d_gnss_observables_map.insert(std::pair<int, Gnss_Synchro>(i, in[i][epoch]));
                                 }
 
-                            if (d_rtcm_enabled)
+                            if (d_rtcm_enabled && in[i][epoch].Signal_Path == 0U)
                                 {
                                     try
                                         {

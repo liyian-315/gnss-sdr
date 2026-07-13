@@ -22,6 +22,7 @@
  */
 
 #include "dll_pll_veml_tracking.h"
+#include "Beidou_B1C.h"
 #include "Beidou_B1I.h"
 #include "Beidou_B3I.h"
 #include "GLONASS_L1_L2_CA.h"
@@ -34,6 +35,7 @@
 #include "Galileo_E6.h"
 #include "MATH_CONSTANTS.h"
 #include "beidou_b1i_signal_replica.h"
+#include "beidou_b1c_signal_processing.h"
 #include "beidou_b3i_signal_replica.h"
 #include "galileo_e1_signal_replica.h"
 #include "galileo_e5_signal_replica.h"
@@ -178,6 +180,7 @@ dll_pll_veml_tracking::dll_pll_veml_tracking(const Dll_Pll_Conf &conf_)
     map_signal_pretty_name["5X"] = "E5a";
     map_signal_pretty_name["7X"] = "E5b";
     map_signal_pretty_name["L5"] = "L5";
+    map_signal_pretty_name["C1"] = "B1C";
     map_signal_pretty_name["B1"] = "B1I";
     map_signal_pretty_name["B3"] = "B3I";
     map_signal_pretty_name["E6"] = "E6";
@@ -427,6 +430,29 @@ dll_pll_veml_tracking::dll_pll_veml_tracking(const Dll_Pll_Conf &conf_)
                     d_secondary_code_string = BEIDOU_B1I_SECONDARY_CODE_STR;
                     d_data_secondary_code_length = static_cast<uint32_t>(BEIDOU_B1I_SECONDARY_CODE_LENGTH);
                     d_data_secondary_code_string = BEIDOU_B1I_SECONDARY_CODE_STR;
+                }
+            else if (d_signal_type == "C1")
+                {
+                    d_signal_carrier_freq = BEIDOU_B1C_FREQ_HZ;
+                    d_code_period = BEIDOU_B1Cp_PERIOD;
+                    d_code_chip_rate = BEIDOU_B1Cp_CODE_RATE_HZ;
+                    d_code_length_chips = static_cast<int32_t>(BEIDOU_B1Cp_CODE_LENGTH_CHIPS);
+                    d_symbols_per_bit = 1;
+                    d_correlation_length_ms = BEIDOU_B1Cp_PERIOD_MS;
+                    d_code_samples_per_chip = 2;
+                    d_secondary = false;
+                    d_veml = true;
+                    d_trk_parameters.spc = d_trk_parameters.early_late_space_chips;
+                    d_trk_parameters.slope = static_cast<float>(-CalculateSlopeAbs(&SinBocCorrelationFunction<1, 1>, d_trk_parameters.spc));
+                    d_trk_parameters.y_intercept = static_cast<float>(GetYInterceptAbs(&SinBocCorrelationFunction<1, 1>, d_trk_parameters.spc));
+                    if (d_trk_parameters.track_pilot)
+                        {
+                            d_signal_pretty_name = d_signal_pretty_name + "p";
+                        }
+                    else
+                        {
+                            d_signal_pretty_name = d_signal_pretty_name + "d";
+                        }
                 }
             else if (d_signal_type == "B3")
                 {
@@ -941,6 +967,21 @@ void dll_pll_veml_tracking::start_tracking()
                     d_data_secondary_code_length = static_cast<uint32_t>(BEIDOU_B1I_SECONDARY_CODE_LENGTH);
                     d_data_secondary_code_string = BEIDOU_B1I_SECONDARY_CODE_STR;
                     d_Prompt_circular_buffer.set_capacity(d_secondary_code_length);
+                }
+        }
+
+    else if (d_systemName == "Beidou" && d_signal_type == "C1")
+        {
+            if (d_trk_parameters.track_pilot)
+                {
+                    beidou_b1cp_code_gen_sinboc11_float(d_tracking_code, d_acquisition_gnss_synchro->PRN);
+                    beidou_b1cd_code_gen_sinboc11_float(d_data_code, d_acquisition_gnss_synchro->PRN);
+                    d_Prompt_Data[0] = gr_complex(0.0, 0.0);
+                    d_correlator_data_cpu.set_local_code_and_taps(d_code_samples_per_chip * d_code_length_chips, d_data_code.data(), d_prompt_data_shift);
+                }
+            else
+                {
+                    beidou_b1cd_code_gen_sinboc11_float(d_tracking_code, d_acquisition_gnss_synchro->PRN);
                 }
         }
 

@@ -20,6 +20,7 @@
 #define GNSS_SDR_GNSS_SIGNAL_H
 
 #include "gnss_satellite.h"
+#include <cstdint>
 #include <ostream>
 #include <string>
 
@@ -40,7 +41,7 @@ class Gnss_Signal
 public:
     Gnss_Signal() = default;
     explicit Gnss_Signal(const std::string& signal_);
-    Gnss_Signal(const Gnss_Satellite& satellite_, const std::string& signal_);
+    Gnss_Signal(const Gnss_Satellite& satellite_, const std::string& signal_, uint32_t signal_path_ = 0U);
     ~Gnss_Signal() = default;
 
     /*!
@@ -54,6 +55,7 @@ public:
     std::string get_signal_str() const;
 
     Gnss_Satellite get_satellite() const;  //!< Get the Gnss_Satellite associated to the signal
+    uint32_t get_signal_path() const;      //!< Get signal path index (0: strongest, 1: second)
 
     friend bool operator==(const Gnss_Signal& /*sig1*/, const Gnss_Signal& /*sig2*/);    //!< operator== for comparison
     friend std::ostream& operator<<(std::ostream& /*out*/, const Gnss_Signal& /*sig*/);  //!< operator<< for pretty printing
@@ -61,6 +63,7 @@ public:
 private:
     Gnss_Satellite satellite{};
     std::string signal{};
+    uint32_t signal_path{};
 };
 
 

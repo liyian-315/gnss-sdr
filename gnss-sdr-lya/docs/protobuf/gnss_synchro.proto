@@ -38,6 +38,7 @@ message GnssSynchro {
   double interp_tow_ms = 25;                // Interpolated time of week, in ms
   bool flag_PLL_180_deg_phase_locked = 26;  // PLL lock at 180º
   bool flag_cycle_slip = 27;                // Carrier cycle slip detection flag
+  uint32 signal_path = 28;                  // Signal path index: 0 is the strongest path, 1 is the second path
 }
 
 /* Observables represents a collection of GnssSynchro annotations */
