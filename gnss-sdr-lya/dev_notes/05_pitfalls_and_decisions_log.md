@@ -13,6 +13,24 @@
 
 ## 2026-07-14
 
+### ✅✅ 里程碑：conda GNU Radio 3.10 重编成功，B210 实收真实 B1I、多路径链路跑通
+**结果**：`build-conda/src/main/gnss-sdr` 编译成功，`ldd` 确认链的是 conda 的 `libgnuradio-fft/runtime .so.3.10.11` + `libvolk.so.3.1`（不再是坏的系统 3.7）。B210 直采，**一大批真实北斗 B1I 卫星正常 Tracking**（PRN 01/02/03/04/06/07/09/11/12/14/17/20/22/25/26/27/28/30/... 二号+三号），**再无 `Can't connect channel 0`**。FFT 坑彻底解决。
+
+**从 FFT 坏到跑通，踩的坑链（都在 conda 重编时）**：
+1. **glog 头文件不兼容**：conda 新版 glog(0.7) 要 `GLOG_USE_GLOG_EXPORT`，GNSS-SDR 老式检测没设 → `<glog/logging.h> was not included correctly`。**修**：`-DENABLE_GLOG_AND_GFLAGS=OFF` 改用 Abseil（+`conda install abseil-cpp`）。
+2. **系统 GR3.7 模块混入**：ZEROMQ/LimeSDR 解析到 `/usr/lib` 的 GR3.7 库，会和 conda 3.10 冲突。**修**：`-DENABLE_ZMQ=OFF -DENABLE_LIMESDR=OFF -DENABLE_OSMOSDR=OFF`。
+3. **缺 pcap.h**：`gr_complex_ip_packet_source`(UDP源)无条件编译要 libpcap。**修**：`-DENABLE_RAW_UDP=OFF`（或 `conda install libpcap`）。
+4. **CNAV1 无守卫 glog**：`beidou_cnav1_navigation_message.cc:38` 无守卫 `#include <glog/logging.h>`（GSoC2019 老代码），absl 模式下 `undefined reference to google::LogMessage`。**修**：改成 stock 守卫写法 `#if USE_GLOG_AND_GFLAGS ... #else #include <absl/log/log.h> #endif`。其它 B1C 文件都已带守卫，只此一个。
+
+**完整重编配方 + 运行步骤**：见 `06`（已重写为 conda/B210/B1I 权威运行手册）。
+
+**文档/仓库整理**：`dev_notes/sim/` 只留 `my_bds_b1i_twopath.conf`(主力) + `analyze_multipath.py`；历史配置/脚本移入 `sim/archive/`；删除可再生的 `.mat/.dat` dump（100MB+），加 `.gitignore`。
+
+**遗留/下一步**：
+- absl 日志下 `MULTIPATH`(LOG INFO) 可见性待调（真实干净信号本就无多径，等模拟器验证时处理）。
+- ❓ 观察：`signal_paths=2` 下所有通道都在 Tracking（含 path=1）；真实无多径时 path=1 是否锁到噪声次峰，待模拟器加多径后核对门限。
+- **下一步（用户主导）**：配 B1I 模拟器，给一路加延迟/补偿模拟北斗多径，验证第二径检测+双路径跟踪是否正确。
+
 ### 🧭 定案：ffttest 坐实 GNU Radio 3.7.11 FFT 损坏 → conda 隔离装 GR3.10（不动系统）
 - **铁证**：`/tmp/ffttest`（独立最小程序，仅 `gr::fft::fft_complex f(4000,true,1)`）输出 `FFT threw: type=St9exception what=std::exception`。
   → 与 GNSS-SDR/B1I/B1C/多径**完全无关**，纯 GNU Radio 3.7.11 FFT 在本机就坏；`rm ~/.gr_fftw_wisdom` 无效（已排除 wisdom）。

@@ -1,0 +1,7 @@
+# 运行产生的输出，不入库
+*.mat
+*.dat
+*.nmea
+PVT*
+RINEX*
+*_run.log

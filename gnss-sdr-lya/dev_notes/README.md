@@ -12,8 +12,8 @@
 **重点搞懂它的二维谱峰搜索（信号捕获 / Acquisition）**，然后在此基础上改造，加入
 **① 多径（multipath）识别** 和 **② 多源信号（multi-source）处理** 两大能力。
 
-- 项目根目录：`D:\work\project\usrp_gnss\gnss-sdr`
-- 本文档目录：`D:\work\project\usrp_gnss\gnss-sdr\dev_notes`
+- 当前工作副本（本地/Windows）：`D:\work\project\usrp_gnss\gnss-sdr-main-gaizao\gnss-sdr\gnss-sdr-lya`
+- 测试机（Ubuntu18.04 + USRP B210）：`~/lya/gnss-sdr/gnss-sdr-lya`，**必须在 conda 环境 `gnsssdr` 里、用 `build-conda/` 编译运行**（见 `06`）。
 - 上游是标准开源项目（GPL-3.0），我们把它当**工作副本**改造，不追求合并回上游。
 
 ---
@@ -28,7 +28,7 @@
 | 03 | `03_data_structures_interfaces.md` | 关键数据结构（Gnss_Synchro、Acq_Conf）与接口层级 | 需要传参 / 扩字段 / 加配置项时 | ✅ 初稿 |
 | 04 | `04_retrofit_plan_multipath_multisource.md` | 改造方案：多径识别 + 多源信号的切入点与设计 | 动手改造前 / 定方案时 | 🟡 规划中 |
 | 05 | `05_pitfalls_and_decisions_log.md` | 踩坑、关键决策、疑问（按日期追加） | 遇到怪问题 / 想知道"为什么这么做"时 | 🟡 持续追加 |
-| 06 | `06_b1c_b210_two_path_usage.md` | B1C + USRP B210 直采、两路径配置、编译运行步骤 | 在 Ubuntu 测试机上跑 B1C/B210 时 | 🟡 进行中 |
+| 06 | `06_b1c_b210_two_path_usage.md` | **★运行手册★** conda环境+B210+B1I双路径：编译/运行/调参/排错 | **在测试机上跑测试前必读** | ✅ 权威 |
 
 > 图例：✅ 已成稿可用 · 🟡 进行中 · ⬜ 未开始
 
@@ -39,10 +39,10 @@
 > **维护约定**：每完成一个里程碑，更新这一节 + 在 `05_pitfalls_and_decisions_log.md` 追加一条。
 > 只改这里和相关的那一篇，不要动无关文档，省 token。
 
-**当前阶段：`服务器编译通过 → 待 B210 实跑 B1I 双路径`（手册见 `06`）**
+**当前阶段：`conda编译成功 + B210实收真实B1I跑通 ✅ → 待配模拟器验证多径`（运行手册见 `06`）**
 
-> 🔧 **目标已澄清 = B1I**（非 B1C）。运行用 stock B1I 链路 + `signal_paths=2` 两路径机制；
-> B1C 那套代码本目标用不到（且 B1C 缺 CNAV1 电文解码，B1I 电文/伪距 stock 就有）。见 `05`(2026-07-14)。
+> 🔧 **目标 = B1I**。运行用 stock B1I 链路 + `signal_paths=2` 两路径机制。测试机系统 GNU Radio 3.7 的 FFT 坏了，
+> 已用 **conda 装 GR3.10 隔离重编**（`build-conda/`，**跑前必须 `conda activate gnsssdr`**）。见 `06`/`05`(2026-07-14)。
 
 🎯 **方向已锁定**（用户 2026-07-12 决策）：目标信号 **BeiDou B1I**；用途 **提升定位精度**（两条径要影响 PVT）；
 覆盖 **近距+远距**两种多径。方案为 **A（捕获双峰）+ B（跟踪多相关器）+ PVT 整合** 三阶段，详见 `04`。
@@ -61,13 +61,16 @@
       + `analyze_multipath.py`。多径巡检日志(需 `GLOG_logtostderr=1`)。假数据烟测通过（B1I管线构建/运行 OK）
 - [x] **B1C/B210 直采原型**：`my_bds_b1c_multipath.conf` 改为 UHD/B210 实时采集，`Channels_C1.signal_paths=2`
       自动给每颗星分配主径/第二径。B1C tracking adapter 已接入。
-- [x] **服务器(Ubuntu18.04/gcc7/GR3.7)编译通过**：老式 `mkdir build;cmake ..`(3.10.2 不支持 `-S/-B`) + 先清旧 build。产物 `gnss-sdr 0.0.21`。
-- [x] **B1I 双路径配置就绪**：`my_bds_b1i_twopath.conf`（stock B1I 链路 + `Channels_B1.signal_paths=2` + 多径检测 + dump）。⏳ 待 B210 实跑。
-- [ ] **B1C CNAV1 telemetry decoder**：B1C 专用缺口（**B1I 目标不需要**）；没有它 B1C TOW-backed pseudorange/PVT 可能无效。
-- [ ] Stage 2：跟踪域多相关器（近距<1码片多径）
-- [ ] Stage 3：LOS 判别 + PVT 整合（每星一条干净观测量；参考 `duplicated_satellites_test`）
+- [x] **服务器 GR3.7 编译通过但 FFT 运行时坏**：`gr::fft::fft_complex` 构造抛异常 → `Can't connect channel 0`（gdb 定位，见 `05`）。
+- [x] **✅ conda GR3.10 重编成功 + B210 实收真实 B1I 跑通**：`build-conda/`，一大批真实北斗星 Tracking，无 FFT 崩溃。
+      踩坑链(glog→absl / 关 ZMQ,LimeSDR,OSMOSDR,RAW_UDP / CNAV1 无守卫 glog)全解，完整配方见 `06 §5`。
+- [x] **仓库整理**：`sim/` 只留 `my_bds_b1i_twopath.conf`+`analyze_multipath.py`，历史入 `sim/archive/`，删 dump + 加 `.gitignore`。
+- [ ] ⏳ **配 B1I 模拟器验证多径**（用户下一步）：给一路加延迟/补偿模拟北斗多径 → 验证第二径检测 + 双路径跟踪正确性。
+- [ ] absl 日志下 `MULTIPATH` 可见性微调（验证多径时一并处理）。
+- [ ] Stage 2：跟踪域多相关器（近距<1码片多径）；Stage 3：LOS 判别 + PVT 整合。
+- [ ] （搁置）B1C CNAV1 telemetry decoder —— B1C 专用，**B1I 目标不需要**。
 
-**下一步**：在 Ubuntu + USRP B210 测试机按 `06_b1c_b210_two_path_usage.md` 编译运行；若要稳定输出有效 B1C 伪距/PVT，继续补 B1C CNAV1 电文解码。
+**下一步**：用户配 B1I 模拟器（给一路加延迟做多径），按 `06` 跑 → 验证第二径检测/双路径跟踪。之后据结果推进 Stage 2/3。
 
 ---
 
