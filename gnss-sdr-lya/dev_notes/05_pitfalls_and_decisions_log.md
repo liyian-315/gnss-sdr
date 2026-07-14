@@ -13,6 +13,30 @@
 
 ## 2026-07-14
 
+### 🕳️ 关键坑：USRP overflow → 样点损坏 → 多径检测/跟踪全是垃圾（模拟器验证时暴露）
+- **现象**：B210 实时跑 `b1i_sim_prn9.conf`，满屏 `usrp_source: overflows occurred`；`analyze_multipath` 里**主径 chip 满量程乱跳**（1082→106→35→1584…，正常应平滑缓变）；有多径(1000m)和无多径两组结果**几乎一样**、Δ随机。
+- **诊断**：**不是多径逻辑 bug**。overflow 丢样点 → 捕获在损坏数据上做相关 → 主峰都是随机的 → 第二峰自然随机。跟踪也因丢样点锁不住。**"主峰乱跳"是样点损坏的铁证。**
+- **两个元凶（配置）**：① `Acquisition_B1.blocking=true`——实时下捕获同步跑、算 FFT 卡住采样消费 → overflow（实时 USRP **必须 `blocking=false`**）；② `Acquisition_B1.dump=true`——每份~7MB、狂重捕一次跑出 2737 份 → 磁盘 I/O 爆 → overflow。
+- **已修（本地 `b1i_sim_prn9.conf` 与 `my_bds_b1i_twopath.conf`）**：`blocking=false`、`dump=false`。
+- **多径验证正解**：实时开 dump 必溢出 → 改**离线**：先录一小段干净 B210 数据到文件，再用 File 源离线处理（无实时约束，随便 dump，可复现）。待 overflow 治好后做。
+- **注意**：只发 PRN9 一颗星出不了 PVT 定位（需≥4星）；要复现"带定位/NMEA"的结果需模拟器多发几颗星或对真实天空多星测。
+
+### 🧭 工作流变更：改本地文件 + GitHub 两边同步（不再直接改服务器）
+- 用户要求：**Claude 只改本地 `gnss-sdr-lya` 文件，经 GitHub push/pull 同步到测试机**，不再给"服务器上 sed"命令。
+- 影响：后续配置/代码/文档改动都落在本地副本；用户负责 git 同步。给命令时默认"文件已通过 git 同步到服务器"。
+
+### 🧭 设计澄清：两条径进 PVT 的处理 + 与 xinghe 副本对比（回应"关键认知是否违背目标"）
+- **用户疑问**：README 的"关键认知"（第二径不进 PVT、走旁路）会不会违背目标"追踪两条径的伪距信息"？
+- **结论：不违背。** 目标是"追踪+输出两条径的伪距信息"——两条径都跟踪、都进 observables/dump/monitor **已达成**。
+  争议仅在"要不要把两条径都塞进 PVT 解算"：反射径偏长，塞进 RTKLIB 当第二颗星观测会**拉偏定位**，故**只放行 path0**。
+- **独立佐证**：平行副本 `../gnss-sdr-xinghe`（另一 AI）的 `rtklib_pvt_gs.cc:2077` 也是 `if (... && Signal_Path == 0U)`，
+  注释同为"reflected path retained by Observables/monitors/dumps, but must not be interpreted as an additional satellite by RTKLIB"。**两 AI 收敛同一设计。**
+- **两副本捕获层实现不同**（都能检第二径，可互鉴）：
+  - `lya`（本副本）：独立 `find_second_peak()` + 邻域窗 `multipath_max_delay_chips` + 门限 `multipath_threshold_fraction` + `has_second_peak`；`Signal_Path==1` 触发。
+  - `xinghe`：改 `first_vs_second_peak_statistic` + 可配 `second_peak_exclusion_chips`。
+- **⚠️ 重要**：现阶段第二径只"输出/分析"，**尚未用于改善定位**。要真正"提升定位精度"，须下一步用第二径做 **LOS 判别 + 多径校正**（Stage 2/3）。README"下一步"已写三步路线。
+- **PRN9 固定配置只是验证用**（`b1i_sim_prn9.conf`）：证明机制正确性；最终形态仍是通用 `signal_paths=2` 搜所有星（待解假捕获 + overflow）。
+
 ### ✅✅ 里程碑：conda GNU Radio 3.10 重编成功，B210 实收真实 B1I、多路径链路跑通
 **结果**：`build-conda/src/main/gnss-sdr` 编译成功，`ldd` 确认链的是 conda 的 `libgnuradio-fft/runtime .so.3.10.11` + `libvolk.so.3.1`（不再是坏的系统 3.7）。B210 直采，**一大批真实北斗 B1I 卫星正常 Tracking**（PRN 01/02/03/04/06/07/09/11/12/14/17/20/22/25/26/27/28/30/... 二号+三号），**再无 `Can't connect channel 0`**。FFT 坑彻底解决。
 
