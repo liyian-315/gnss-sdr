@@ -13,6 +13,94 @@
 
 ## 2026-07-14
 
+### 🧭 定案：ffttest 坐实 GNU Radio 3.7.11 FFT 损坏 → conda 隔离装 GR3.10（不动系统）
+- **铁证**：`/tmp/ffttest`（独立最小程序，仅 `gr::fft::fft_complex f(4000,true,1)`）输出 `FFT threw: type=St9exception what=std::exception`。
+  → 与 GNSS-SDR/B1I/B1C/多径**完全无关**，纯 GNU Radio 3.7.11 FFT 在本机就坏；`rm ~/.gr_fftw_wisdom` 无效（已排除 wisdom）。
+- **约束**：测试机有他人重要环境，**不能重装/升级系统**。
+- **定案路线**：**conda-forge 在 `$HOME` 装隔离的 GNU Radio 3.10 + UHD + 全依赖，用 conda 的编译器重编 GNSS-SDR**（对话里给了 4 段逐步命令）。
+  - 关键：`conda create -n gnsssdr -c conda-forge cxx-compiler gnuradio-core gnuradio-uhd uhd boost-cpp armadillo openblas gflags glog libmatio pugixml libprotobuf protobuf openssl mako ...`
+  - 重编：`cmake -S . -B build-conda -DCMAKE_PREFIX_PATH=$CONDA_PREFIX ...`；产物 `build-conda/src/main/gnss-sdr`，`--version` 应显示 GR3.10。
+  - UHD：conda 的 `uhd_images_downloader` 下匹配固件，再跑 B210。
+- **验证目标**：conda 版跑 `my_bds_b1i_twopath.conf` 不再 `Can't connect channel 0`，能出 `MULTIPATH`/双通道 Tracking。
+- **⚠️ 给 Codex/后续 AI**：修复在**运行环境**（conda GR3.10），**不要**改 GNSS-SDR 代码来绕 FFT。系统那份 GR3.7 build 保留但弃用，实测用 `build-conda`。
+
+### 🕳️ FFT 最小复现已确认：不重装系统，优先做隔离修复
+
+**新增证据**：用户在测试机执行 `/tmp/ffttest`，输出：
+
+```text
+FFT threw: type=St9exception what=std::exception
+```
+
+这说明问题已经脱离 GNSS-SDR 配置、B1I/B1C 改造和 UHD 采集链路，可以用独立 FFT 最小程序复现。当前结论从“Channel0 创建阶段疑似 GNU Radio FFT 异常”升级为“测试机 GNU Radio FFT/FFTW 运行环境确实异常或不兼容”。
+
+**约束**：测试机上还有他人重要环境，不能重装系统，也不应做大范围系统升级。
+
+**处理优先级**
+
+1. 先做无破坏验证：备份/移走 GNU Radio FFTW wisdom 后重跑 `/tmp/ffttest`，排除坏 wisdom。
+2. 如果仍失败，优先采用用户目录隔离环境：在 `$HOME` 下用 conda/mamba 或本地 prefix 安装 GNU Radio/FFTW/UHD，再用该环境重新编译 GNSS-SDR。
+3. 只有在确认是系统包文件损坏、且用户允许 sudo 的情况下，才考虑 `apt --reinstall` 精确重装 `libgnuradio-fft` / `libfftw3` 相关包；不要做 `dist-upgrade`、不要重装系统。
+4. 继续避免改 GNSS-SDR 的 B1I/B1C 逻辑来绕这个问题；当前失败点在 FFT 运行时。
+
+**建议下一步命令（测试机）**
+
+```bash
+mkdir -p ~/lya/fft_debug
+ldd /tmp/ffttest | egrep 'gnuradio|fftw|volk|boost' | tee ~/lya/fft_debug/ffttest_ldd.txt
+dpkg -l | egrep 'gnuradio|libfftw|volk|uhd' | tee ~/lya/fft_debug/gnuradio_fft_packages.txt
+mv ~/.gr_fftw_wisdom ~/.gr_fftw_wisdom.bak.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
+/tmp/ffttest 2>&1 | tee ~/lya/fft_debug/ffttest_after_wisdom_reset.txt
+```
+
+如果最后一条仍然抛异常，按“用户目录隔离环境”路线推进。
+
+### 🕳️ 根因定位：`Can't connect channel 0` = GNU Radio 3.7.11 的 `gr::fft::fft_complex` 构造抛异常
+- **现象**：测试机(NUC/Ubuntu18.04)上**任何 B1I 配置**（单路径/双路径/文件源/UHD 源都一样）Channel 0 捕获块创建即 `std::exception` → `Can't connect channel 0 internally`。
+- **定位手段**：文件源复现(去掉 UHD 噪声) + `gdb -ex "catch throw" -ex run -ex "bt 15"`。调用栈铁证：
+  ```
+  #1 gr::fft::fft_complex::fft_complex(int,bool,int)  ← libgnuradio-fft.so.3.7.11 抛的
+  #2 pcps_acquisition::pcps_acquisition(Acq_Conf const&)
+  #4 BasePcpsAcquisition::...  #5 BeidouB1iPcpsAcquisition::...
+  ```
+- **结论**：**stock 代码**（非 B1C、非多径改动）。`pcps_acquisition` 构造时建 FFT（`gnss_sdr_fft.h`：GR<3.9 走 `gr::fft::fft_complex(size,forward)` 路径），在 **GNU Radio 3.7.11 运行时抛异常**。fft_size=4000（4MHz×1ms B1I，合法）。
+  → 本质是 **GNSS-SDR 0.0.21（面向 GR3.8-3.10）在 GR3.7.11 上运行时不兼容**：能编过(cmake 最低要求 3.7.3 已过时)，但 FFT 运行时坏。
+- **排查中（待用户测试机结果）**：① 独立最小测试 `gr::fft::fft_complex f(4000,true,1)` 是否也抛(拿真实 type/what)；② `rm ~/.gr_fftw_wisdom` 是否救。
+- **大概率的根治**：换 **GNU Radio ≥3.8**（不动 18.04 则用 **conda-forge** 装 gnuradio 3.10 重编 GNSS-SDR；或升级 OS 20.04/22.04）。
+- **⚠️ 给 Codex/后续 AI**：这是**环境/版本**问题，不是代码逻辑 bug——别再去改 B1C/多径/配置找它。修复方向是运行环境的 GNU Radio 版本。
+
+### 🧭 Codex 协作接手：先按 README/05 对齐，再继续 B210 B1I 实测
+
+**背景**：用户说明 Claude 已经处理过一轮，要求先查看文件结构和 README；后续 Codex 自己的判断、操作也要记录下来，方便多智能体协同。
+
+**本轮已读**
+
+- `dev_notes/README.md`：确认它是当前项目入口索引，后续接手先读这里。
+- `dev_notes/05_pitfalls_and_decisions_log.md`：确认它是 append-only 的踩坑/决策日志。
+- `dev_notes/USAGE_B1I.md`：确认当前 B210 测试目标应先落在 B1I 双路径跟踪，而不是继续把 B1C 当作阻塞项。
+- `dev_notes/sim/my_bds_b1i_twopath.conf` / `my_bds_b1c_multipath.conf`：注意后者文件名仍容易误导，当前实测优先使用 B1I 配置链路。
+
+**当前判断**
+
+1. B210 之前日志中 USRP 初始化、RX2/LO/中心频率均正常，失败点是 Channel0 内部块创建/连接阶段，不是射频未采到信号导致。
+2. 测试机日志仍显示旧的 `std::exception`，没有出现本地新增的 `Exception while creating GNSS channels...` 细分诊断，说明测试机很可能还没有重新编译/运行到最新二进制。
+3. Ubuntu 18.04 + CMake 3.10.2 不支持新式 `cmake --build build ... -jN` 写法，应该使用：
+
+```bash
+cmake --build build --target gnss-sdr -- -j$(nproc)
+# 或
+cd build && make gnss-sdr -j$(nproc)
+```
+
+4. 当前协作原则：B1I 实测优先；B1C CNAV1/Telemetry 完整支持继续改造，但不阻塞 B210 对 B1I 双路径采集、跟踪和伪距输出验证。
+5. 在 Windows PowerShell 下直接读中文 Markdown 可能出现乱码，后续查看中文文档优先使用 `Get-Content -Encoding UTF8`，或在 Ubuntu/WSL 下用 `cat/sed`。
+
+**后续操作记录约定**
+
+- 修改代码、配置或运行验证后，把关键判断追加到本文件对应日期下。
+- 如果改变了项目阶段、推荐入口配置或运行步骤，再同步更新 `dev_notes/README.md`。
+- 不覆盖 Claude 或用户已有记录；只追加自己的结论、命令和证据。
+
 ### ✅ 服务器(Ubuntu18.04/gcc7/GR3.7)编译通过 + B1I 双路径配置就绪
 - **服务器环境**：NUC7i7，`gcc 7.3.0 / Boost 1.65.1 / UHD 3.10.3 / cmake 3.10.2`（≈Ubuntu 18.04）。代码在此**编译通过**，产物 `gnss-sdr 0.0.21`。
 - **cmake 3.10.2 两个坑（之前报错主因）**：① `cmake -S . -B build` 语法要 cmake≥3.13，3.10.2 不支持 → 必须老式 `mkdir build && cd build && cmake ..`；② 拷来的旧 build 目录 CMakeCache 指向旧机路径 → 先 `rm -rf build*`。

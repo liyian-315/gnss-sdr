@@ -35,7 +35,11 @@
 #include "gnss_satellite.h"
 #include <boost/crc.hpp>  // for boost::crc_basic, boost::crc_optimal
 #include <boost/dynamic_bitset.hpp>
+#if USE_GLOG_AND_GFLAGS
 #include <glog/logging.h>
+#else
+#include <absl/log/log.h>
+#endif
 #include <iostream>
 
 typedef boost::crc_optimal<24, 0x1864CFBu, 0x0, 0x0, false, false> Crc_Beidou_Cnav1_type;
