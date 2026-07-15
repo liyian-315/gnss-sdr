@@ -11,6 +11,45 @@
 
 ## 2026-07-15
 
+### 🕳️ 实时全星双路径仍 overflow：默认运行配置降为保守档
+
+**现象**：用户每次运行：
+
+```bash
+./build-conda/src/main/gnss-sdr \
+  --config_file=dev_notes/sim/my_bds_b1i_twopath.conf 2>&1 | tee run.log
+```
+
+都会出现 USRP overflow。
+
+**判断**：当前已经不是 GNU Radio FFT 损坏问题，而是实时处理负载超过测试机稳定吞吐。原配置虽然关了 acquisition dump，但仍有：
+
+- `Channels_B1.count=12`：双路径下最多 6 颗星，每颗两条径。
+- `Channels.in_acquisition=4`：最多 4 路捕获并发跑 PCPS FFT。
+- `doppler_step=250` + `max_dwells=2`：捕获计算量较大。
+- `Tracking_B1.dump=true`、`PVT.dump=true`、`Monitor.enable_monitor=true`：持续输出叠加 I/O/调度压力。
+
+这些叠在 B210 实时流上，会导致采样消费不及时；一旦 overflow，后续主峰/第二峰/伪距判断都不可信。
+
+**本轮处理：把 `my_bds_b1i_twopath.conf` 改成实时保守档**
+
+- 加 `SignalSource.IF_bandwidth_hz=2000000`，显式设置 B210 RF 带宽。
+- `Channels_B1.count: 12 -> 4`，先最多 2 颗星各两条径。
+- `Channels.in_acquisition: 4 -> 1`，实时只跑一路捕获。
+- `Acquisition_B1.doppler_step: 250 -> 500`，减少 Doppler bins。
+- `Acquisition_B1.max_dwells: 2 -> 1`，先保实时吞吐。
+- `Tracking_B1.dump: true -> false`，避免连续 tracking dump。
+- `PVT.dump: true -> false`，减少 I/O。
+- `Monitor.enable_monitor: true -> false`，减少实时旁路负载。
+- 暂时保留 `Observables.dump=true`，因为它是当前“两条径伪距输出”的主要证据；如果仍 overflow，再临时关它做纯稳定性测试。
+
+**后续调参顺序**
+
+1. 先用保守档跑 30~60 秒，确认没有 `overflow`。
+2. 若仍 overflow：先把 `Observables.dump=false`，再把 `Channels_B1.count=2`。
+3. 若不 overflow：逐步恢复 `Channels_B1.count=6/8/12`，每次只改一个旋钮；不要一口气恢复全量。
+4. 多径谱峰/3D 图验证继续走“录制干净数据 -> File 源离线 dump”路线，不在实时配置里开 acquisition dump。
+
 ### ✅ 补全检查：Claude 新增 3D 捕获谱峰绘图脚本已可用
 
 **背景**：用户让 Claude 根据提示新增 3D 谱峰图脚本；Claude 输出中出现 429，中断风险不明，因此本轮检查脚本是否完整。

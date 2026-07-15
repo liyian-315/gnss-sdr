@@ -56,8 +56,9 @@ python3 dev_notes/sim/plot_acq_3d.py "bds_b1i_acq_*_sat_9.mat" --code-length 204
 - **常调参数**（都在 `Acquisition_B1` 段 / SignalSource 段）：
   | 参数 | 含义 | 建议 |
   |------|------|------|
-  | `Channels_B1.count` | 通道总数 = 想覆盖星数 × 2 | 12~24 |
-  | `Channels.in_acquisition` | 并发捕获数 | CPU 紧就调小 |
+  | `Channels_B1.count` | 通道总数 = 想覆盖星数 × 2 | 实时先用 4；无 overflow 后再加到 6/8/12 |
+  | `Channels.in_acquisition` | 并发捕获数 | 实时先用 1；确认稳定后再加 |
+  | `Acquisition_B1.doppler_step` | Doppler 搜索步进 | 实时先用 500；离线/算力足再用 250 |
   | `multipath_threshold_fraction` | 第二峰判定灵敏度 | 漏检调小(0.18)、误报调大(0.3) |
   | `multipath_max_delay_chips` | 主峰邻域搜索窗(码片) | 近多径 2~3，远反射更大 |
   | `SignalSource.gain` | B210 增益 | 40~60 现场试 |
@@ -92,6 +93,7 @@ cmake --build build-conda --target gnss-sdr -j$(nproc)
 |------|------------|
 | `Can't connect channel 0 internally` | 没进 conda 环境，或跑了 `build/`（系统坏FFT版）。→ `conda activate gnsssdr` + 用 `build-conda/` |
 | `--version` 显示 GNU Radio 3.7 | 同上，环境不对 |
+| 满屏 `usrp_source: overflows occurred` | 实时处理跟不上。先用 `my_bds_b1i_twopath.conf` 的保守档：`Channels_B1.count=4`、`Channels.in_acquisition=1`、`doppler_step=500`、关 tracking/PVT/monitor dump；仍溢出就临时关 `Observables.dump` 或降到 `Channels_B1.count=2` |
 | 一颗星都捕不到 | 信号/频点不对（确认 B1I@1561.098MHz、天线、增益）、或 B210 没被 conda UHD 认到 |
 | 编译报缺 `xxx.h` | 某可选功能缺 conda 包 → `conda install -c conda-forge <包>` 或 `-DENABLE_XXX=OFF` |
 
