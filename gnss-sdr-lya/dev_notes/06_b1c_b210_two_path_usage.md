@@ -38,6 +38,16 @@ python3 dev_notes/sim/analyze_multipath.py --pattern "bds_b1i_acq_*_sat_*.mat" -
 ```
 输出每份 dump 的：主径/第二径码片、Δ延迟(码片和米)、功率比 dB、has2 标志。B1I：1 码片≈146.6m。
 
+画谱峰图（需要先有 acquisition dump）：
+```bash
+# 2D 热图 + 峰值 Doppler 行 + 主峰附近放大
+python3 dev_notes/sim/plot_acq_grid.py "bds_b1i_acq_*_sat_9.mat" --code-length 2046
+
+# 3D 曲面：Doppler × 码相位 × 相关值；会标出主峰，若 has2=1 也标第二径
+python3 dev_notes/sim/plot_acq_3d.py "bds_b1i_acq_*_sat_9.mat" --code-length 2046
+```
+若 3D 图上连单个尖峰都没有，先查录制限带、overflow、频点/增益和模拟器输出；不要先怀疑 1000m 双径不可分辨。
+
 ## 4. 配置文件（已整理，只留必要）
 - **`dev_notes/sim/my_bds_b1i_twopath.conf`** —— 唯一在用的运行配置：
   - B210 直采（`UHD_Signal_Source`），B1I 频点 `freq=1561098000`，`signal=B1`，全 stock `BEIDOU_B1I_*` 链路。

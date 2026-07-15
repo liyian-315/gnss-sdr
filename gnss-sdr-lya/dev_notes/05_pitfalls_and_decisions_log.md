@@ -9,6 +9,63 @@
 
 ---
 
+## 2026-07-15
+
+### ✅ 补全检查：Claude 新增 3D 捕获谱峰绘图脚本已可用
+
+**背景**：用户让 Claude 根据提示新增 3D 谱峰图脚本；Claude 输出中出现 429，中断风险不明，因此本轮检查脚本是否完整。
+
+**检查结论**
+
+- `dev_notes/sim/plot_acq_3d.py` 文件存在，主流程不是半截：能读 HDF5 `.mat` 的 `acq_grid`，绘制 Doppler × 码相位 × 相关值的 3D 曲面，并保存 PNG。
+- 但原版偏“刚写完可跑”，缺少实测保护：glob 无匹配会 `IndexError`，输出默认落当前目录，路径分隔只按 `/`，没有显式标注第二径。
+
+**本轮补全**
+
+1. 增加无匹配文件、缺 `acq_grid`、`acq_grid` 非二维的错误提示。
+2. 改用 `pathlib.Path` 生成输出路径，默认保存到输入 `.mat` 同目录，文件名为 `<stem>_3d.png`。
+3. 增加 `--max-code-points` 控制码相位方向降采样，避免大矩阵 3D 渲染过慢。
+4. 增加 `--elev` / `--azim` 调整视角。
+5. 在 3D 图中用红色 `x` 标主峰；如果 dump 里 `has_second_peak=1` 且有 `acq_delay_samples_2`，用白色点标第二径。
+6. 输出打印主峰码相位、Doppler、grid shape、samples/chip、has2。
+
+**验证**
+
+- `python -m py_compile dev_notes/sim/plot_acq_3d.py plot_acq_grid.py analyze_multipath.py` 通过。
+- 在临时目录构造合成双峰 HDF5：`acq_grid=(41,8000)`，主峰与第二峰相距约 27 samples，`has_second_peak=1`；运行 `plot_acq_3d.py` 成功生成 PNG（约 207 KB），输出主峰 `511.5 chip, 0 Hz`。
+
+**关于用户的 1000m 双径模拟设计**
+
+- 1000m 对 B1I 约为 `1000 / 146.6 ≈ 6.8 chips`，在 4 Msps 下约 `13.6 samples`，大于捕获码相位采样间隔，理论上属于可在捕获相关面分开的远距双峰。
+- 两路等功率有利于“看到两个峰”，但会让“哪条是直射”变得不唯一；这是后续 LOS 判别问题，不是谱峰分辨问题。
+- 如果 3D 图上连单个尖峰都没有，应优先怀疑录制/限带/overflow/信号源，而不是 1000m 设计本身不可分辨。
+
+### 🧭 Codex 跟进：SDR 已跑通，当前进入测试优化/效果验证阶段
+
+**本轮已读**：`dev_notes/README.md`、`05_pitfalls_and_decisions_log.md`、`06_b1c_b210_two_path_usage.md`、`dev_notes/sim/my_bds_b1i_twopath.conf`、`b1i_sim_prn9.conf`、`record_b210.py`、`check_acq.py`。
+
+**当前进度判断**
+
+- 环境问题已过：系统 GNU Radio 3.7 FFT 坏的问题已通过 conda GR3.10 + `build-conda/` 绕开；B210 实收 B1I 已能 Tracking，阶段从“跑起来”进入“测试优化”。
+- 当前效果不理想的首要嫌疑不是 B1I/B1C 代码链路，而是测试数据质量和验证方式：
+  1. 实时 USRP 跑复杂捕获/跟踪时容易 overflow，样点一旦丢失，主峰/第二峰都会随机跳，多径判断失真。
+  2. 只发单颗 PRN9 做模拟器验证时，其它 PRN 容易出现互相关/噪声假捕获，所以应先固定 PRN9 两通道验证机制，再扩到所有星。
+  3. 真实天空干净信号未必有明显第二径，不能用“没有 MULTIPATH 日志”直接判定算法无效；需要模拟器可控延迟径或离线 dump 相关面确认。
+
+**建议优化路线**
+
+1. 先用 `record_b210.py` 录一段干净 B1I 原始采样，确认录制时没有 overflow。
+2. 用 File 源离线处理这段数据，离线时再打开 acquisition dump，避免实时 I/O 把采样打坏。
+3. 用 `check_acq.py` 看 `positive_acq / test_statistic / threshold`，先区分“真捕获”还是“噪声 argmax”。
+4. 再用 `analyze_multipath.py` / `plot_acq_grid.py` / `plot_acq_3d.py` 看第二峰是否在预期延迟附近。
+5. 若 PRN9 + 1000m 模拟多径仍检不稳，再调 `multipath_max_delay_chips`、`multipath_threshold_fraction`、`pfa`、通道数和采样率；不要先改 PVT。
+
+**协作注意**
+
+- 当前主线仍是 B1I；B1C CNAV1 不阻塞这个阶段。
+- 测试机必须 `conda activate gnsssdr` 且运行 `build-conda/src/main/gnss-sdr`。
+- `my_bds_b1i_twopath.conf` 文件头里的旧命令还写 `GLOG_logtostderr=1 ./build/src/main/gnss-sdr`，容易误导；后续应改为 conda + `build-conda` 写法。
+
 ## 2026-07-13
 
 ## 2026-07-14
