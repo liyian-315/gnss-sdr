@@ -11,6 +11,85 @@
 
 ## 2026-07-15
 
+### 🧭 直连馈线仍 loss/overflow：噪声不是唯一变量，先排饱和和实时负载
+
+**用户补充**：模拟器馈线已经直接连到 B210 `RX2`，理论上没有空间噪声，载噪比也较强。
+
+**判断**
+
+- 直连馈线能排除天线环境、多径和大部分外界干扰，但不能排除：
+  1. **USRP overflow**：这是主机/USB/调度/处理链吞吐问题，和 RF 噪声无关；一旦 overflow，样点被丢，跟踪会失锁。
+  2. **前端/ADC 饱和**：直连模拟器如果输出电平偏高，再叠加 `SignalSource.gain=50`，可能让 B210 前端过载；CN0 看起来强，但环路会不稳。
+  3. **配置负载仍过高**：即使 RF 很干净，多通道双路径 + observables/PVT 输出仍可能压垮实时处理。
+- 日志里仍有 `O/overflow` 和频繁 `Loss of lock`，因此目前不能把问题归因到“噪声太大”。先让单星双路径稳定连续锁定，再谈多星/多径效果。
+
+**本轮配置调整**
+
+- `SignalSource.gain: 50 -> 30`：直连馈线先降增益，避免过载；如果 CN0 明显偏低再逐步加。
+- `Channels_B1.count: 4 -> 2`：先只跑 1 颗星两条径，确认无 overflow/loss；稳定后再加回 4/8/12。
+
+**建议观察**
+
+```bash
+grep -c "overflows occurred" run.log
+grep -c "Loss of lock" run.log
+grep "CN0=" run.log | tail -20
+python3 dev_notes/sim/read_observables_dump.py bds_b1i_observables.dat --channels 2 --tail 50
+```
+
+若 `count=2/gain=30` 仍 loss，继续把 `SignalSource.gain` 试到 `20/10/0` 或加外部衰减器；若 overflow 仍在，则先临时 `Observables.dump=false` 做纯稳定性测试。
+
+### 🕳️ 实时运行没有 acq `.mat` 是预期现象；持续 loss of lock 会导致有效伪距不足
+
+**现象**：用户运行 `my_bds_b1i_twopath.conf` 后目录里有 `bds_b1i_observables.dat`、`bds_b1i_tracking_ch_*.dat/.mat`、PVT/RINEX 文件，但执行：
+
+```bash
+python3 dev_notes/sim/analyze_multipath.py --pattern "bds_b1i_acq_*_sat_*.mat" --code-length 2046
+```
+
+提示匹配 dump 为 0。终端同时仍有 `usrp_source ... overflows occurred` 和频繁 `Loss of lock`。
+
+**判断**
+
+1. 当前实时配置为了避免 I/O 加重 overflow，设置了 `Acquisition_B1.dump=false`，所以不会生成 `bds_b1i_acq_*.mat`。`analyze_multipath.py` 只读 acquisition dump，因此实时跑后找不到 `.mat` 是预期现象。
+2. 若目录里仍有很多 `bds_b1i_tracking_ch_*.mat/.dat` 或 PVT 历史文件，可能是旧配置/旧运行残留；每次测试前建议新建空目录或先清理 `bds_b1i_*`、`GSDR*`、`pvt.dat*`，否则容易把新旧结果混在一起。
+3. 持续 `Loss of lock` 会导致 `Flag_valid_word` / `Flag_valid_pseudorange` 不稳定，observables 里即使有伪距字段，也可能多数 epoch 无效；PVT/NMEA 更需要连续锁定和足够卫星，不能只靠短暂 Tracking started。
+4. 直连馈线并不等于没有问题：可能仍有 host overflow，也可能因为信号太强导致前端/ADC 饱和。若直连模拟器/馈线，优先降低 `SignalSource.gain` 或加衰减器，并继续压 overflow。
+
+**操作建议**
+
+- 实时看伪距：用 `read_observables_dump.py` 读 `bds_b1i_observables.dat`，不要用 `analyze_multipath.py`。
+- 画 2D/3D acquisition 谱峰：走离线文件源配置 `b1i_offline_prn9.conf`，其中 `Acquisition_B1.dump=true`，不会受实时 I/O 约束。
+- 若仍频繁 loss of lock：先把实时配置进一步降载，临时 `Observables.dump=false`、`Channels_B1.count=2`；直连时尝试 `SignalSource.gain=20~35`。
+
+### ❓ 伪距不会默认打印到终端：先读 observables dump
+
+**现象**：用户直连馈线到 B210 RX2，运行 `my_bds_b1i_twopath.conf` 后终端能看到：
+
+- `New BEIDOU B1I DNAV Iono message received...`
+- `Beidou B1I ... bit synchronization locked...`
+- 多个 PRN Tracking started
+- 但仍有 `usrp_source ... overflows occurred`、`O`、以及多次 `Loss of lock`
+
+用户疑问：按理直连没有噪声，为什么没看到伪距输出，伪距计算是否需要很久。
+
+**判断**
+
+1. GNSS-SDR 默认终端主要打印捕获/跟踪/电文/PVT 状态，不会把每个通道的 `Pseudorange_m` 当文本持续刷屏。
+2. 当前 `Observables.dump=true` 时，伪距写在 `bds_b1i_observables.dat` 二进制文件中。代码里的 Hybrid_Observables dump 每通道每历元写 7 个 double：`RX_time`、`TOW_s`、`Doppler_Hz`、`Carrier_phase_cycles`、`Pseudorange_m`、`PRN`、`valid`。
+3. 直连馈线只能减少空间噪声/多径，不会解决 host 处理不过来的 USRP overflow；overflow 是丢样点，仍会导致 loss of lock 和伪距无效。
+4. 直连还可能因为信号太强导致前端/ADC 饱和；如果频繁 lock/loss，需降低 `SignalSource.gain` 或加衰减器。
+5. 终端看到 iono/bit sync 说明电文链路开始工作，但 PVT/稳定伪距仍依赖连续锁定、有效 TOW/word、足够卫星和无 overflow。日志里仍频繁 loss of lock，因此不能期待马上稳定输出最终定位。
+
+**本轮新增**
+
+- `dev_notes/sim/read_observables_dump.py`：读取 `bds_b1i_observables.dat`，按 epoch/channel 打印有效 `pseudorange_m`。
+- `06` 增加查看伪距命令：
+
+```bash
+python3 dev_notes/sim/read_observables_dump.py bds_b1i_observables.dat --channels 4 --tail 20
+```
+
 ### 🕳️ 实时全星双路径仍 overflow：默认运行配置降为保守档
 
 **现象**：用户每次运行：

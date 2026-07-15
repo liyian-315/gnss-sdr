@@ -22,6 +22,7 @@ cd ~/lya/gnss-sdr/gnss-sdr-lya
 ## 2. 跑 B210 · B1I 双路径
 ```bash
 uhd_find_devices                                   # 确认认得 B210（第一次或换机可能要先 uhd_images_downloader）
+ rm -f bds_b1i_acq*.mat
 ./build-conda/src/main/gnss-sdr \
     --config_file=dev_notes/sim/my_bds_b1i_twopath.conf 2>&1 | tee run.log
 # 跑 30~60 秒后 Ctrl-C 停
@@ -33,10 +34,18 @@ uhd_find_devices                                   # 确认认得 B210（第一�
 - 停止后当前目录产物：`bds_b1i_acq*.mat`（相关面 dump）、`bds_b1i_tracking_ch_*`（两路径跟踪）、`bds_b1i_observables.dat`、`bds_b1i_PVT*`。
 
 ## 3. 分析多径（读 dump 出表）
+注意：当前 `my_bds_b1i_twopath.conf` 是实时保守档，`Acquisition_B1.dump=false`，所以实时跑完**不会**生成 `bds_b1i_acq_*.mat`。`analyze_multipath.py` 和 2D/3D 谱峰图只能用于 acquisition dump，通常应配合离线配置 `b1i_offline_prn9.conf` 使用。
+
 ```bash
 python3 dev_notes/sim/analyze_multipath.py --pattern "bds_b1i_acq_*_sat_*.mat" --code-length 2046
 ```
 输出每份 dump 的：主径/第二径码片、Δ延迟(码片和米)、功率比 dB、has2 标志。B1I：1 码片≈146.6m。
+
+看 observables 里的伪距：
+```bash
+python3 dev_notes/sim/read_observables_dump.py bds_b1i_observables.dat --channels 4 --tail 20
+```
+GNSS-SDR 默认不会把每个通道的 `Pseudorange_m` 持续打印到终端；当前配置把它写入 `bds_b1i_observables.dat`。这个文件是二进制，不要直接 `cat`，用上面的脚本看。
 
 画谱峰图（需要先有 acquisition dump）：
 ```bash
