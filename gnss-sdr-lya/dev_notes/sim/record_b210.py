@@ -20,6 +20,7 @@ def main():
     ap.add_argument("--gain", type=float, default=50.0, help="增益[dB]")
     ap.add_argument("--ant", default="RX2", help="天线口: RX2 或 TX/RX")
     ap.add_argument("--subdev", default="A:A", help="子设备")
+    ap.add_argument("--bw", type=float, default=0.0, help="模拟RX带宽[Hz]，0=用采样率(★限带防混叠，关键)")
     ap.add_argument("--secs", type=float, default=10.0, help="录制时长[秒]")
     ap.add_argument("-o", "--out", default="/tmp/b1i_prn9.dat", help="输出文件(complex float32)")
     a = ap.parse_args()
@@ -35,6 +36,16 @@ def main():
     u.set_center_freq(a.freq, 0)
     u.set_gain(a.gain, 0)
     u.set_antenna(a.ant, 0)
+    try:
+        u.set_bandwidth(a.bw if a.bw > 0 else a.rate, 0)  # ★限带防混叠：不设会把带外噪声混进 4MHz 淹没弱信号
+    except Exception as e:
+        print("warn set_bandwidth:", e)
+    # 打印实际生效值(核对 rate/freq/gain/bw 是否真的设上了)
+    try:
+        print("actual: rate=%.3f Msps  freq=%.4f MHz  gain=%g dB  bw=%.3f MHz"
+              % (u.get_samp_rate() / 1e6, u.get_center_freq(0) / 1e6, u.get_gain(0), u.get_bandwidth(0) / 1e6))
+    except Exception as e:
+        print("warn get actuals:", e)
 
     h = blocks.head(gr.sizeof_gr_complex, nsamps)
     s = blocks.file_sink(gr.sizeof_gr_complex, a.out, False)
