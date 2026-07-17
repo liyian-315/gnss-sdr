@@ -11,6 +11,49 @@
 
 ## 2026-07-17
 
+### 🕳️ GPS L5 PRN20 双模拟器 1000m 测试：未通过主捕获门限
+
+**背景**：用户将 L5 测试配置改为 `PRN20` 并提交 Git，现场两路信号均为单星功率 64、发射功率 `-40 dBm`；一路无补偿，一路 `+1000m` 补偿。按要求通过 SSH 登录测试机测试，不直接在服务器编辑源码。
+
+**远端同步方式**
+
+- 远端仓库存在大量 `build/` 和历史输出文件脏状态，不能直接清理。
+- 使用 `git fetch origin feature/multipath` 获取 GitHub 最新内容。
+- 只从 `origin/feature/multipath` 精确检出测试相关文件，避免碰服务器脏工作区：
+  - `dev_notes/sim/l5_offline_prn1.conf`
+  - `dev_notes/06_b210_multipath_test_usage.md`
+  - `dev_notes/sim/record_b210.py`
+  - `dev_notes/sim/analyze_multipath.py`
+  - `dev_notes/sim/plot_acq_grid.py`
+  - `dev_notes/sim/plot_acq_3d.py`
+
+**测试条件**
+
+- GPS L5I PRN20，两台模拟器同时发射：一路 0m，一路 `+1000m`。
+- 两路单星功率 64，发射功率均 `-40 dBm`。
+- B210 RX2，`gain=76 dB`，`freq=1176.45 MHz`，`rate=10 Msps`。
+- 录样文件：`/tmp/gps_l5_prn20_twosim_1000m.dat`，10 秒，`100000000` complex64 samples，800 MB。
+- 录制过程中出现数次 USRP overflow。
+- 录样幅度：`rms≈0.0204`，`max_abs≈0.094`，无削顶。
+
+**离线捕获结果**
+
+| 配置 | dump数 | positive | positive+has2 | 最高 test | threshold | 结论 |
+|------|--------|----------|---------------|-----------|-----------|------|
+| `pfa=0.001, max_dwells=2` | 226 | 0 | 0 | 46.60 | 56.27 | 未捕获 |
+| `pfa=0.01, max_dwells=2` | 215 | 0 | 0 | 42.3 | 51.1 | 放宽门限仍未捕获 |
+| `pfa=0.001, max_dwells=10` | 186 | 0 | 0 | 79.1 | 116.0 | 非相干积分增强后仍未过门限 |
+
+**判断**
+
+- 这次不能判定为 L5 PRN20 多径捕获成功。虽然部分 dump 的相对峰给出 `Δ≈1000m` 附近的数字，但所有 dump 都 `positive_acq=0`，这些第二峰不能作为有效多径证据。
+- 主要问题优先怀疑 L5 链路强度/配置，而不是第二峰算法：
+  - L5 录样整体电平偏弱；
+  - 10 Msps 录制有 overflow；
+  - 需要确认模拟器确实发 GPS L5I PRN20，而不是 L5Q/其他 PRN/其他频点；
+  - 需要确认当前接收天线在 1176.45 MHz L5 频段有效。
+- 下一步建议先单独打开每台 L5 模拟器分别测试 PRN20 是否 `positive=1`；单路过捕获后，再做双源 1000m。
+
 ### 🧭 运行手册改名，并记录 PRN/多卫星操作方法
 
 **背景**：用户开始准备 GPS L5 多径捕获分离测试，指出原文件名 `06_b1c_b210_two_path_usage.md` 已不适合，因为现在不只是 B1C/B1I 测试。
