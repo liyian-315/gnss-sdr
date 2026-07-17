@@ -245,7 +245,220 @@ python3 dev_notes/sim/plot_acq_3d.py \
 
 注意：如果只新增 L5 配置，不改脚本，**可以分析和画图**；只是每次命令都要显式传 `--code-length 10230`。如果后续嫌麻烦，可以再给脚本加一个 `--signal l5` 的便捷参数。
 
-## 2E. 如何指定 PRN，以及如何锁多颗卫星
+## 2E. 每次采样测试与字段判读清单
+
+这一节记录目前每次 SSH 测试实际使用的判断流程。核心原则：**先看录样质量，再看主捕获是否过门限，最后才看第二峰距离**。如果 `positive_acq=0`，即使第二峰距离接近目标补偿，也只能算候选，不能算正式多径检出。
+
+### 2E.1 标准测试链路
+
+1. 录 B210 原始样点：
+
+```bash
+python3 dev_notes/sim/record_b210.py --secs 10 --gain 76 --ant RX2 \
+  --freq <频点Hz> --rate <采样率Hz> -o /tmp/<TAG>.dat \
+  2>&1 | tee /tmp/<TAG>_record.log
+```
+
+常用频点和码长：
+
+| 信号 | 频点 | 采样率 | 分析码长 | 1 chip |
+|------|------|--------|----------|--------|
+| BDS B1I | `1561098000` | `4000000` | `2046` | 约 `146.5m` |
+| GPS L5I | `1176450000` | `10000000` | `10230` | 约 `29.3m` |
+
+2. 用离线配置跑 GNSS-SDR：
+
+```bash
+cp dev_notes/sim/<offline.conf> /tmp/<TAG>.conf
+sed -i "s#^SignalSource.filename=.*#SignalSource.filename=/tmp/<TAG>.dat#" /tmp/<TAG>.conf
+sed -i "s#^Channel0.satellite=.*#Channel0.satellite=<PRN>#" /tmp/<TAG>.conf
+
+rm -f bds_b1i_acq*.mat gps_l5_acq*.mat bds_b1i_acq*.png gps_l5_acq*.png
+./build-conda/src/main/gnss-sdr --config_file=/tmp/<TAG>.conf \
+  2>&1 | tee /tmp/<TAG>_run.log
+```
+
+3. 分析 `.mat` dump：
+
+```bash
+# B1I
+python3 dev_notes/sim/analyze_multipath.py \
+  --pattern "bds_b1i_acq_*_sat_*.mat" --code-length 2046 \
+  | tee /tmp/<TAG>_analyze.log
+
+# L5
+python3 dev_notes/sim/analyze_multipath.py \
+  --pattern "gps_l5_acq_*_sat_*.mat" --code-length 10230 \
+  | tee /tmp/<TAG>_analyze.log
+```
+
+4. 画图：
+
+```bash
+python3 dev_notes/sim/plot_acq_grid.py "<dump.mat>" --code-length <2046或10230> --zoom-chips <窗口>
+python3 dev_notes/sim/plot_acq_3d.py "<dump.mat>" --code-length <2046或10230>
+```
+
+### 2E.2 录样质量先看什么
+
+先看 `/tmp/<TAG>_record.log`：
+
+- 有无 `usrp_source :error ... overflows occurred` 或终端 `O`。少量开头 overflow 不一定让文件完全不可用，但正式结论优先用无 overflow 的样本。
+- `actual: rate=... freq=... gain=... bw=...` 是否和本次测试一致。
+- `done: /tmp/<TAG>.dat` 是否正常结束。
+
+再看样点幅度，排除削顶和过弱：
+
+```bash
+python3 - <<'PY'
+import numpy as np, os
+p="/tmp/<TAG>.dat"
+x=np.fromfile(p,dtype=np.complex64)
+a=np.abs(x)
+print("bytes", os.path.getsize(p), "samples", x.size)
+print("rms", float(np.sqrt(np.mean(a*a))), "mean_abs", float(a.mean()), "max_abs", float(a.max()))
+print("gt0.1", int((a>0.1).sum()), "gt0.2", int((a>0.2).sum()), "gt0.5", int((a>0.5).sum()))
+print("real_minmax", float(x.real.min()), float(x.real.max()))
+print("imag_minmax", float(x.imag.min()), float(x.imag.max()))
+PY
+```
+
+经验读法：
+
+- `max_abs` 接近 1 或大量 `gt0.5/gt0.8`：可能削顶，先降增益或发射功率。
+- `rms` 明显比历史成功样本低：链路可能变弱，先检查模拟器、天线、线缆和频点。
+- L5 最近成功样本约 `rms≈0.020`；这个值不是门限，只是现场对比参考。
+
+### 2E.3 `.mat` 里主要看哪些字段
+
+用这个命令查看某个 dump 的字段：
+
+```bash
+python3 - <<'PY'
+import h5py, numpy as np
+f="<dump.mat>"
+with h5py.File(f,"r") as h:
+    for k in h.keys():
+        a=np.array(h[k])
+        print(k, a.shape, a.dtype, a.reshape(-1)[:5])
+PY
+```
+
+当前多径判断主要字段：
+
+| 字段 | 含义 | 怎么看 |
+|------|------|--------|
+| `PRN` | 当前 dump 对应卫星号 | 必须等于本次模拟器 PRN |
+| `positive_acq` | 主捕获是否通过 | 正式结果必须为 `1` |
+| `test_statistic` | 主峰捕获统计量 | 必须大于 `threshold` |
+| `threshold` | 当前 PFA/积分参数算出的门限 | `max_dwells` 增大时门限也可能变大 |
+| `has_second_peak` | 是否检出第二峰 | 多径判断需要为 `1` |
+| `acq_delay_samples` | GNSS-SDR 交给跟踪的主峰样点位置 | 用于计算主峰位置 |
+| `acq_delay_samples_2` | 第二峰样点位置 | 用于计算第二径距离 |
+| `acq_grid` | Doppler × 码相位相关谱面 | 画 2D/3D 图、独立找主峰 |
+| `peak_ratio` | 主峰/第二峰功率比 | 转成 dB 后越小，第二径越强 |
+| `test_statistic_2` | 第二峰统计量 | 可辅助计算主/副峰比 |
+| `acq_doppler_hz` | 主峰 Doppler | 看本次命中的 Doppler 是否合理 |
+| `num_dwells` | 实际非相干积分次数 | 确认 `max_dwells=10` 是否生效 |
+| `input_power` | 捕获输入功率估计 | 用于同一配置下横向比较强弱 |
+| `sample_counter` | dump 对应样点时间位置 | 多 dump 时可看出现在哪个时刻 |
+
+### 2E.4 第二峰距离怎么换算
+
+`analyze_multipath.py` 的常规读法：
+
+- 从 `acq_grid` 的峰值行独立找主峰码相位。
+- 读取 `acq_delay_samples_2` 得到第二峰码相位。
+- 用 `spc = acq_grid.shape[1] / code_length` 得到每 chip 多少样点。
+- `Δchip = 第二峰chip - 主峰chip`。
+- `Δm = Δchip × 每chip米数`。
+
+对于 GPS L5 最近的手工统计，也可按样点差直接算环形最短距离：
+
+```python
+CODE_CHIPS = 10230.0
+SAMPLES_PER_CODE = 10000.0
+CHIP_M = 299792458.0 / 10.23e6
+ds = ((d2 - d1 + SAMPLES_PER_CODE / 2) % SAMPLES_PER_CODE) - SAMPLES_PER_CODE / 2
+dchip = ds * CODE_CHIPS / SAMPLES_PER_CODE
+dm = dchip * CHIP_M
+```
+
+注意：
+
+- 双源等功率时，主峰/第二峰按强度排序，不一定按直射/反射排序，所以 `Δm` 可能为负；判断补偿量时看 `abs(Δm)`。
+- B1I 4 Msps 下采样点约 `75m`，几十米级台阶误差正常。
+- L5 10 Msps 下每 chip 约 `29.3m`，`1000m` 约 `34.1 chips`。
+
+### 2E.5 正式判定标准
+
+一轮测试建议按这个顺序写结论：
+
+1. 录样是否可信：无严重 overflow、无削顶、频点/采样率/天线口正确。
+2. 主捕获是否通过：`positive_acq=1` 且 `test_statistic > threshold`。
+3. 第二峰是否通过：`has_second_peak=1`。
+4. 第二峰距离是否匹配：`abs(Δm)` 接近模拟器补偿距离。
+
+结论分类：
+
+| 结果 | 解释 |
+|------|------|
+| `positive_acq=1, has_second_peak=1, abs(Δm)` 接近补偿 | 正式多径检出成功 |
+| `positive_acq=1, has_second_peak=0` | 主信号捕获成功，但没有有效第二峰 |
+| `positive_acq=0`，但有很多 `abs(Δm)` 接近补偿的候选 | 只能说谱面里有候选结构，不能作为正式检出 |
+| `test_statistic` 接近但低于 `threshold` | 现场链路可能接近可用，优先复测/稳链路，再考虑临时调 `pfa` |
+| 3D 图没有清晰尖峰 | 先查频点、限带、overflow、模拟器信号和天线，不要先怀疑多径算法 |
+
+### 2E.6 临时统计多个 dump 的常用脚本
+
+当 `.mat` 很多时，用下面脚本按 `test_statistic` 和 1000m 附近候选排序。B1I/L5 只需要改 `PATTERN`、`CODE_CHIPS`、`SAMPLES_PER_CODE` 和 `CHIP_M`。
+
+```bash
+python3 - <<'PY'
+import glob, h5py, numpy as np, os, re
+
+PATTERN = "gps_l5_acq_G_L5_ch_0_*_sat_18.mat"
+CODE_CHIPS = 10230.0
+SAMPLES_PER_CODE = 10000.0
+CHIP_M = 299792458.0 / 10.23e6
+
+rows=[]
+for f in glob.glob(PATTERN):
+    with h5py.File(f,"r") as h:
+        g=lambda k: np.array(h[k]).reshape(-1)[0]
+        pos=int(g("positive_acq"))
+        test=float(g("test_statistic"))
+        thr=float(g("threshold"))
+        has2=int(g("has_second_peak"))
+        d1=float(g("acq_delay_samples"))
+        d2=float(g("acq_delay_samples_2")) if "acq_delay_samples_2" in h else np.nan
+        ds=((d2-d1+SAMPLES_PER_CODE/2)%SAMPLES_PER_CODE)-SAMPLES_PER_CODE/2
+        dchip=ds*CODE_CHIPS/SAMPLES_PER_CODE
+        dm=dchip*CHIP_M
+        ratio=10*np.log10(float(g("test_statistic"))/float(g("test_statistic_2"))) if "test_statistic_2" in h and float(g("test_statistic_2"))>0 else np.nan
+        dop=float(g("acq_doppler_hz"))
+        m=re.search(r"_0_(\d+)_sat_", f)
+        idx=int(m.group(1)) if m else -1
+        rows.append((f,idx,pos,test,thr,has2,dchip,dm,ratio,dop))
+
+print("dump_count", len(rows))
+print("positive", sum(r[2] for r in rows), "positive_has2", sum(1 for r in rows if r[2] and r[5]))
+print("near_abs_800_1200m(has2)", sum(1 for r in rows if r[5] and 800 <= abs(r[7]) <= 1200))
+print("near_abs_800_1200m(positive_has2)", sum(1 for r in rows if r[2] and r[5] and 800 <= abs(r[7]) <= 1200))
+
+print("\nTOP_BY_TEST")
+for r in sorted(rows, key=lambda x:x[3], reverse=True)[:12]:
+    print(os.path.basename(r[0]), "idx",r[1], "pos",r[2], "test",f"{r[3]:.2f}", "thr",f"{r[4]:.2f}",
+          "has2",r[5], "dchip",f"{r[6]:.1f}", "dm",f"{r[7]:.0f}", "ratio_db",f"{r[8]:.1f}", "dop",f"{r[9]:.0f}")
+
+print("\nNEAR_1000_BY_ABS")
+for r in sorted([r for r in rows if r[5]], key=lambda x: abs(abs(x[7])-1000))[:12]:
+    print(os.path.basename(r[0]), "idx",r[1], "pos",r[2], "test",f"{r[3]:.2f}", "thr",f"{r[4]:.2f}",
+          "dchip",f"{r[6]:.1f}", "dm",f"{r[7]:.0f}", "ratio_db",f"{r[8]:.1f}", "dop",f"{r[9]:.0f}")
+PY
+```
+
+## 2F. 如何指定 PRN，以及如何锁多颗卫星
 
 ### 单颗卫星：改 `Channel0.satellite`
 
