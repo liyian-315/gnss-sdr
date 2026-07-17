@@ -54,6 +54,22 @@
   - 需要确认当前接收天线在 1176.45 MHz L5 频段有效。
 - 下一步建议先单独打开每台 L5 模拟器分别测试 PRN20 是否 `positive=1`；单路过捕获后，再做双源 1000m。
 
+**补充复测（用户重新录样，2026-07-17）**
+
+- 用户重新执行：
+  `record_b210.py --secs 10 --gain 76 --ant RX2 --freq 1176450000 --rate 10000000 -o /tmp/gps_l5_prn20_twosim_1000m.dat`
+- 这次录制日志中没有看到 USRP overflow。
+- 录样幅度：`rms≈0.02005`，`max_abs≈0.0965`，无削顶。
+- 正式 `pfa=0.001, max_dwells=2`：
+  - `dump_count=225`
+  - `positive=0`
+  - `positive_has2=0`
+  - 最高 `test=43.21 < threshold=56.27`
+- 诊断 `pfa=0.01`：
+  - `positive=0`
+  - 最高 `test=47.17 < threshold=51.10`
+- 判断：重录后排除了 overflow 干扰，但 PRN20 L5 仍未过主捕获门限；问题更像是 L5 信号强度/PRN/信号分量/天线频段配置，而不是录制溢出。
+
 ### 🧭 运行手册改名，并记录 PRN/多卫星操作方法
 
 **背景**：用户开始准备 GPS L5 多径捕获分离测试，指出原文件名 `06_b1c_b210_two_path_usage.md` 已不适合，因为现在不只是 B1C/B1I 测试。
