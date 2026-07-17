@@ -28,7 +28,7 @@
 | 03 | `03_data_structures_interfaces.md` | 关键数据结构（Gnss_Synchro、Acq_Conf）与接口层级 | 需要传参 / 扩字段 / 加配置项时 | ✅ 初稿 |
 | 04 | `04_retrofit_plan_multipath_multisource.md` | 改造方案：多径识别 + 多源信号的切入点与设计 | 动手改造前 / 定方案时 | 🟡 规划中 |
 | 05 | `05_pitfalls_and_decisions_log.md` | 踩坑、关键决策、疑问（按日期追加） | 遇到怪问题 / 想知道"为什么这么做"时 | 🟡 持续追加 |
-| 06 | `06_b1c_b210_two_path_usage.md` | **★运行手册★** conda环境+B210+B1I双路径：编译/运行/调参/排错 | **在测试机上跑测试前必读** | ✅ 权威 |
+| 06 | `06_b210_multipath_test_usage.md` | **★运行手册★** conda环境+B210多径测试：B1I/L5I 录制、离线分析、画图、调参、排错 | **在测试机上跑测试前必读** | ✅ 权威 |
 
 > 图例：✅ 已成稿可用 · 🟡 进行中 · ⬜ 未开始
 

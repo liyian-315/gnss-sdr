@@ -1,6 +1,6 @@
-# 06 · 运行手册：conda 环境 + USRP B210 + B1I 双路径
+# 06 · 运行手册：conda 环境 + USRP B210 + 多径捕获测试
 
-> **这是当前唯一权威的"怎么编译、怎么跑测试"手册。** 以前的 B1C 版说明已过时（见文末历史）。
+> **这是当前唯一权威的"怎么编译、怎么跑 B210 多径测试"手册。** 早期文件名里带 B1C，但当前已经扩展为 B1I、GPS L5I 等多信号测试入口。
 > 测试机 = NUC7i7 / Ubuntu 18.04 / USRP B210。
 
 ## 0. 为什么必须用 conda（一句话背景）
@@ -244,6 +244,94 @@ python3 dev_notes/sim/plot_acq_3d.py \
 - `abs(Δm)` 接近模拟器补偿距离。
 
 注意：如果只新增 L5 配置，不改脚本，**可以分析和画图**；只是每次命令都要显式传 `--code-length 10230`。如果后续嫌麻烦，可以再给脚本加一个 `--signal l5` 的便捷参数。
+
+## 2E. 如何指定 PRN，以及如何锁多颗卫星
+
+### 单颗卫星：改 `Channel0.satellite`
+
+锁哪颗卫星是在配置文件里指定的，不在脚本里。核心参数是：
+
+```conf
+Channel.signal=<信号名>
+Channel0.satellite=<PRN>
+```
+
+B1I 当前离线配置示例：
+
+```conf
+Channels_B1.count=1
+Channel.signal=B1
+Channel0.satellite=9
+```
+
+GPS L5I 当前离线配置示例：
+
+```conf
+Channels_L5.count=1
+Channel.signal=L5
+Channel0.satellite=1
+```
+
+如果你的 L5 模拟器发的是 PRN9，就把 L5 配置改成：
+
+```conf
+Channel0.satellite=9
+```
+
+### 多颗卫星：增加通道数并逐个指定 PRN
+
+可以锁两颗、三颗或更多。做法是把 `Channels_<signal>.count` 改成通道数，然后给每个通道指定卫星。
+
+GPS L5I 三颗星示例：
+
+```conf
+Channels_L5.count=3
+Channels.in_acquisition=1
+Channel.signal=L5
+
+Channel0.satellite=1
+Channel1.satellite=2
+Channel2.satellite=9
+```
+
+B1I 三颗星示例：
+
+```conf
+Channels_B1.count=3
+Channels.in_acquisition=1
+Channel.signal=B1
+
+Channel0.satellite=3
+Channel1.satellite=6
+Channel2.satellite=9
+```
+
+离线分析时，多个通道会生成多份 `.mat`。分析和画图命令用通配符即可：
+
+```bash
+# GPS L5I
+python3 dev_notes/sim/analyze_multipath.py \
+  --pattern "gps_l5_acq_*_sat_*.mat" --code-length 10230
+
+# B1I
+python3 dev_notes/sim/analyze_multipath.py \
+  --pattern "bds_b1i_acq_*_sat_*.mat" --code-length 2046
+```
+
+### 每颗卫星两条径：通道数要按 `卫星数 × 2`
+
+如果目标不是只看捕获谱，而是“每颗卫星两条径都持续跟踪”，需要双路径机制。B1I 当前已有这套机制：
+
+```conf
+Channels_B1.count=6          ; 3 颗星 × 2 条径
+Channels_B1.signal_paths=2
+Channel.signal=B1
+```
+
+L5 当前新增的是**离线捕获谱验证配置**，用于看 acquisition dump 里是否能分出两峰；它还不是完整的 L5 双路径实时跟踪配置。也就是说：
+
+- 只做 L5 多径捕获分离测试：新增的 `l5_offline_prn1.conf` 足够。
+- 要做 L5 每星两径实时跟踪：后续还需要按 B1I 的 `signal_paths=2` 机制补一份 L5 实时/双路径配置，并实测 flowgraph 是否完整支持。
 
 ## 3. 分析多径（读 dump 出表）
 注意：当前 `my_bds_b1i_twopath.conf` 是实时保守档，`Acquisition_B1.dump=false`，所以实时跑完**不会**生成 `bds_b1i_acq_*.mat`。`analyze_multipath.py` 和 2D/3D 谱峰图只能用于 acquisition dump，通常应配合离线配置 `b1i_offline_prn9.conf` 使用。

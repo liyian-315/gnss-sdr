@@ -9,6 +9,27 @@
 
 ---
 
+## 2026-07-17
+
+### 🧭 运行手册改名，并记录 PRN/多卫星操作方法
+
+**背景**：用户开始准备 GPS L5 多径捕获分离测试，指出原文件名 `06_b1c_b210_two_path_usage.md` 已不适合，因为现在不只是 B1C/B1I 测试。
+
+**操作**
+
+- 将 `dev_notes/06_b1c_b210_two_path_usage.md` 重命名为 `dev_notes/06_b210_multipath_test_usage.md`。
+- 更新 `dev_notes/README.md` 的文档地图，明确 06 是 B210 多径测试总手册，覆盖 B1I/L5I 的录制、离线分析、画图、调参、排错。
+- 在 06 中新增 `2E. 如何指定 PRN，以及如何锁多颗卫星`：
+  - 单颗卫星改 `Channel0.satellite=<PRN>`。
+  - 多颗卫星改 `Channels_<signal>.count=N`，并写 `Channel0.satellite`、`Channel1.satellite` 等。
+  - 离线捕获分析用通配符匹配多份 `.mat`。
+  - 每颗卫星两条径持续跟踪时，通道数要按 `卫星数 × 2` 配，并需要对应信号支持 `signal_paths=2`。
+
+**判断**
+
+- L5 目前新增的是离线捕获谱验证配置，适合做 `positive/has2/Δm` 判断和 2D/3D 谱峰图。
+- L5 若要像 B1I 一样“每颗卫星两条径持续跟踪”，后续还要补 L5 的双路径实时/跟踪配置并实测 flowgraph。
+
 ## 2026-07-16
 
 ### ✅ 1000m 双源等功率复测：检出远距第二峰，量化到约 1049m
