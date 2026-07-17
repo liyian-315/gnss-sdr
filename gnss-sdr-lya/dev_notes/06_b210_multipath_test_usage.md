@@ -70,6 +70,22 @@ bash dev_notes/sim/run_b210_offline_multipath_test.sh \
   --device-args serial=30F4100
 ```
 
+如果本次补偿是 2000m，L5 对应约 `68.2 chips`，第二峰搜索窗必须大于这个值。当前 L5 离线配置默认已改为 `90 chips`，也可以显式写在命令里：
+
+```bash
+bash dev_notes/sim/run_b210_offline_multipath_test.sh \
+  --signal l5 \
+  --prn 18 \
+  --tag gps_l5_prn18_twosim_2000m_30s \
+  --secs 30 \
+  --chunk-secs 10 \
+  --expected-delay-m 2000 \
+  --max-delay-chips 90 \
+  --gain 76 \
+  --ant RX2 \
+  --device-args serial=30F4100
+```
+
 这样做是为了避免 L5 `10 Msps × complex64` 在 100 秒时形成约 `8GB` 的单个连续写盘流。测试机上这种长时间大文件连续写入会触发磁盘 flush/调度抖动，进而让 USRP/GNU Radio 缓冲来不及消费并出现大量 overflow。脚本现在会按片段执行“录制 -> `sync` 落盘 -> 离线分析 -> 再录下一段”，避免多个大文件的后台写回叠在下一次 B210 采样期间。
 
 如果只想复用上次录好的 `/tmp/gps_l5_prn18_twosim_1000m.dat`，不重新采样：
@@ -501,6 +517,7 @@ dm = dchip * CHIP_M
 - 双源等功率时，主峰/第二峰按强度排序，不一定按直射/反射排序，所以 `Δm` 可能为负；判断补偿量时看 `abs(Δm)`。
 - B1I 4 Msps 下采样点约 `75m`，几十米级台阶误差正常。
 - L5 10 Msps 下每 chip 约 `29.3m`，`1000m` 约 `34.1 chips`。
+- 如果目标补偿超过 `multipath_max_delay_chips × 每chip米数`，第二峰搜索窗不覆盖目标延迟；例如 L5 旧配置 `60 chips` 只覆盖约 `1758m`，测 `2000m` 会落在窗边/其他峰上，常见现象是 `positive_acq=1` 但 `has_second_peak=0`，此时不能把 `Δm` 当成有效多径距离。
 
 ### 2E.5 正式判定标准
 

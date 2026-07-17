@@ -25,6 +25,7 @@ Options:
   --device-args ARGS  UHD device args, e.g. serial=30F4100.
   --pfa VALUE         Override Acquisition pfa in temp config.
   --max-dwells N      Override L5 max_dwells in temp config.
+  --max-delay-chips N Override multipath_max_delay_chips in temp config.
   --expected-delay-m N Prefer best dump whose abs(delta meters) is closest to N.
   --skip-record       Reuse /tmp/<tag>.dat and only rerun offline analysis.
 EOF
@@ -39,6 +40,7 @@ ANT="RX2"
 DEVICE_ARGS=""
 PFA=""
 MAX_DWELLS=""
+MAX_DELAY_CHIPS=""
 SKIP_RECORD="0"
 CHUNK_SECS="30"
 EXPECTED_DELAY_M=""
@@ -55,6 +57,7 @@ while [[ $# -gt 0 ]]; do
     --device-args) DEVICE_ARGS="$2"; shift 2 ;;
     --pfa) PFA="$2"; shift 2 ;;
     --max-dwells) MAX_DWELLS="$2"; shift 2 ;;
+    --max-delay-chips) MAX_DELAY_CHIPS="$2"; shift 2 ;;
     --expected-delay-m) EXPECTED_DELAY_M="$2"; shift 2 ;;
     --skip-record) SKIP_RECORD="1"; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -77,6 +80,7 @@ case "$SIGNAL" in
     CODE_LENGTH="2046"
     PFA_KEY="Acquisition_B1.pfa"
     DWELL_KEY=""
+    DELAY_KEY="Acquisition_B1.multipath_max_delay_chips"
     ;;
   l5)
     FREQ="1176450000"
@@ -87,6 +91,7 @@ case "$SIGNAL" in
     CODE_LENGTH="10230"
     PFA_KEY="Acquisition_L5.pfa"
     DWELL_KEY="Acquisition_L5.max_dwells"
+    DELAY_KEY="Acquisition_L5.multipath_max_delay_chips"
     ;;
   *)
     echo "--signal must be b1i or l5, got: $SIGNAL" >&2
@@ -198,7 +203,10 @@ run_offline_part() {
   if [[ -n "$MAX_DWELLS" && -n "$DWELL_KEY" ]]; then
     sed -i "s#^${DWELL_KEY}=.*#${DWELL_KEY}=${MAX_DWELLS}#" "$tmp_conf"
   fi
-  grep -E 'SignalSource.filename|Channel0.satellite|Acquisition_.*pfa|Acquisition_L5.max_dwells' "$tmp_conf" || true
+  if [[ -n "$MAX_DELAY_CHIPS" ]]; then
+    sed -i "s#^${DELAY_KEY}=.*#${DELAY_KEY}=${MAX_DELAY_CHIPS}#" "$tmp_conf"
+  fi
+  grep -E 'SignalSource.filename|Channel0.satellite|Acquisition_.*pfa|Acquisition_L5.max_dwells|multipath_max_delay_chips' "$tmp_conf" || true
 
   echo "[5/7] Running GNSS-SDR offline acquisition: ${part_tag}"
   rm -f ${ACQ_PREFIX}*.mat ${ACQ_PREFIX}*.png

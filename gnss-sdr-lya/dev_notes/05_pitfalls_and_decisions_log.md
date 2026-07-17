@@ -11,6 +11,36 @@
 
 ## 2026-07-17
 
+### 🕳️ GPS L5 PRN18 2000m 测试误差大：第二峰搜索窗不足
+
+**现象**：用户将模拟器补偿改为 `+2000m`，运行：
+
+```bash
+bash dev_notes/sim/run_b210_offline_multipath_test.sh \
+  --signal l5 --prn 18 --tag gps_l5_prn18_twosim_2000m_30s \
+  --secs 30 --chunk-secs 10 --gain 76 --ant RX2 --device-args serial=30F4100
+```
+
+**结果摘要**
+
+- 分成 3 段 10 秒录样；每段录样只有 1 次 overflow，不是主要问题。
+- 三段 best dump 都 `positive_acq=1`，主捕获通过。
+- 但三段 best dump 都 `has_second_peak=0`，第二峰未通过多径判定。
+- 总 best 给出 `Δ≈-59.3 chips ≈ -1739m`，距离目标 `2000m` 偏差约 `261m`。
+
+**原因**
+
+- L5 1 chip 约 `29.3m`，`2000m` 约 `68.2 chips`。
+- 当时 `Acquisition_L5.multipath_max_delay_chips=60`，只覆盖约 `1758m`。
+- 目标第二峰超出了搜索窗，算法只能在窗边或其他峰上找到候选，因此出现 `positive_acq=1` 但 `has_second_peak=0`，此时 `Δm` 不能当有效 2000m 检出。
+
+**修复**
+
+- 将 `dev_notes/sim/l5_offline_prn1.conf` 的 `Acquisition_L5.multipath_max_delay_chips` 从 `60` 改为 `90`，覆盖到约 `2637m`。
+- `run_b210_offline_multipath_test.sh` 增加 `--max-delay-chips`，可在命令行临时覆盖搜索窗。
+- 建议 2000m 测试命令增加：
+  `--expected-delay-m 2000 --max-delay-chips 90`
+
 ### 🕳️ L5 100s 连续录样大量 overflow：改为脚本自动分段录制
 
 **现象**：用户将测试脚本里的录制时长手工改为 `100s` 后，L5 录样出现大量 USRP overflow。
