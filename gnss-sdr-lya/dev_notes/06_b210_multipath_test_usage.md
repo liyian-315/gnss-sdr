@@ -49,11 +49,25 @@ bash dev_notes/sim/run_b210_offline_multipath_test.sh \
   --prn 18 \
   --tag gps_l5_prn18_twosim_1000m_100s \
   --secs 100 \
+  --expected-delay-m 1000 \
   --gain 76 \
   --ant RX2
 ```
 
-这样做是为了避免 L5 `10 Msps × complex64` 在 100 秒时形成约 `8GB` 的单个连续写盘流。测试机上这种长时间大文件连续写入会触发磁盘 flush/调度抖动，进而让 USRP/GNU Radio 缓冲来不及消费并出现大量 overflow。分段录制会在片段间给系统短暂喘息时间，同时也能单独判断哪一段信号最好。
+如果本次补偿是 300m，把 `--expected-delay-m` 和 `--tag` 改成 300：
+
+```bash
+bash dev_notes/sim/run_b210_offline_multipath_test.sh \
+  --signal l5 \
+  --prn 18 \
+  --tag gps_l5_prn18_twosim_300m_100s \
+  --secs 100 \
+  --expected-delay-m 300 \
+  --gain 76 \
+  --ant RX2
+```
+
+这样做是为了避免 L5 `10 Msps × complex64` 在 100 秒时形成约 `8GB` 的单个连续写盘流。测试机上这种长时间大文件连续写入会触发磁盘 flush/调度抖动，进而让 USRP/GNU Radio 缓冲来不及消费并出现大量 overflow。脚本现在会按片段执行“录制 -> `sync` 落盘 -> 离线分析 -> 再录下一段”，避免多个大文件的后台写回叠在下一次 B210 采样期间。
 
 如果只想复用上次录好的 `/tmp/gps_l5_prn18_twosim_1000m.dat`，不重新采样：
 

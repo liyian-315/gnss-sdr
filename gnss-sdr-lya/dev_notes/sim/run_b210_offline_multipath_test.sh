@@ -24,6 +24,7 @@ Options:
   --ant NAME          B210 antenna port. Default: RX2.
   --pfa VALUE         Override Acquisition pfa in temp config.
   --max-dwells N      Override L5 max_dwells in temp config.
+  --expected-delay-m N Prefer best dump whose abs(delta meters) is closest to N.
   --skip-record       Reuse /tmp/<tag>.dat and only rerun offline analysis.
 EOF
 }
@@ -38,6 +39,7 @@ PFA=""
 MAX_DWELLS=""
 SKIP_RECORD="0"
 CHUNK_SECS="30"
+EXPECTED_DELAY_M=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -50,6 +52,7 @@ while [[ $# -gt 0 ]]; do
     --ant) ANT="$2"; shift 2 ;;
     --pfa) PFA="$2"; shift 2 ;;
     --max-dwells) MAX_DWELLS="$2"; shift 2 ;;
+    --expected-delay-m) EXPECTED_DELAY_M="$2"; shift 2 ;;
     --skip-record) SKIP_RECORD="1"; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage; exit 2 ;;
@@ -124,19 +127,33 @@ fi
 echo "[1/7] Test parameters"
 echo "  signal=${SIGNAL} prn=${PRN} tag=${TAG}"
 echo "  freq=${FREQ} rate=${RATE} secs=${SECS} chunk_secs=${CHUNK_SECS} gain=${GAIN} ant=${ANT}"
+echo "  expected_delay_m=${EXPECTED_DELAY_M:-none}"
 echo "  parts=${#PART_SECS[@]}"
 
 select_best_dump() {
-  python3 - "$1" <<'PY'
+  python3 - "$1" "$CODE_LENGTH" "$EXPECTED_DELAY_M" <<'PY'
 import glob, h5py, numpy as np, sys
+pattern = sys.argv[1]
+code_length = float(sys.argv[2])
+expected = float(sys.argv[3]) if sys.argv[3] else None
+chip_m = 299792458.0 / (code_length * 1000.0)
 best = None
-for f in glob.glob(sys.argv[1]):
+for f in glob.glob(pattern):
     try:
         with h5py.File(f, "r") as h:
             test = float(np.array(h["test_statistic"]).reshape(-1)[0]) if "test_statistic" in h else -1.0
             pos = int(np.array(h["positive_acq"]).reshape(-1)[0]) if "positive_acq" in h else 0
             has2 = int(np.array(h["has_second_peak"]).reshape(-1)[0]) if "has_second_peak" in h else 0
-            score = (pos, has2, test)
+            if expected is not None and has2 and "acq_grid" in h and "acq_delay_samples_2" in h:
+                grid = np.array(h["acq_grid"])
+                spc = grid.shape[1] / code_length
+                drow = int(np.argmax(grid.max(axis=1)))
+                main_chip = int(np.argmax(grid[drow])) / spc
+                sec_chip = float(np.array(h["acq_delay_samples_2"]).reshape(-1)[0]) / spc
+                dm = (sec_chip - main_chip) * chip_m
+                score = (pos, has2, -abs(abs(dm) - expected), test)
+            else:
+                score = (pos, has2, test)
             if best is None or score > best[0]:
                 best = (score, f)
     except Exception:
@@ -203,29 +220,27 @@ run_offline_part() {
   cp "${base}_3d.png" "/tmp/${part_tag}_best_3d.png"
 }
 
-echo "[2/7] Recording B210 samples"
-for idx in "${!PART_SECS[@]}"; do
+BEST_PART_DUMPS=()
+for idx in "${!RAW_FILES[@]}"; do
   part_tag="${PART_TAGS[$idx]}"
   raw="${RAW_FILES[$idx]}"
   dur="${PART_SECS[$idx]}"
+  echo "[2/7] Recording B210 samples: part $((idx + 1))/${#PART_SECS[@]}"
   if [[ "$SKIP_RECORD" != "1" ]]; then
-    echo "  part $((idx + 1))/${#PART_SECS[@]}: ${dur}s -> ${raw}"
+    echo "  ${dur}s -> ${raw}"
     python3 dev_notes/sim/record_b210.py --secs "$dur" --gain "$GAIN" --ant "$ANT" \
       --freq "$FREQ" --rate "$RATE" -o "$raw" 2>&1 | tee "/tmp/${part_tag}_record.log"
+    echo "  flushing file to disk before continuing"
+    sync "$raw" 2>/dev/null || sync
   else
-    echo "  part $((idx + 1))/${#PART_SECS[@]}: reusing ${raw}"
+    echo "  reusing ${raw}"
   fi
-done
 
-echo "[3/7] Raw sample quick stats"
-for idx in "${!RAW_FILES[@]}"; do
-  print_raw_stats "${RAW_FILES[$idx]}" | tee "/tmp/${PART_TAGS[$idx]}_stats.log"
-done
+  echo "[3/7] Raw sample quick stats: ${part_tag}"
+  print_raw_stats "$raw" | tee "/tmp/${part_tag}_stats.log"
 
-BEST_PART_DUMPS=()
-for idx in "${!RAW_FILES[@]}"; do
-  run_offline_part "${PART_TAGS[$idx]}" "${RAW_FILES[$idx]}"
-  BEST_PART_DUMPS+=("/tmp/${PART_TAGS[$idx]}_best.mat")
+  run_offline_part "$part_tag" "$raw"
+  BEST_PART_DUMPS+=("/tmp/${part_tag}_best.mat")
 done
 
 BEST_DUMP="$(select_best_dump "/tmp/${TAG}_part*_best.mat")"
