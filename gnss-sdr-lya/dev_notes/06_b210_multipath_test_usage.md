@@ -36,7 +36,7 @@ bash dev_notes/sim/run_b210_offline_multipath_test.sh \
   --signal l5 \
   --prn 18 \
   --tag gps_l5_prn18_twosim_1000m \
-  --secs 10 \
+  --secs 30 \
   --gain 76 \
   --ant RX2
 ```
@@ -62,7 +62,7 @@ bash dev_notes/sim/run_b210_offline_multipath_test.sh \
   --signal b1i \
   --prn 9 \
   --tag b1i_prn9_twosim_1000m \
-  --secs 10 \
+  --secs 30 \
   --gain 76 \
   --ant RX2
 ```
@@ -146,7 +146,7 @@ python3 dev_notes/sim/check_acq.py "bds_b1i_acq_*_sat_9.mat"
 
 录制并离线分析：
 ```bash
-python3 dev_notes/sim/record_b210.py --secs 10 --gain 76 --ant RX2 \
+python3 dev_notes/sim/record_b210.py --secs 30 --gain 76 --ant RX2 \
   --freq 1561098000 --rate 4000000 -o /tmp/b1i_twosim_1000m.dat
 
 cp /tmp/b1i_twosim_1000m.dat /tmp/b1i_prn9.dat
@@ -199,7 +199,7 @@ rm -f bds_b1i_acq_C_B1_ch_0_1_sat_9.mat \
       bds_b1i_acq_C_B1_ch_0_1_sat_9.png \
       bds_b1i_acq_C_B1_ch_0_1_sat_9_3d.png
 
-python3 dev_notes/sim/record_b210.py --secs 10 --gain 76 --ant RX2 \
+python3 dev_notes/sim/record_b210.py --secs 30 --gain 76 --ant RX2 \
   --freq 1561098000 --rate 4000000 -o "$RAW" \
   > /tmp/${TAG}_record.log 2>&1
 
@@ -284,7 +284,7 @@ cd ~/lya/gnss-sdr/gnss-sdr-lya
 TAG=gps_l5_twosim_1000m_equal_power
 RAW=/tmp/${TAG}.dat
 
-python3 dev_notes/sim/record_b210.py --secs 10 --gain 76 --ant RX2 \
+python3 dev_notes/sim/record_b210.py --secs 30 --gain 76 --ant RX2 \
   --freq 1176450000 --rate 10000000 -o "$RAW"
 
 cp dev_notes/sim/l5_offline_prn1.conf /tmp/${TAG}.conf
@@ -323,7 +323,7 @@ python3 dev_notes/sim/plot_acq_3d.py \
 1. 录 B210 原始样点：
 
 ```bash
-python3 dev_notes/sim/record_b210.py --secs 10 --gain 76 --ant RX2 \
+python3 dev_notes/sim/record_b210.py --secs 30 --gain 76 --ant RX2 \
   --freq <频点Hz> --rate <采样率Hz> -o /tmp/<TAG>.dat \
   2>&1 | tee /tmp/<TAG>_record.log
 ```

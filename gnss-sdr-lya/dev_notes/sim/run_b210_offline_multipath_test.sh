@@ -6,11 +6,11 @@ usage() {
 Run one B210 record -> offline acquisition dump -> multipath analysis test.
 
 Examples:
-  # GPS L5I PRN18, B210 RX2, 10 s, gain 76
+  # GPS L5I PRN18, B210 RX2, 30 s, gain 76
   bash dev_notes/sim/run_b210_offline_multipath_test.sh \
     --signal l5 --prn 18 --tag gps_l5_prn18_twosim_1000m
 
-  # BDS B1I PRN9, B210 RX2, 10 s, gain 76
+  # BDS B1I PRN9, B210 RX2, 30 s, gain 76
   bash dev_notes/sim/run_b210_offline_multipath_test.sh \
     --signal b1i --prn 9 --tag b1i_prn9_twosim_1000m
 
@@ -18,7 +18,7 @@ Options:
   --signal b1i|l5     Signal to test. Required.
   --prn N             Satellite PRN. Required.
   --tag NAME          Output tag. Required.
-  --secs N            Record seconds. Default: 10.
+  --secs N            Record seconds. Default: 30.
   --gain N            B210 gain dB. Default: 76.
   --ant NAME          B210 antenna port. Default: RX2.
   --pfa VALUE         Override Acquisition pfa in temp config.
@@ -30,7 +30,7 @@ EOF
 SIGNAL=""
 PRN=""
 TAG=""
-SECS="10"
+SECS="30"
 GAIN="76"
 ANT="RX2"
 PFA=""
