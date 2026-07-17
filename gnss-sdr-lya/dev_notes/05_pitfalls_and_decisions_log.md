@@ -11,6 +11,29 @@
 
 ## 2026-07-17
 
+### 🕳️ L5 100s 连续录样大量 overflow：改为脚本自动分段录制
+
+**现象**：用户将测试脚本里的录制时长手工改为 `100s` 后，L5 录样出现大量 USRP overflow。
+
+**证据**
+
+- 100 秒 L5 配置为 `10 Msps × complex64`，录样量为 `1,000,000,000` samples，单文件约 `7.5GB`。
+- `/tmp/gps_l5_prn18_twosim_1000m_record.log` 中出现约 `135` 行 `overflows occurred`。
+- 日志末尾多次出现每 `0.75s` 左右 `20~39` 次 overflow，属于持续性丢样，不是开头偶发一次。
+- 当时服务器负载曾到 `load average: 4.45, 17.58, 10.42`，SSH 一度 banner exchange 超时，说明系统处在明显 IO/调度压力下。
+
+**判断**
+
+- 这不是模拟器信号或捕获算法问题，而是长时间大文件连续写盘导致 GNU Radio/USRP 缓冲不能持续消费。
+- L5 `10 Msps` 下写盘速率约 `80 MB/s`，100 秒连续落盘会形成约 `8GB` 单文件；磁盘 flush 或系统调度抖动会直接反映为 USRP overflow。
+
+**修复**
+
+- 修改 `dev_notes/sim/run_b210_offline_multipath_test.sh`：新增 `--chunk-secs`，默认 `30`。
+- 当 `--secs` 大于 `--chunk-secs` 时自动切段，例如 `--secs 100` 变成 `30+30+30+10`。
+- 每段分别录样、离线跑 GNSS-SDR、分析 `.mat`、画图；脚本最后从所有片段的 best dump 中再挑总 best。
+- `06 §1A` 增加可复制的 `--secs 100` 用法，并明确不要手工 `sed` 改脚本。
+
 ### 🕳️ GPS L5 PRN18 `max_dwells=10` 配置固化后复测：当前现场未过主捕获门限
 
 **背景**：根据上一轮 PRN18 手工临时配置成功结果，将 `dev_notes/sim/l5_offline_prn1.conf` 中 `Acquisition_L5.max_dwells` 从 `2` 改为 `10`，提交到 Git 后由服务器从 `origin/feature/multipath` 精确检出配置再测试。

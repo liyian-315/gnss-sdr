@@ -41,6 +41,20 @@ bash dev_notes/sim/run_b210_offline_multipath_test.sh \
   --ant RX2
 ```
 
+长时间测试不要手工 `sed` 改脚本。直接传 `--secs 100`，脚本会自动切成 30 秒以内的小段，例如 `100s = 30+30+30+10`，分别录制和分析，最后从所有片段里挑 best dump：
+
+```bash
+bash dev_notes/sim/run_b210_offline_multipath_test.sh \
+  --signal l5 \
+  --prn 18 \
+  --tag gps_l5_prn18_twosim_1000m_100s \
+  --secs 100 \
+  --gain 76 \
+  --ant RX2
+```
+
+这样做是为了避免 L5 `10 Msps × complex64` 在 100 秒时形成约 `8GB` 的单个连续写盘流。测试机上这种长时间大文件连续写入会触发磁盘 flush/调度抖动，进而让 USRP/GNU Radio 缓冲来不及消费并出现大量 overflow。分段录制会在片段间给系统短暂喘息时间，同时也能单独判断哪一段信号最好。
+
 如果只想复用上次录好的 `/tmp/gps_l5_prn18_twosim_1000m.dat`，不重新采样：
 
 ```bash
@@ -79,6 +93,17 @@ bash dev_notes/sim/run_b210_offline_multipath_test.sh \
 /tmp/<tag>_best.png       # 2D 谱峰图
 /tmp/<tag>_best_3d.png    # 3D 谱峰图
 ```
+
+如果用了 `--secs 100` 这类分段测试，还会额外生成：
+
+```text
+/tmp/<tag>_part01_record.log
+/tmp/<tag>_part01_analyze.log
+/tmp/<tag>_part01_best.png
+...
+```
+
+总的 `/tmp/<tag>_best.*` 仍然是脚本从所有片段里自动挑出的最好结果。
 
 正式成功要同时满足：
 
