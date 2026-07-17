@@ -180,6 +180,71 @@ B1I 在 4 Msps 下每 chip 约 `146.5m`，每个采样点约 `0.51 chip ≈ 75m`
 
 今天生成的代表性图片都在 `dev_notes/sim/`，文件名形如 `bds_b1i_twosim_<距离>_<条件>_pfa001_3d.png`。
 
+## 2D. GPS L5I 多径捕获分离测试
+
+L5 可以复用今天 B1I 的“录制 -> 离线 acquisition dump -> 分析/画图”流程，但不能直接照搬所有参数：
+
+- 频点改为 GPS L5：`1176.45 MHz`。
+- 建议采样率改为 `10 Msps`。L5 码率是 `10.23 Mcps`，继续用 B1I 的 `4 Msps` 太窄，不适合做 L5 捕获谱分离。
+- 分析脚本继续用同一套，但 `--code-length` 必须改成 `10230`。
+- L5 1 chip 约 `29.3m`，所以 `200m≈6.8 chips`、`1000m≈34.1 chips`，比 B1I 更容易在捕获域分开。
+
+新增离线配置：
+
+```bash
+dev_notes/sim/l5_offline_prn1.conf
+```
+
+先按你的模拟器 PRN 修改：
+
+```bash
+# 如果不是 PRN1，改这里
+Channel0.satellite=1
+
+# 如果录样文件名不同，改这里
+SignalSource.filename=/tmp/l5_prn1.dat
+```
+
+推荐测试命令：
+
+```bash
+source ~/lya/miniforge3/etc/profile.d/conda.sh
+conda activate gnsssdr
+cd ~/lya/gnss-sdr/gnss-sdr-lya
+
+TAG=gps_l5_twosim_1000m_equal_power
+RAW=/tmp/${TAG}.dat
+
+python3 dev_notes/sim/record_b210.py --secs 10 --gain 76 --ant RX2 \
+  --freq 1176450000 --rate 10000000 -o "$RAW"
+
+cp dev_notes/sim/l5_offline_prn1.conf /tmp/${TAG}.conf
+sed -i "s#^SignalSource.filename=.*#SignalSource.filename=${RAW}#" /tmp/${TAG}.conf
+# 如果模拟器不是 GPS L5 PRN1，也一起改：
+# sed -i "s#^Channel0.satellite=.*#Channel0.satellite=<PRN>#" /tmp/${TAG}.conf
+
+rm -f gps_l5_acq*.mat gps_l5_acq*.png
+./build-conda/src/main/gnss-sdr --config_file=/tmp/${TAG}.conf \
+  2>&1 | tee /tmp/${TAG}_run.log
+
+python3 dev_notes/sim/analyze_multipath.py \
+  --pattern "gps_l5_acq_*_sat_*.mat" --code-length 10230
+
+python3 dev_notes/sim/plot_acq_grid.py \
+  "gps_l5_acq_*_sat_*.mat" --code-length 10230 --zoom-chips 80
+
+python3 dev_notes/sim/plot_acq_3d.py \
+  "gps_l5_acq_*_sat_*.mat" --code-length 10230
+```
+
+判定仍然一样：
+
+- `positive=1`：主捕获通过。
+- `has2=1`：第二峰通过多径判定。
+- `abs(Δm)` 接近模拟器补偿距离。
+
+注意：如果只新增 L5 配置，不改脚本，**可以分析和画图**；只是每次命令都要显式传 `--code-length 10230`。如果后续嫌麻烦，可以再给脚本加一个 `--signal l5` 的便捷参数。
+
 ## 3. 分析多径（读 dump 出表）
 注意：当前 `my_bds_b1i_twopath.conf` 是实时保守档，`Acquisition_B1.dump=false`，所以实时跑完**不会**生成 `bds_b1i_acq_*.mat`。`analyze_multipath.py` 和 2D/3D 谱峰图只能用于 acquisition dump，通常应配合离线配置 `b1i_offline_prn9.conf` 使用。
 
