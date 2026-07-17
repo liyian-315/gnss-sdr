@@ -56,7 +56,7 @@ bash dev_notes/sim/run_b210_offline_multipath_test.sh \
   --device-args serial=30F4100
 ```
 
-如果本次补偿是 300m，把 `--expected-delay-m` 和 `--tag` 改成 300：
+如果本次补偿是 300m，把 `--expected-delay-m` 和 `--tag` 改成 300。注意：`--expected-delay-m` 只用于额外打印“哪个候选最接近预期”的提示，不参与最终伪距差统计。
 
 ```bash
 bash dev_notes/sim/run_b210_offline_multipath_test.sh \
@@ -138,6 +138,15 @@ bash dev_notes/sim/run_b210_offline_multipath_test.sh \
 ```
 
 总的 `/tmp/<tag>_best.*` 仍然是脚本从所有片段里自动挑出的最好结果。
+
+客观测量结果看：
+
+```text
+/tmp/<tag>_summary.log
+/tmp/<tag>_summary.tsv
+```
+
+其中 `objective_abs_delta_m_median/mean/std` 是从所有 `positive_acq=1 && has2=1` 的有效 dump 自动统计出来的真实相对伪距差；它不使用 `--expected-delay-m`。
 
 正式成功要同时满足：
 

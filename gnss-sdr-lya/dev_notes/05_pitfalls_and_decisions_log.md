@@ -11,6 +11,19 @@
 
 ## 2026-07-17
 
+### 🧭 `--expected-delay-m` 只作画图提示，伪距差必须客观统计
+
+**背景**：用户指出 `--expected-delay-m 700` 会筛选接近已知答案的结果，不能作为真实伪距差测量依据。
+
+**决策**
+
+- `--expected-delay-m` 只保留为 plot hint：方便已知模拟器设置时快速找到接近预期的候选图。
+- 正式伪距差不使用 expected 参数，而是从所有 `positive_acq=1 && has_second_peak=1` 的有效 dump 中计算 `abs(Δm)`。
+- `run_b210_offline_multipath_test.sh` 新增客观汇总：
+  - `/tmp/<tag>_summary.tsv`
+  - `/tmp/<tag>_summary.log`
+- 结论优先看 `objective_abs_delta_m_median/mean/std`；若有效 dump 数量太少，应继续采样或提升链路稳定性。
+
 ### 🕳️ GPS L5 PRN18 2000m 测试误差大：第二峰搜索窗不足
 
 **现象**：用户将模拟器补偿改为 `+2000m`，运行：

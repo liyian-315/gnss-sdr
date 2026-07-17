@@ -26,7 +26,7 @@ Options:
   --pfa VALUE         Override Acquisition pfa in temp config.
   --max-dwells N      Override L5 max_dwells in temp config.
   --max-delay-chips N Override multipath_max_delay_chips in temp config.
-  --expected-delay-m N Prefer best dump whose abs(delta meters) is closest to N.
+  --expected-delay-m N Optional plot hint only; summary statistics do not use it.
   --skip-record       Reuse /tmp/<tag>.dat and only rerun offline analysis.
 EOF
 }
@@ -136,16 +136,14 @@ echo "[1/7] Test parameters"
 echo "  signal=${SIGNAL} prn=${PRN} tag=${TAG}"
 echo "  freq=${FREQ} rate=${RATE} secs=${SECS} chunk_secs=${CHUNK_SECS} gain=${GAIN} ant=${ANT}"
 echo "  device_args=${DEVICE_ARGS:-auto}"
-echo "  expected_delay_m=${EXPECTED_DELAY_M:-none}"
+echo "  expected_delay_m=${EXPECTED_DELAY_M:-none} (plot hint only)"
 echo "  parts=${#PART_SECS[@]}"
 
 select_best_dump() {
-  python3 - "$1" "$CODE_LENGTH" "$EXPECTED_DELAY_M" <<'PY'
+  python3 - "$1" "$CODE_LENGTH" <<'PY'
 import glob, h5py, numpy as np, sys
 pattern = sys.argv[1]
 code_length = float(sys.argv[2])
-expected = float(sys.argv[3]) if sys.argv[3] else None
-chip_m = 299792458.0 / (code_length * 1000.0)
 best = None
 for f in glob.glob(pattern):
     try:
@@ -153,21 +151,73 @@ for f in glob.glob(pattern):
             test = float(np.array(h["test_statistic"]).reshape(-1)[0]) if "test_statistic" in h else -1.0
             pos = int(np.array(h["positive_acq"]).reshape(-1)[0]) if "positive_acq" in h else 0
             has2 = int(np.array(h["has_second_peak"]).reshape(-1)[0]) if "has_second_peak" in h else 0
-            if expected is not None and has2 and "acq_grid" in h and "acq_delay_samples_2" in h:
-                grid = np.array(h["acq_grid"])
-                spc = grid.shape[1] / code_length
-                drow = int(np.argmax(grid.max(axis=1)))
-                main_chip = int(np.argmax(grid[drow])) / spc
-                sec_chip = float(np.array(h["acq_delay_samples_2"]).reshape(-1)[0]) / spc
-                dm = (sec_chip - main_chip) * chip_m
-                score = (pos, has2, -abs(abs(dm) - expected), test)
-            else:
-                score = (pos, has2, test)
+            score = (pos, has2, test)
             if best is None or score > best[0]:
                 best = (score, f)
     except Exception:
         pass
 print(best[1] if best else "")
+PY
+}
+
+summarize_dumps() {
+  python3 - "$1" "$CODE_LENGTH" "$2" <<'PY'
+import glob, h5py, numpy as np, os, sys
+pattern = sys.argv[1]
+code_length = float(sys.argv[2])
+out = sys.argv[3]
+chip_m = 299792458.0 / (code_length * 1000.0)
+rows = []
+for f in sorted(glob.glob(pattern)):
+    try:
+        with h5py.File(f, "r") as h:
+            def g(k, d=np.nan):
+                return np.array(h[k]).reshape(-1)[0] if k in h else d
+            grid = np.array(h["acq_grid"])
+            spc = grid.shape[1] / code_length
+            drow = int(np.argmax(grid.max(axis=1)))
+            main_chip = int(np.argmax(grid[drow])) / spc
+            d2 = float(g("acq_delay_samples_2"))
+            sec_chip = d2 / spc if np.isfinite(d2) else np.nan
+            dchip = sec_chip - main_chip if np.isfinite(sec_chip) else np.nan
+            dm = dchip * chip_m if np.isfinite(dchip) else np.nan
+            pr = float(g("peak_ratio", 0.0))
+            rows.append({
+                "file": os.path.basename(f),
+                "positive": int(g("positive_acq", 0)),
+                "has2": int(g("has_second_peak", 0)),
+                "test": float(g("test_statistic")),
+                "threshold": float(g("threshold")),
+                "main_chip": main_chip,
+                "second_chip": sec_chip,
+                "delta_chip": dchip,
+                "delta_m": dm,
+                "abs_delta_m": abs(dm) if np.isfinite(dm) else np.nan,
+                "ratio_db": 10 * np.log10(pr) if pr > 0 else np.nan,
+                "doppler_hz": float(g("acq_doppler_hz")),
+                "num_dwells": int(g("num_dwells", 0)),
+            })
+    except Exception as e:
+        print("warn summary skip %s: %s" % (f, e), file=sys.stderr)
+
+fields = ["file","positive","has2","test","threshold","main_chip","second_chip","delta_chip","delta_m","abs_delta_m","ratio_db","doppler_hz","num_dwells"]
+with open(out, "w", encoding="utf-8") as fp:
+    fp.write("\t".join(fields) + "\n")
+    for r in rows:
+        fp.write("\t".join(str(r[k]) for k in fields) + "\n")
+
+valid = [r for r in rows if r["positive"] == 1 and r["has2"] == 1 and np.isfinite(r["abs_delta_m"])]
+print("summary_file=%s" % out)
+print("dump_count=%d valid_positive_has2=%d" % (len(rows), len(valid)))
+if valid:
+    vals = np.array([r["abs_delta_m"] for r in valid], dtype=float)
+    print("objective_abs_delta_m_median=%.3f mean=%.3f std=%.3f min=%.3f max=%.3f" %
+          (np.median(vals), np.mean(vals), np.std(vals), np.min(vals), np.max(vals)))
+    best = max(valid, key=lambda r: r["test"])
+    print("best_by_test=%s abs_delta_m=%.3f test=%.3f threshold=%.3f ratio_db=%.3f" %
+          (best["file"], best["abs_delta_m"], best["test"], best["threshold"], best["ratio_db"]))
+else:
+    print("objective_abs_delta_m=NA (no positive_acq=1 and has2=1 dumps)")
 PY
 }
 
@@ -215,8 +265,9 @@ run_offline_part() {
   echo "[6/7] Multipath analysis: ${part_tag}"
   python3 dev_notes/sim/analyze_multipath.py --pattern "$PATTERN" --code-length "$CODE_LENGTH" \
     | tee "/tmp/${part_tag}_analyze.log"
+  summarize_dumps "$PATTERN" "/tmp/${part_tag}_summary.tsv" | tee "/tmp/${part_tag}_summary.log"
 
-  echo "[7/7] Selecting best dump and plotting: ${part_tag}"
+  echo "[7/7] Selecting best-by-test dump and plotting: ${part_tag}"
   local best_dump
   best_dump="$(select_best_dump "$PATTERN")"
   if [[ -z "$best_dump" ]]; then
@@ -273,7 +324,18 @@ fi
 if [[ ${#PART_SECS[@]} -gt 1 ]]; then
   cat /tmp/${TAG}_part*_analyze.log > "/tmp/${TAG}_analyze.log" 2>/dev/null || true
 fi
+rm -f "/tmp/${TAG}_summary.tsv"
+cat /tmp/${TAG}*_summary.tsv 2>/dev/null | awk 'NR==1 || $1!="file"' > "/tmp/${TAG}_summary.tsv" || true
+if [[ ${#PART_SECS[@]} -gt 1 ]]; then
+  SUMMARY_PATTERN="/tmp/${TAG}_part*_best.mat"
+else
+  SUMMARY_PATTERN="/tmp/${TAG}_best.mat"
+fi
+summarize_dumps "$SUMMARY_PATTERN" "/tmp/${TAG}_best_summary.tsv" | tee "/tmp/${TAG}_summary.log"
+if [[ -n "$EXPECTED_DELAY_M" ]]; then
+  awk -F '\t' -v e="$EXPECTED_DELAY_M" 'NR==1 {next} $2==1 && $3==1 {d=$10-e; if (d<0) d=-d; if (best=="" || d<best) {best=d; line=$0}} END {if (line!="") print "plot_hint_nearest_expected_abs_delta_m_diff=" best "\nplot_hint_row=" line; else print "plot_hint_nearest_expected=NA"}' "/tmp/${TAG}_summary.tsv" | tee "/tmp/${TAG}_plot_hint.log"
+fi
 echo "Done."
 echo "  segmented recording avoids sustained large-file writes that caused USRP overflow at long durations."
-echo "  logs: /tmp/${TAG}*_record.log /tmp/${TAG}*_run.log /tmp/${TAG}_analyze.log"
+echo "  logs: /tmp/${TAG}*_record.log /tmp/${TAG}*_run.log /tmp/${TAG}_analyze.log /tmp/${TAG}_summary.log"
 echo "  best: /tmp/${TAG}_best.mat /tmp/${TAG}_best.png /tmp/${TAG}_best_3d.png"
