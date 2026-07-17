@@ -255,7 +255,7 @@ int32_t hybrid_observables_gs::save_matfile() const
     // READ DUMP FILE
     const std::string dump_filename = d_dump_filename;
     std::ifstream::pos_type size;
-    const int32_t number_of_double_vars = 7;
+    const int32_t number_of_double_vars = d_conf.dump_extended ? 9 : 7;
     const int32_t epoch_size_bytes = sizeof(double) * number_of_double_vars * d_nchannels_out;
     std::ifstream dump_file;
     std::cout << "Generating .mat file for " << dump_filename << '\n';
@@ -289,6 +289,8 @@ int32_t hybrid_observables_gs::save_matfile() const
     auto Pseudorange_m = std::vector<std::vector<double>>(d_nchannels_out, std::vector<double>(num_epoch));
     auto PRN = std::vector<std::vector<double>>(d_nchannels_out, std::vector<double>(num_epoch));
     auto Flag_valid_pseudorange = std::vector<std::vector<double>>(d_nchannels_out, std::vector<double>(num_epoch));
+    auto Signal_Path = std::vector<std::vector<double>>(d_nchannels_out, std::vector<double>(num_epoch));
+    auto CN0_dB_hz = std::vector<std::vector<double>>(d_nchannels_out, std::vector<double>(num_epoch));
 
     try
         {
@@ -305,6 +307,11 @@ int32_t hybrid_observables_gs::save_matfile() const
                                     dump_file.read(reinterpret_cast<char *>(&Pseudorange_m[chan][i]), sizeof(double));
                                     dump_file.read(reinterpret_cast<char *>(&PRN[chan][i]), sizeof(double));
                                     dump_file.read(reinterpret_cast<char *>(&Flag_valid_pseudorange[chan][i]), sizeof(double));
+                                    if (d_conf.dump_extended)
+                                        {
+                                            dump_file.read(reinterpret_cast<char *>(&Signal_Path[chan][i]), sizeof(double));
+                                            dump_file.read(reinterpret_cast<char *>(&CN0_dB_hz[chan][i]), sizeof(double));
+                                        }
                                 }
                         }
                 }
@@ -323,6 +330,8 @@ int32_t hybrid_observables_gs::save_matfile() const
     auto Pseudorange_m_aux = std::vector<double>(d_nchannels_out * num_epoch);
     auto PRN_aux = std::vector<double>(d_nchannels_out * num_epoch);
     auto Flag_valid_pseudorange_aux = std::vector<double>(d_nchannels_out * num_epoch);
+    auto Signal_Path_aux = std::vector<double>(d_nchannels_out * num_epoch);
+    auto CN0_dB_hz_aux = std::vector<double>(d_nchannels_out * num_epoch);
 
     uint32_t k = 0U;
     for (int64_t j = 0; j < num_epoch; j++)
@@ -336,6 +345,8 @@ int32_t hybrid_observables_gs::save_matfile() const
                     Pseudorange_m_aux[k] = Pseudorange_m[i][j];
                     PRN_aux[k] = PRN[i][j];
                     Flag_valid_pseudorange_aux[k] = Flag_valid_pseudorange[i][j];
+                    Signal_Path_aux[k] = Signal_Path[i][j];
+                    CN0_dB_hz_aux[k] = CN0_dB_hz[i][j];
                     k++;
                 }
         }
@@ -360,6 +371,11 @@ int32_t hybrid_observables_gs::save_matfile() const
             write_matlab_var<2>("Pseudorange_m", Pseudorange_m_aux.data(), matfp, dims);
             write_matlab_var<2>("PRN", PRN_aux.data(), matfp, dims);
             write_matlab_var<2>("Flag_valid_pseudorange", Flag_valid_pseudorange_aux.data(), matfp, dims);
+            if (d_conf.dump_extended)
+                {
+                    write_matlab_var<2>("Signal_Path", Signal_Path_aux.data(), matfp, dims);
+                    write_matlab_var<2>("CN0_dB_hz", CN0_dB_hz_aux.data(), matfp, dims);
+                }
         }
     Mat_Close(matfp);
 
@@ -972,6 +988,13 @@ int hybrid_observables_gs::general_work(int noutput_items __attribute__((unused)
                                     d_dump_file.write(reinterpret_cast<char *>(&tmp_double), sizeof(double));
                                     tmp_double = static_cast<double>(out[i][0].Flag_valid_pseudorange);
                                     d_dump_file.write(reinterpret_cast<char *>(&tmp_double), sizeof(double));
+                                    if (d_conf.dump_extended)
+                                        {
+                                            tmp_double = static_cast<double>(out[i][0].Signal_Path);
+                                            d_dump_file.write(reinterpret_cast<char *>(&tmp_double), sizeof(double));
+                                            tmp_double = out[i][0].CN0_dB_hz;
+                                            d_dump_file.write(reinterpret_cast<char *>(&tmp_double), sizeof(double));
+                                        }
                                 }
                         }
                     catch (const std::ofstream::failure &e)

@@ -29,6 +29,7 @@
 | 04 | `04_retrofit_plan_multipath_multisource.md` | 改造方案：多径识别 + 多源信号的切入点与设计 | 动手改造前 / 定方案时 | 🟡 规划中 |
 | 05 | `05_pitfalls_and_decisions_log.md` | 踩坑、关键决策、疑问（按日期追加） | 遇到怪问题 / 想知道"为什么这么做"时 | 🟡 持续追加 |
 | 06 | `06_b210_multipath_test_usage.md` | **★运行手册★** conda环境+B210多径测试：B1I/L5I 录制、离线分析、画图、调参、排错 | **在测试机上跑测试前必读** | ✅ 权威 |
+| 07 | `07_stage2_dual_tracking_prototype.md` | **Stage 2 最小双跟踪原型**：L5 固定 PRN 两通道持续 tracking，扩展 observables dump 输出路径标签、伪距、C/N0 | 改跟踪逻辑 / 验证两条径持续输出前必读 | 🟡 原型 |
 
 > 图例：✅ 已成稿可用 · 🟡 进行中 · ⬜ 未开始
 
@@ -136,4 +137,4 @@
 
 ---
 
-*最后更新：2026-07-17 · B1I/L5I B210 双模拟器多径捕获实测与字段判读阶段 · Codex/Claude 协同维护*
+*最后更新：2026-07-17 · Stage 2 L5 最小双跟踪原型启动：扩展 observables dump + PRN18 双路径配置 · Codex/Claude 协同维护*

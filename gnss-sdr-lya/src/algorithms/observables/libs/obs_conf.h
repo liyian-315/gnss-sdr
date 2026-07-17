@@ -41,6 +41,7 @@ public:
     bool always_output_gs{false};
     bool dump{false};
     bool dump_mat{false};
+    bool dump_extended{false};
     bool enable_E6{false};
 };
 

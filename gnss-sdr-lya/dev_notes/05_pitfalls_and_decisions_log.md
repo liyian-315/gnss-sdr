@@ -11,6 +11,31 @@
 
 ## 2026-07-17
 
+### 🧭 Stage 2 第一步：先做 L5 最小双跟踪原型，不立即重写 Channel
+
+**背景**：第一阶段测试已经验证 L5 更适合做远距多径捕获分离。下一阶段目标是让接收机同时跟踪最强峰和第二峰，并输出两条径的伪距、载噪比等信息。
+
+**读码确认**
+
+- `Gnss_Synchro::Signal_Path` 已存在，`0` 表示最强峰，`1` 表示第二峰。
+- `pcps_acquisition.cc` 已有逻辑：当 `Signal_Path==1` 或 `acquire_second_path=true` 时，捕获层会搜索第二峰，并把第二峰的码相位/多普勒交给 tracking。
+- `rtklib_pvt_gs.cc` 已过滤 `Signal_Path==0`，第二径不会直接进入 PVT。
+- 原 observables dump 实际只写 7 个 double，没有 `Signal_Path` 和 `CN0_dB_hz`，因此无法直接从 dump 标明主峰/第二峰并查看载噪比。
+
+**决策**
+
+- 第一版不重写 `Channel` 拓扑，不做“一个 Channel 内挂两个 tracking block”的大改。
+- 先用两个固定通道跟同一颗 L5 PRN：`Channel0.signal_path=0`、`Channel1.signal_path=1`。
+- 新增 `Observables.dump_extended=true`，只在开启时把 dump 扩展为 9 列，追加 `Signal_Path` 和 `CN0_dB_hz`；默认关闭，保持旧 dump 兼容。
+- 新增 `dev_notes/sim/l5_dualpath_prn18.conf` 作为 Stage 2 最小双跟踪验证配置。
+- 更新 `read_observables_dump.py`，用 `primary/second` 标签和 `--pairs` 输出 `second-primary` 伪距差。
+
+**边界**
+
+- 当前是固定 PRN18 的文件源原型，目标是先验证两条 tracking 链路能持续输出。
+- 尚未升级到所有可见卫星自动每星两径输出。
+- 第二径仍只用于分析，不参与 PVT 校正。
+
 ### 🧭 `--expected-delay-m` 只作画图提示，伪距差必须客观统计
 
 **背景**：用户指出 `--expected-delay-m 700` 会筛选接近已知答案的结果，不能作为真实伪距差测量依据。

@@ -43,6 +43,7 @@ HybridObservables::HybridObservables(const ConfigurationInterface* configuration
     Obs_Conf conf{};
     conf.dump = dump_;
     conf.dump_mat = dump_mat_;
+    conf.dump_extended = configuration->property(role + ".dump_extended", conf.dump_extended);
     conf.dump_filename = dump_filename_;
     conf.nchannels_in = in_streams_;
     conf.nchannels_out = out_streams_;
