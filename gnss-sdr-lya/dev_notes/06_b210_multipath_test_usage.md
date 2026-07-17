@@ -19,6 +19,75 @@ cd ~/lya/gnss-sdr/gnss-sdr-lya
 ```
 > ⚠️ 忘了 `conda activate gnsssdr`、或误用了 `build/src/main/gnss-sdr`（系统坏 FFT 版）→ 又会 `Can't connect channel 0`。
 
+## 1A. 最短复制版：直接跑一次离线多径测试
+
+如果只是想自己做一次测试，优先复制本节命令。下面命令会自动完成：
+
+`B210录样 -> 样点幅度统计 -> 生成临时conf -> 跑GNSS-SDR离线捕获 -> 分析.mat -> 自动选择best dump画2D/3D图`
+
+### GPS L5I PRN18
+
+```bash
+source ~/lya/miniforge3/etc/profile.d/conda.sh
+conda activate gnsssdr
+cd ~/lya/gnss-sdr/gnss-sdr-lya
+
+bash dev_notes/sim/run_b210_offline_multipath_test.sh \
+  --signal l5 \
+  --prn 18 \
+  --tag gps_l5_prn18_twosim_1000m \
+  --secs 10 \
+  --gain 76 \
+  --ant RX2
+```
+
+如果只想复用上次录好的 `/tmp/gps_l5_prn18_twosim_1000m.dat`，不重新采样：
+
+```bash
+bash dev_notes/sim/run_b210_offline_multipath_test.sh \
+  --signal l5 \
+  --prn 18 \
+  --tag gps_l5_prn18_twosim_1000m \
+  --skip-record
+```
+
+### BDS B1I PRN9
+
+```bash
+source ~/lya/miniforge3/etc/profile.d/conda.sh
+conda activate gnsssdr
+cd ~/lya/gnss-sdr/gnss-sdr-lya
+
+bash dev_notes/sim/run_b210_offline_multipath_test.sh \
+  --signal b1i \
+  --prn 9 \
+  --tag b1i_prn9_twosim_1000m \
+  --secs 10 \
+  --gain 76 \
+  --ant RX2
+```
+
+### 运行完看哪里
+
+脚本最后会打印这些文件：
+
+```text
+/tmp/<tag>_record.log     # 录样日志，看 overflow
+/tmp/<tag>_run.log        # GNSS-SDR 运行日志
+/tmp/<tag>_analyze.log    # 多径分析表
+/tmp/<tag>_best.mat       # 自动选出的最高 test dump
+/tmp/<tag>_best.png       # 2D 谱峰图
+/tmp/<tag>_best_3d.png    # 3D 谱峰图
+```
+
+正式成功要同时满足：
+
+- `positive_acq=1` 或分析表对应 dump 的 `test_statistic > threshold`
+- `has2=1`
+- `abs(Δ米)` 接近模拟器补偿距离，比如 `1000m`
+
+说明：本文后面的 `<TAG>`、`<PRN>`、`<dump.mat>` 是模板占位符，不能原样复制。要直接复制运行，用本节的 `run_b210_offline_multipath_test.sh`。
+
 ## 2. 跑 B210 · B1I 双路径
 ```bash
 uhd_find_devices                                   # 确认认得 B210（第一次或换机可能要先 uhd_images_downloader）
