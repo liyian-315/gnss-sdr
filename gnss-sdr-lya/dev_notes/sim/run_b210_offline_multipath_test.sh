@@ -22,6 +22,7 @@ Options:
   --chunk-secs N      Max seconds per raw file. Default: 30.
   --gain N            B210 gain dB. Default: 76.
   --ant NAME          B210 antenna port. Default: RX2.
+  --device-args ARGS  UHD device args, e.g. serial=30F4100.
   --pfa VALUE         Override Acquisition pfa in temp config.
   --max-dwells N      Override L5 max_dwells in temp config.
   --expected-delay-m N Prefer best dump whose abs(delta meters) is closest to N.
@@ -35,6 +36,7 @@ TAG=""
 SECS="30"
 GAIN="76"
 ANT="RX2"
+DEVICE_ARGS=""
 PFA=""
 MAX_DWELLS=""
 SKIP_RECORD="0"
@@ -50,6 +52,7 @@ while [[ $# -gt 0 ]]; do
     --chunk-secs) CHUNK_SECS="$2"; shift 2 ;;
     --gain) GAIN="$2"; shift 2 ;;
     --ant) ANT="$2"; shift 2 ;;
+    --device-args) DEVICE_ARGS="$2"; shift 2 ;;
     --pfa) PFA="$2"; shift 2 ;;
     --max-dwells) MAX_DWELLS="$2"; shift 2 ;;
     --expected-delay-m) EXPECTED_DELAY_M="$2"; shift 2 ;;
@@ -127,6 +130,7 @@ fi
 echo "[1/7] Test parameters"
 echo "  signal=${SIGNAL} prn=${PRN} tag=${TAG}"
 echo "  freq=${FREQ} rate=${RATE} secs=${SECS} chunk_secs=${CHUNK_SECS} gain=${GAIN} ant=${ANT}"
+echo "  device_args=${DEVICE_ARGS:-auto}"
 echo "  expected_delay_m=${EXPECTED_DELAY_M:-none}"
 echo "  parts=${#PART_SECS[@]}"
 
@@ -229,7 +233,7 @@ for idx in "${!RAW_FILES[@]}"; do
   if [[ "$SKIP_RECORD" != "1" ]]; then
     echo "  ${dur}s -> ${raw}"
     python3 dev_notes/sim/record_b210.py --secs "$dur" --gain "$GAIN" --ant "$ANT" \
-      --freq "$FREQ" --rate "$RATE" -o "$raw" 2>&1 | tee "/tmp/${part_tag}_record.log"
+      --freq "$FREQ" --rate "$RATE" --device-args "$DEVICE_ARGS" -o "$raw" 2>&1 | tee "/tmp/${part_tag}_record.log"
     echo "  flushing file to disk before continuing"
     sync "$raw" 2>/dev/null || sync
   else

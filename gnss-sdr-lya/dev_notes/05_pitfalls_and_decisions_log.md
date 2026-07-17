@@ -31,8 +31,9 @@
 
 - 修改 `dev_notes/sim/run_b210_offline_multipath_test.sh`：新增 `--chunk-secs`，默认 `30`。
 - 当 `--secs` 大于 `--chunk-secs` 时自动切段，例如 `--secs 100` 变成 `30+30+30+10`。
-- 每段分别录样、离线跑 GNSS-SDR、分析 `.mat`、画图；脚本最后从所有片段的 best dump 中再挑总 best。
+- 每段按“录样 -> `sync` 落盘 -> 离线跑 GNSS-SDR -> 分析 `.mat` -> 画图”的顺序执行，避免前一段大文件后台写回叠到下一段 B210 采样期间；脚本最后从所有片段的 best dump 中再挑总 best。
 - `06 §1A` 增加可复制的 `--secs 100` 用法，并明确不要手工 `sed` 改脚本。
+- `record_b210.py` 增加 UHD 打开重试，避免 B210 刚释放/USB 短暂重枚举时直接因 `No devices found` 失败；测试脚本增加 `--device-args serial=30F4100` 透传，当前测试机可固定到这台 B210。
 
 ### 🕳️ GPS L5 PRN18 `max_dwells=10` 配置固化后复测：当前现场未过主捕获门限
 

@@ -10,6 +10,7 @@ conda 环境里跑：
 录制时若打印 overflow('O')，说明写盘跟不上——降 --rate 或换更快的盘。
 """
 import argparse
+import time
 from gnuradio import gr, blocks, uhd
 
 
@@ -20,14 +21,29 @@ def main():
     ap.add_argument("--gain", type=float, default=50.0, help="增益[dB]")
     ap.add_argument("--ant", default="RX2", help="天线口: RX2 或 TX/RX")
     ap.add_argument("--subdev", default="A:A", help="子设备")
+    ap.add_argument("--device-args", default="", help="UHD device args, e.g. serial=30F4100")
     ap.add_argument("--bw", type=float, default=0.0, help="模拟RX带宽[Hz]，0=用采样率(★限带防混叠，关键)")
     ap.add_argument("--secs", type=float, default=10.0, help="录制时长[秒]")
+    ap.add_argument("--retries", type=int, default=5, help="UHD device open retries")
+    ap.add_argument("--retry-delay", type=float, default=2.0, help="seconds between UHD open retries")
     ap.add_argument("-o", "--out", default="/tmp/b1i_prn9.dat", help="输出文件(complex float32)")
     a = ap.parse_args()
 
     nsamps = int(a.rate * a.secs)
     tb = gr.top_block()
-    u = uhd.usrp_source("", uhd.stream_args(cpu_format="fc32", channels=[0]))
+    u = None
+    last_error = None
+    for attempt in range(1, max(1, a.retries) + 1):
+        try:
+            u = uhd.usrp_source(a.device_args, uhd.stream_args(cpu_format="fc32", channels=[0]))
+            break
+        except RuntimeError as e:
+            last_error = e
+            print("warn UHD open failed attempt %d/%d: %s" % (attempt, max(1, a.retries), e))
+            if attempt < max(1, a.retries):
+                time.sleep(a.retry_delay)
+    if u is None:
+        raise last_error
     try:
         u.set_subdev_spec(a.subdev, 0)
     except Exception as e:

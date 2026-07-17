@@ -38,7 +38,8 @@ bash dev_notes/sim/run_b210_offline_multipath_test.sh \
   --tag gps_l5_prn18_twosim_1000m \
   --secs 30 \
   --gain 76 \
-  --ant RX2
+  --ant RX2 \
+  --device-args serial=30F4100
 ```
 
 长时间测试不要手工 `sed` 改脚本。直接传 `--secs 100`，脚本会自动切成 30 秒以内的小段，例如 `100s = 30+30+30+10`，分别录制和分析，最后从所有片段里挑 best dump：
@@ -51,7 +52,8 @@ bash dev_notes/sim/run_b210_offline_multipath_test.sh \
   --secs 100 \
   --expected-delay-m 1000 \
   --gain 76 \
-  --ant RX2
+  --ant RX2 \
+  --device-args serial=30F4100
 ```
 
 如果本次补偿是 300m，把 `--expected-delay-m` 和 `--tag` 改成 300：
@@ -64,7 +66,8 @@ bash dev_notes/sim/run_b210_offline_multipath_test.sh \
   --secs 100 \
   --expected-delay-m 300 \
   --gain 76 \
-  --ant RX2
+  --ant RX2 \
+  --device-args serial=30F4100
 ```
 
 这样做是为了避免 L5 `10 Msps × complex64` 在 100 秒时形成约 `8GB` 的单个连续写盘流。测试机上这种长时间大文件连续写入会触发磁盘 flush/调度抖动，进而让 USRP/GNU Radio 缓冲来不及消费并出现大量 overflow。脚本现在会按片段执行“录制 -> `sync` 落盘 -> 离线分析 -> 再录下一段”，避免多个大文件的后台写回叠在下一次 B210 采样期间。
@@ -92,7 +95,8 @@ bash dev_notes/sim/run_b210_offline_multipath_test.sh \
   --tag b1i_prn9_twosim_1000m \
   --secs 30 \
   --gain 76 \
-  --ant RX2
+  --ant RX2 \
+  --device-args serial=30F4100
 ```
 
 ### 运行完看哪里
