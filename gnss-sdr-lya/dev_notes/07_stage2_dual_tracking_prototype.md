@@ -12,6 +12,50 @@
 
 ## 本次实现
 
+### 0. 第二步：多颗卫星通用化
+
+新增文件：
+
+```text
+dev_notes/sim/make_l5_dualpath_conf.py
+```
+
+用途：按 PRN 列表生成多颗 GPS L5I 卫星的双路径 tracking 配置。每颗 PRN 固定分配两个通道：
+
+```text
+PRN18 -> Channel0 path0 + Channel1 path1
+PRN20 -> Channel2 path0 + Channel3 path1
+PRN21 -> Channel4 path0 + Channel5 path1
+```
+
+生成示例：
+
+```bash
+python3 dev_notes/sim/make_l5_dualpath_conf.py \
+  --prns 18,20,21 \
+  --input /tmp/gps_l5_multi.dat \
+  --output /tmp/l5_dualpath_multi.conf
+```
+
+运行：
+
+```bash
+./build-conda/src/main/gnss-sdr \
+  --config_file=/tmp/l5_dualpath_multi.conf \
+  2>&1 | tee l5_dualpath_multi_run.log
+
+python3 dev_notes/sim/read_observables_dump.py \
+  gps_l5_dualpath_observables.dat \
+  --channels 6 \
+  --tail 50 \
+  --pairs
+```
+
+说明：
+
+- 这里选择“显式 PRN 列表”而不是完全自动扫 PRN 池，是为了测试阶段可控、可复现。
+- 底层 `GNSSFlowgraph` 已支持 `Channels_L5.signal_paths=2` 自动生成 `(PRN,path)` 信号池；后续要做“全可见星自动每星两径”时可以继续复用这个机制。
+
 ### 1. 扩展 observables dump
 
 新增配置项：
