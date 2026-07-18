@@ -129,6 +129,38 @@ dev_notes/sim/read_observables_dump.py
 - `cn0_db_hz`
 - `--pairs` 下输出同一 PRN 的 `second - primary` 伪距差
 
+第三步增加稳定机器输出：
+
+```bash
+python3 dev_notes/sim/read_observables_dump.py \
+  gps_l5_dualpath_observables.dat \
+  --channels 6 \
+  --tail 200 \
+  --format-out csv \
+  --out gps_l5_dualpath_observables.csv
+
+python3 dev_notes/sim/read_observables_dump.py \
+  gps_l5_dualpath_observables.dat \
+  --channels 6 \
+  --tail 200 \
+  --format-out jsonl \
+  --out gps_l5_dualpath_observables.jsonl
+```
+
+稳定字段名：
+
+```text
+epoch, channel, system, signal, prn, signal_path, role,
+rx_time_s, tow_s, pseudorange_m, doppler_hz, carrier_cycles,
+cn0_db_hz, valid
+```
+
+约定：
+
+- `role=primary` 等价于 `signal_path=0`。
+- `role=second` 等价于 `signal_path=1`。
+- 旧 7 列 dump 没有 C/N0，CSV 中 `cn0_db_hz` 为空，JSONL 中为 `null`。
+
 ## 使用步骤
 
 先录制 L5 PRN18 双模拟器信号：

@@ -11,6 +11,23 @@
 
 ## 2026-07-17
 
+### 🧭 Stage 2 第三步：输出格式稳定化为 CSV/JSONL
+
+**背景**：表格输出适合人工看，但后续要持续测试、统计伪距差、接入实时打印或上层分析，需要稳定字段名和机器可读格式。
+
+**实现**
+
+- `read_observables_dump.py` 新增 `--format-out table|csv|jsonl`，默认仍是原来的人工表格。
+- 新增 `--out` 指定输出文件；不指定时输出到 stdout。
+- CSV/JSONL 固定字段：
+  `epoch, channel, system, signal, prn, signal_path, role, rx_time_s, tow_s, pseudorange_m, doppler_hz, carrier_cycles, cn0_db_hz, valid`。
+- 兼容旧 7 列 dump 和新 9 列 extended dump；旧 dump 没有 C/N0，CSV 为空，JSONL 为 `null`。
+
+**自测**
+
+- 构造 2 通道 extended dump，验证 table/csv/jsonl 都能输出 `primary/second`。
+- 构造 legacy dump，验证 auto 格式不会误判成 extended，且 JSONL 不因 `NaN` 失败。
+
 ### 🧭 Stage 2 第二步：多颗卫星通用化采用“显式 PRN 列表生成配置”
 
 **背景**：固定 `l5_dualpath_prn18.conf` 只能验证一颗卫星两条径。测试阶段需要扩展到两颗、三颗或更多 PRN，并保持每颗 PRN 的主峰/第二峰通道成对可读。
