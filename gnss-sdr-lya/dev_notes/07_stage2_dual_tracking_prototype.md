@@ -296,6 +296,88 @@ second_pseudorange_m, second_cn0_db_hz, delta_m
 - 需要确认当前 protobuf Python 依赖和 `gnss_synchro.proto` 生成文件在测试机可用。
 - UDP 允许丢包；用于实时显示可以接受，若要严格记录，可让接收脚本低频写 CSV。
 
+### 已落地：monitor-only 长跑配置与接收脚本
+
+新增脚本：
+
+```text
+dev_notes/sim/watch_dualpath_monitor.py
+```
+
+它直接解析 `docs/protobuf/gnss_synchro.proto` 的 UDP protobuf，不依赖 `gnss_synchro_pb2.py`、`protoc` 或 Python protobuf 包。原因是测试机环境已经比较脆，实时显示脚本应尽量少依赖。
+
+`make_l5_dualpath_conf.py` 已支持直接生成 B210 实时 monitor-only 配置：
+
+```bash
+python3 dev_notes/sim/make_l5_dualpath_conf.py \
+  --source uhd \
+  --prns 18,20 \
+  --output /tmp/l5_realtime_dualpath_prn18_20.conf \
+  --gain 76 \
+  --ant RX2 \
+  --device-args serial=30F4100 \
+  --enable-monitor \
+  --monitor-decimation 50
+```
+
+生成配置会自动关闭：
+
+```ini
+Acquisition_L5.dump=false
+Tracking_L5.dump=false
+Observables.dump=false
+```
+
+并打开：
+
+```ini
+Monitor.enable_monitor=true
+Monitor.enable_protobuf=true
+Monitor.client_addresses=127.0.0.1
+Monitor.udp_port=1234
+Monitor.decimation_factor=50
+```
+
+运行时开两个终端。
+
+终端 1：监听并打印两径伪距/C/N0：
+
+```bash
+python3 dev_notes/sim/watch_dualpath_monitor.py --port 1234
+```
+
+如果要稳定机器输出：
+
+```bash
+python3 dev_notes/sim/watch_dualpath_monitor.py --port 1234 --csv \
+  | tee l5_dualpath_monitor.csv
+```
+
+终端 2：跑 GNSS-SDR：
+
+```bash
+./build-conda/src/main/gnss-sdr \
+  --config_file=/tmp/l5_realtime_dualpath_prn18_20.conf \
+  2>&1 | tee l5_realtime_dualpath_run.log
+```
+
+输出字段：
+
+```text
+host_time_s, system, signal, prn,
+primary_channel, primary_pseudorange_m, primary_cn0_db_hz, primary_doppler_hz,
+second_channel, second_pseudorange_m, second_cn0_db_hz, second_doppler_hz,
+delta_m
+```
+
+实现细节：
+
+- GNSS-SDR monitor 每个 UDP 包通常只带一个通道的 `Gnss_Synchro`。
+- `watch_dualpath_monitor.py` 会在内存中保存每个 `(system, signal, prn, path)` 的最近状态。
+- 当同一 PRN 的 path0/path1 都在 `--stale-sec` 时间窗内出现时，脚本输出一行配对结果。
+- 默认 `--stale-sec 2.0`，可用 `--stale-sec 0` 关闭过期判断。
+- `gnss_synchro_monitor.cc` 已优化为“始终 consume 输入、按 `decimation_factor` 抽样发送”。这样 monitor 是轻量旁路，不会因为降频发送而积压观测量。
+
 ### 方案 B：新增 C++ DualPathObservablesPrinter
 
 如果 UDP protobuf 在测试机部署麻烦，就在 `hybrid_observables_gs` 内新增一个低频打印/CSV 追加选项：

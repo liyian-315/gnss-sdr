@@ -6,6 +6,11 @@ Example:
     --prns 18,20,21 \
     --input /tmp/gps_l5_multi.dat \
     --output /tmp/l5_dualpath_multi.conf
+
+Realtime B210 monitor-only example:
+  python3 dev_notes/sim/make_l5_dualpath_conf.py \
+    --source uhd --prns 18,20,21 --output /tmp/l5_realtime_multi.conf \
+    --gain 76 --ant RX2 --device-args serial=30F4100 --enable-monitor
 """
 import argparse
 from pathlib import Path
@@ -25,14 +30,7 @@ TEMPLATE_HEAD = """; ===========================================================
 GNSS-SDR.internal_fs_sps={rate}
 ControlThread.wait_for_flowgraph=false
 
-SignalSource.implementation=File_Signal_Source
-SignalSource.filename={input_file}
-SignalSource.item_type=gr_complex
-SignalSource.sampling_frequency={rate}
-SignalSource.samples=0
-SignalSource.repeat=false
-SignalSource.enable_throttle_control=false
-
+{signal_source}
 SignalConditioner.implementation=Pass_Through
 DataTypeAdapter.implementation=Pass_Through
 InputFilter.implementation=Pass_Through
@@ -45,6 +43,30 @@ Channels_L5.count={channel_count}
 Channels_L5.signal_paths=2
 Channels.in_acquisition={channels_in_acq}
 Channel.signal=L5
+"""
+
+
+FILE_SOURCE_TEMPLATE = """SignalSource.implementation=File_Signal_Source
+SignalSource.filename={input_file}
+SignalSource.item_type=gr_complex
+SignalSource.sampling_frequency={rate}
+SignalSource.samples=0
+SignalSource.repeat=false
+SignalSource.enable_throttle_control=false
+"""
+
+
+UHD_SOURCE_TEMPLATE = """SignalSource.implementation=UHD_Signal_Source
+SignalSource.item_type=gr_complex
+SignalSource.sampling_frequency={rate}
+SignalSource.freq={freq}
+SignalSource.gain={gain}
+SignalSource.subdevice={subdevice}
+SignalSource.antenna={ant}
+SignalSource.samples=0
+SignalSource.dump=false
+SignalSource.enable_throttle_control=false
+{device_address}
 """
 
 
@@ -97,6 +119,16 @@ PVT.dump=false
 PVT.dump_filename=./gps_l5_dualpath_PVT
 PVT.flag_nmea_tty_port=false
 PVT.flag_rtcm_server=false
+
+{monitor}
+"""
+
+
+MONITOR_TEMPLATE = """Monitor.enable_monitor=true
+Monitor.enable_protobuf=true
+Monitor.client_addresses={monitor_address}
+Monitor.udp_port={monitor_port}
+Monitor.decimation_factor={monitor_decimation}
 """
 
 
@@ -121,10 +153,28 @@ def build_config(args):
     channels_in_acq = args.channels_in_acq or min(channel_count, 2)
     if channels_in_acq < 1 or channels_in_acq > channel_count:
         raise SystemExit("--channels-in-acq must be in 1..%d" % channel_count)
+    if args.source == "file":
+        signal_source = FILE_SOURCE_TEMPLATE.format(input_file=args.input, rate=args.rate)
+    else:
+        signal_source = UHD_SOURCE_TEMPLATE.format(
+            rate=args.rate,
+            freq=args.freq,
+            gain=args.gain,
+            subdevice=args.subdevice,
+            ant=args.ant,
+            device_address=("SignalSource.device_address=%s" % args.device_args) if args.device_args else "",
+        )
+    monitor = ""
+    if args.enable_monitor:
+        monitor = MONITOR_TEMPLATE.format(
+            monitor_address=args.monitor_address,
+            monitor_port=args.monitor_port,
+            monitor_decimation=args.monitor_decimation,
+        )
 
     text = TEMPLATE_HEAD.format(
         rate=args.rate,
-        input_file=args.input,
+        signal_source=signal_source.rstrip(),
         channel_count=channel_count,
         channels_in_acq=channels_in_acq,
     )
@@ -145,16 +195,25 @@ def build_config(args):
         max_delay_chips=args.max_delay_chips,
         threshold_fraction=args.threshold_fraction,
         observables_dump=args.observables_dump,
+        monitor=monitor.rstrip(),
     )
+    if args.enable_monitor:
+        text = text.replace("Observables.dump=true", "Observables.dump=false")
     return text
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--prns", required=True, help="Comma-separated GPS L5 PRNs, e.g. 18,20,21")
+    ap.add_argument("--source", choices=("file", "uhd"), default="file", help="Input source type")
     ap.add_argument("--input", default="/tmp/gps_l5_multi.dat", help="Recorded complex64 file")
     ap.add_argument("--output", required=True, help="Output .conf path")
     ap.add_argument("--rate", type=int, default=10000000, help="Sampling rate in sps")
+    ap.add_argument("--freq", type=int, default=1176450000, help="UHD center frequency in Hz")
+    ap.add_argument("--gain", type=float, default=76.0, help="UHD gain in dB")
+    ap.add_argument("--ant", default="RX2", help="UHD antenna")
+    ap.add_argument("--subdevice", default="A:A", help="UHD subdevice")
+    ap.add_argument("--device-args", default="", help="UHD device args, e.g. serial=30F4100")
     ap.add_argument("--channels-in-acq", type=int, default=0, help="Concurrent acquisition channels; default=min(2,count)")
     ap.add_argument("--pfa", default="0.001")
     ap.add_argument("--doppler-max", type=int, default=5000)
@@ -163,6 +222,10 @@ def main():
     ap.add_argument("--max-delay-chips", type=float, default=90.0)
     ap.add_argument("--threshold-fraction", type=float, default=0.25)
     ap.add_argument("--observables-dump", default="./gps_l5_dualpath_observables.dat")
+    ap.add_argument("--enable-monitor", action="store_true", help="Enable UDP Monitor and disable Observables.dump")
+    ap.add_argument("--monitor-address", default="127.0.0.1")
+    ap.add_argument("--monitor-port", default="1234")
+    ap.add_argument("--monitor-decimation", type=int, default=50)
     args = ap.parse_args()
 
     output = Path(args.output)

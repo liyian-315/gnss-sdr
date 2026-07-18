@@ -11,6 +11,41 @@
 
 ## 2026-07-17
 
+### ✅ 长时间实时输出实现：monitor-only 配置 + UDP 两径配对脚本
+
+**实现**
+
+- 新增 `dev_notes/sim/watch_dualpath_monitor.py`：
+  - 监听 GNSS-SDR `Monitor` UDP protobuf。
+  - 不依赖 `protoc`、`gnss_synchro_pb2.py` 或 Python protobuf 包，直接解析所需字段。
+  - 在内存中保存每个 `(system, signal, prn, signal_path)` 的最近状态。
+  - 当同一 PRN 的 path0/path1 都在 `--stale-sec` 时间窗内出现时，输出 `primary/second` 伪距、C/N0、Doppler 和 `delta_m`。
+- 扩展 `dev_notes/sim/make_l5_dualpath_conf.py`：
+  - 新增 `--source uhd`，可直接生成 B210 实时配置。
+  - 新增 `--enable-monitor`，生成配置时关闭 `Acquisition_L5.dump`、`Tracking_L5.dump`、`Observables.dump`，打开 `Monitor.enable_monitor=true`。
+  - 支持 `--monitor-decimation` 控制 UDP 输出频率，减少主链路负担。
+- 优化 `src/core/monitor/gnss_synchro_monitor.cc`：
+  - 旧逻辑只在触发 UDP 发送时 consume monitor 输入。
+  - 新逻辑每次 `general_work()` 都 consume 输入，只按 `decimation_factor` 抽样发送 UDP。
+  - 目的：Monitor 作为旁路输出时不能因降采样而积压，避免反向拖慢主 flowgraph。
+
+**关键判断**
+
+- `gnss_synchro_monitor` 每个 UDP 包通常只发送一个通道的 `Gnss_Synchro`，不能假设 path0/path1 会在同一包里。
+- 因此接收端必须跨包维护最近状态再配对，否则会出现“收得到包但没有成对输出”的假故障。
+
+**自测**
+
+- 生成 `--source uhd --prns 18,20 --enable-monitor` 配置，确认：
+  - `UHD_Signal_Source`
+  - `Acquisition_L5.dump=false`
+  - `Tracking_L5.dump=false`
+  - `Observables.dump=false`
+  - `Monitor.enable_monitor=true`
+  - PRN18/20 均有 path0/path1。
+- 构造两个最小 protobuf UDP payload，分别模拟 path0/path1，确认 `watch_dualpath_monitor.py` 能跨包配对并输出 `delta_m=350.0`。
+- Python 脚本语法检查通过；C++ 改动需要在 Ubuntu/conda `build-conda` 中完整编译验证。
+
 ### 🧭 长时间实时测试避免 overflow：不要 dump，走 monitor 或内存打印
 
 **背景**：当前测试版为了排查方便会写采样文件、acquisition dump、observables dump。L5 `10 Msps` 长时间运行时，磁盘 I/O 是 overflow 的重要诱因；用户需要后续持续打印当前伪距和载噪比，不需要大量中间结果文件。
