@@ -240,3 +240,72 @@ bash dev_notes/sim/run_b210_offline_multipath_test.sh \
 2. 用已有 L5 双模拟器记录文件先跑 `l5_dualpath_prn18.conf`，确认 observables 扩展 dump 能连续成对输出。
 3. 若 path1 容易失锁，再调 tracking 带宽和 `multipath_threshold_fraction`。
 4. 原型稳定后，再从“固定 PRN 两通道”升级到“多 PRN 每星两路径自动输出”。
+
+## 避免 overflow 的实时输出方案
+
+当前 `dump`/`.mat` 适合离线排查，但不适合长时间 B210 实时运行：
+
+- L5 `10 Msps` 原始采样写盘约 `80 MB/s`。
+- tracking/acquisition dump 会额外产生大量小文件或二进制写入。
+- 超过 30s 后容易因为磁盘 I/O、flush 或调度抖动导致 USRP overflow。
+
+建议下一步改成“不落中间 dump，直接从内存观测量流输出结果”：
+
+### 方案 A：优先复用现有 UDP Monitor
+
+现有代码已经具备所需字段：
+
+- `serdes_gnss_synchro.h` 会序列化 `signal_path`、`cn0_db_hz`、`pseudorange_m`、`prn`、`channel_id`。
+- `gnss_flowgraph.cc` 可把 `observables_` 输出连接到 `Monitor`。
+
+配置侧只需开启：
+
+```ini
+Observables.dump=false
+Tracking_L5.dump=false
+Acquisition_L5.dump=false
+
+Monitor.enable_monitor=true
+Monitor.enable_protobuf=true
+Monitor.client_addresses=127.0.0.1
+Monitor.udp_port=1234
+Monitor.decimation_factor=50
+```
+
+然后写一个轻量接收脚本：
+
+```text
+dev_notes/sim/watch_dualpath_monitor.py
+```
+
+它监听 UDP protobuf，按 `(system, signal, prn)` 聚合 path0/path1，持续打印：
+
+```text
+time, prn, primary_pseudorange_m, primary_cn0_db_hz,
+second_pseudorange_m, second_cn0_db_hz, delta_m
+```
+
+优点：
+
+- 不写采样文件、不写 observables dump、不生成 `.mat`，I/O 压力极低。
+- GNSS-SDR 主链路只多一个 UDP 发送，适合长时间实时运行。
+- 字段来自 `Gnss_Synchro`，和当前 CSV/JSONL 稳定字段一致。
+
+风险：
+
+- 需要确认当前 protobuf Python 依赖和 `gnss_synchro.proto` 生成文件在测试机可用。
+- UDP 允许丢包；用于实时显示可以接受，若要严格记录，可让接收脚本低频写 CSV。
+
+### 方案 B：新增 C++ DualPathObservablesPrinter
+
+如果 UDP protobuf 在测试机部署麻烦，就在 `hybrid_observables_gs` 内新增一个低频打印/CSV 追加选项：
+
+```ini
+Observables.dualpath_print=true
+Observables.dualpath_print_interval_ms=1000
+Observables.dualpath_print_format=csv
+```
+
+它在 observables 已经算出 `Pseudorange_m` 后，直接按 PRN 聚合 path0/path1，每秒向 stdout 打一行，不保存中间相关面和 tracking dump。
+
+建议优先走方案 A；如果 protobuf 接收端卡住，再做方案 B。

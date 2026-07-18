@@ -11,6 +11,26 @@
 
 ## 2026-07-17
 
+### 🧭 长时间实时测试避免 overflow：不要 dump，走 monitor 或内存打印
+
+**背景**：当前测试版为了排查方便会写采样文件、acquisition dump、observables dump。L5 `10 Msps` 长时间运行时，磁盘 I/O 是 overflow 的重要诱因；用户需要后续持续打印当前伪距和载噪比，不需要大量中间结果文件。
+
+**读码确认**
+
+- `serdes_gnss_synchro.h` protobuf 已包含 `signal_path`、`cn0_db_hz`、`pseudorange_m`、`prn`、`channel_id`。
+- `gnss_flowgraph.cc` 已支持把 observables 输出接到 `Monitor`。
+- 因此不必为了实时显示再写 `.dat/.mat`。
+
+**方案**
+
+- 优先方案：开启 `Monitor.enable_monitor=true`，关闭所有 dump，写一个轻量 UDP protobuf 接收脚本，按 PRN 聚合 path0/path1 后持续打印 `primary/second` 伪距、C/N0 和 `delta_m`。
+- 备用方案：如果 Python protobuf 接收部署麻烦，就在 `hybrid_observables_gs` 内加低频 stdout/CSV 打印，不经磁盘中间文件。
+
+**结论**
+
+- 后续实时测试不要依赖 `Observables.dump=true`。
+- dump 只保留给短时离线诊断和画谱峰图。
+
 ### 🧭 Stage 2 第三步：输出格式稳定化为 CSV/JSONL
 
 **背景**：表格输出适合人工看，但后续要持续测试、统计伪距差、接入实时打印或上层分析，需要稳定字段名和机器可读格式。
