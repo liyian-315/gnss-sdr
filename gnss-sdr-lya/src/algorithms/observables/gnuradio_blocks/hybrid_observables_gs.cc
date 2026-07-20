@@ -33,6 +33,7 @@
 #include <cmath>      // for round
 #include <cstdlib>    // for size_t, llabs
 #include <exception>  // for exception
+#include <iomanip>    // for setprecision
 #include <iostream>   // for cerr, cout
 #include <limits>     // for numeric_limits
 #include <utility>    // for move
@@ -75,6 +76,7 @@ hybrid_observables_gs::hybrid_observables_gs(const Obs_Conf &conf_)
       d_T_rx_TOW_ms(0U),
       d_T_rx_step_ms(conf_.observable_interval_ms),
       d_T_status_report_timer_ms(0),
+      d_T_stdout_report_timer_ms(0),
       d_nchannels_in(conf_.nchannels_in),
       d_nchannels_out(conf_.nchannels_out),
       d_T_rx_TOW_set(false),
@@ -247,6 +249,59 @@ void hybrid_observables_gs::msg_handler_pvt_to_observables(const pmt::pmt_t &msg
         {
             LOG(WARNING) << "msg_handler_pvt_to_observables Bad any_cast: " << e.what();
         }
+}
+
+
+void hybrid_observables_gs::print_stdout_observables(const std::vector<Gnss_Synchro> &data) const
+{
+    std::cout << std::fixed << std::setprecision(3);
+    for (uint32_t i = 0; i < data.size(); i++)
+        {
+            const auto &obs = data[i];
+            if (!obs.Flag_valid_pseudorange)
+                {
+                    continue;
+                }
+            const char *role = obs.Signal_Path == 0 ? "primary" : "second";
+            std::cout << "DUALPATH_OBS"
+                      << " ch=" << obs.Channel_ID
+                      << " prn=" << obs.PRN
+                      << " path=" << obs.Signal_Path
+                      << " role=" << role
+                      << " pseudorange_m=" << obs.Pseudorange_m
+                      << " cn0_db_hz=" << std::setprecision(2) << obs.CN0_dB_hz
+                      << " doppler_hz=" << std::setprecision(3) << obs.Carrier_Doppler_hz
+                      << " valid=" << obs.Flag_valid_pseudorange
+                      << '\n';
+        }
+
+    for (uint32_t i = 0; i < data.size(); i++)
+        {
+            const auto &primary = data[i];
+            if (!primary.Flag_valid_pseudorange || primary.Signal_Path != 0)
+                {
+                    continue;
+                }
+            for (uint32_t j = 0; j < data.size(); j++)
+                {
+                    const auto &second = data[j];
+                    if (!second.Flag_valid_pseudorange || second.Signal_Path != 1 || second.PRN != primary.PRN)
+                        {
+                            continue;
+                        }
+                    std::cout << "DUALPATH_PAIR"
+                              << " prn=" << primary.PRN
+                              << " primary_ch=" << primary.Channel_ID
+                              << " second_ch=" << second.Channel_ID
+                              << " primary_pseudorange_m=" << std::setprecision(3) << primary.Pseudorange_m
+                              << " second_pseudorange_m=" << second.Pseudorange_m
+                              << " delta_m=" << second.Pseudorange_m - primary.Pseudorange_m
+                              << " primary_cn0_db_hz=" << std::setprecision(2) << primary.CN0_dB_hz
+                              << " second_cn0_db_hz=" << second.CN0_dB_hz
+                              << '\n';
+                }
+        }
+    std::cout << std::defaultfloat;
 }
 
 
@@ -946,6 +1001,15 @@ int hybrid_observables_gs::general_work(int noutput_items __attribute__((unused)
             if (n_valid > 0)
                 {
                     detect_cycle_slips(epoch_data, d_Rx_clock_buffer.front());
+                }
+            if (d_conf.stdout && n_valid > 0)
+                {
+                    d_T_stdout_report_timer_ms += d_T_rx_step_ms;
+                    if (d_T_stdout_report_timer_ms >= d_conf.stdout_interval_ms)
+                        {
+                            print_stdout_observables(epoch_data);
+                            d_T_stdout_report_timer_ms = 0;
+                        }
                 }
 
             // output the observables set to the PVT block

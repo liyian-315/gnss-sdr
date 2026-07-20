@@ -37,8 +37,10 @@ public:
     uint32_t nchannels_in{0U};
     uint32_t nchannels_out{0U};
     uint32_t observable_interval_ms{20U};
+    uint32_t stdout_interval_ms{1000U};
     bool enable_carrier_smoothing{false};
     bool always_output_gs{false};
+    bool stdout{false};
     bool dump{false};
     bool dump_mat{false};
     bool dump_extended{false};

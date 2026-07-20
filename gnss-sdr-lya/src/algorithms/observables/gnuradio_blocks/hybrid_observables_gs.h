@@ -78,6 +78,7 @@ private:
     void compute_pranges(std::vector<Gnss_Synchro>& data) const;
     void smooth_pseudoranges(std::vector<Gnss_Synchro>& data);
     void detect_cycle_slips(std::vector<Gnss_Synchro>& data, uint64_t rx_clock);
+    void print_stdout_observables(const std::vector<Gnss_Synchro>& data) const;
 
     void set_tag_timestamp_in_sdr_timeframe(const std::vector<Gnss_Synchro>& data, uint64_t rx_clock);
 
@@ -113,6 +114,7 @@ private:
     uint32_t d_T_rx_TOW_ms;
     uint32_t d_T_rx_step_ms;
     uint32_t d_T_status_report_timer_ms;
+    uint32_t d_T_stdout_report_timer_ms;
     uint32_t d_nchannels_in;
     uint32_t d_nchannels_out;
 

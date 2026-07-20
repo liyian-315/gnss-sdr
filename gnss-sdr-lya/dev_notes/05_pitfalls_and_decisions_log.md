@@ -9,6 +9,85 @@
 
 ---
 
+## 2026-07-20
+
+### ✅ 里程碑：RK3588/Debian11 开发板 apt 路线编译通过（第二套构建环境，区别于 NUC conda）
+
+**背景**：新增一台 **ATK-DLRK3588** 开发板（Rockchip RK3588，aarch64，8核/15G/14G根分区，Debian 11 bullseye，ustc 镜像源），目标让它也能编译本仓库 gnss-sdr（后续接 USRP 现场测试）。SSH `linaro@192.168.137.66`。
+
+**关键结论：这台走 apt 系统包路线，不用 conda**（与 NUC 相反）。Debian 11 自带 **GNU Radio 3.8.2**（不是 NUC 那个 FFT 坏掉的 3.7.11），可直接用；UHD 3.15 也在 apt 里，USRP 支持现成。
+
+**依赖（一条 apt，98 包，约 0.7G，全 bullseye 官方版）**：
+```bash
+sudo apt-get install -y build-essential cmake git pkg-config \
+  gnuradio-dev libboost-all-dev libarmadillo-dev \
+  libgflags-dev libgoogle-glog-dev libmatio-dev libpugixml-dev \
+  libprotobuf-dev protobuf-compiler libblas-dev liblapack-dev \
+  libgtest-dev python3-mako libpcap-dev libspdlog-dev libfmt-dev \
+  libuhd-dev uhd-host libssl-dev
+```
+
+**构建**（源码根是 `gnss-sdr-lya/` 子目录，见坑④）：
+```bash
+cd ~/lya/gnss-sdr/gnss-sdr-lya
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DENABLE_UNIT_TESTING=OFF
+cmake --build build -j8      # RK3588 8核约 7.8 分钟(469s)，内存峰值<3G
+```
+产物 `build/src/main/gnss-sdr`（v0.0.21，11MB，属主 linaro），`--version` 正常。磁盘装完+编完仍剩 7.2G。
+
+**踩的 4 个坑（都已解，下次上新板照查）**：
+- 坑①**clone 是 root 属主**（当初 sudo git clone）→ 用 linaro 编译写不进 + git 因 dubious ownership 静默失败（`git branch` 空白）。解：`sudo chown -R linaro:linaro ~/lya/gnss-sdr`。⚠️**别用 sudo 编译**，否则 build 又变 root。
+- 坑②**clone 停在空的 main 分支**：`main` 只有 1 提交（Initial commit）+ `.gitignore`（`git ls-files`=1），真代码在 `origin/feature/*`。解：`git checkout feature/l5-dual-path-tracking`（检出后 5503 文件）。
+- 坑③**缺加密库**：cmake 报 `OpenSSL or GnuTLS required`。解：`apt install libssl-dev`。**坑中坑**：补装后必须 `rm -rf build` 再 configure——否则旧 cache 残留 `GNUTLS_INCLUDE_DIR-NOTFOUND` 注入 include 路径，generate 阶段报错。
+- 坑④**源码根在子目录**：clone 根 `~/lya/gnss-sdr` 只有 `gnss-sdr-lya/`、`gnss-sdr-xinghe/` 两个副本，CMakeLists.txt 在 `gnss-sdr-lya/` 里，不在 clone 根。
+
+**对照 NUC**：NUC 系统 GNU Radio 3.7.11 FFT 坏 → 必须 conda 3.10 + `build-conda/`；RK3588 Debian11 的 3.8.2 是好的 → apt 直接编、`build/`。两套环境并存，跑测试时注意用对应机器的二进制。
+
+---
+
+## 2026-07-18
+
+### 🕳️ 3D 谱面确认：根本没干净捕获 → 排查重心前移到 RF/链路（附 `08` runbook）
+
+**决定性证据**：用户 3D 谱面截图 `peak @ 1842.4 chip, 1250 Hz, grid=(40,10000), has2=1 ratio=4.1dB`——
+整个相关面是**一片噪声草皮，没有一根尖峰立在噪底之上**；`ratio=4.1dB` 说明"主峰"只比"第二峰"高 2.6×，两者都是噪声草叶。
+**佐证**：用户报告现场 `50/100/200m` 补偿结果**完全无差别**——有真信号+多径时改延迟结果必变，结果不变 = 纯噪声、没锁上信号。
+
+**结论修正（重要）**：当前**根本没干净捕获目标星**，多径分析全是空中楼阁。这正是 `06 §2E.5` 早已写的
+"3D 图没有清晰尖峰 → 先查频点/限带/overflow/模拟器/天线，**不要先怀疑多径算法**"。
+排查重心从"多径算法"**前移到"先拿到一次干净的单星捕获"**。
+
+**交付（可直接照做，无需环境即可先读）**：
+- 新增 `dev_notes/08_field_triage_runbook.md`：按**门禁**逐步走——Step1 单模拟器干净捕获（最关键的门）→ Step2 单路假警基线标定门限 → Step3 **导线注入已知延迟（黄金标准，验证算法本身）** → Step4 OTA 几何自检 → Step5 距离阶梯+时间一致性 → Step6 转场。每步有[命令]+[✅通过标准]+[❌不过怎么办]。
+- 新增 `dev_notes/sim/acq_health.py`：聚合判定捕获是否干净（`margin_db`/`peak2floor_db`/主峰码相位 std → CLEAN/MARGINAL/NOISE），比单看 `positive_acq` 可靠。
+- 新增 `dev_notes/sim/multipath_consistency.py`：读 `summary.tsv`，对 `delta_chip` 聚类找最大一致簇 → CONSISTENT/SCATTERED，直接否掉噪声游走。
+- ⚠️ 两个新脚本**无环境未实跑**，首次用请先在一份真 dump 上冒烟。
+
+**关键新增判据**：① `acq_health` 的**主峰码相位跨 dump std**——真信号稳定(<1chip)、噪声乱跳；② `multipath_consistency` 的**Δ 一致簇**——真反射时间上稳定、噪声散布全窗。这两条是把"噪声 argmax"和"真峰"分开的核心。
+
+### 🧭 真实环境第二峰噪声化：根因诊断 + 排查/算法改进路线（承接 07-17「现场50m失效」条目）
+
+**看图得到的更强结论**（`gps_l5_prn18_twosim_350_-350m_30s_part01`，194 dump，1 chip=29.3m）：
+- `Δ延迟` 在**整个 ±90 chip 搜索窗里随机游走**（图中 -89~+84 chip、-2600~+2458m），不聚集在任何值 → 报出的"第二峰"是**噪声最大点**，不是反射。
+- `valid_positive_has2=0`：194 份里**没有一份**同时 `positive_acq=1 && has2=1` → 当前无一条可信多径检出。
+- dump 文件名是 **`sat_23` 而非 PRN18** → 可能是弱信号下的**互相关假峰**或搜到别的真星；**目标 PRN 没干净捕获前，第二峰无意义**。
+
+**算法层根因**（读 `pcps_acquisition.cc:556 find_second_peak`）：该函数在主峰同多普勒 bin、`±multipath_max_delay_chips` 环带内（排除 ±1 chip）取**全局最大点**做第二峰，门限仅 `test_statistics2 > multipath_threshold_fraction×threshold`。三个放大器叠加导致噪声化：
+1. **窗太宽**：默认窗到 90 chip（±2637m），比感兴趣信号宽约 7×，环带内噪声最大点几乎必然是噪声尖峰，逐 dump 乱跳。
+2. **信号弱**：CN0 35-40 → 主峰勉强过门限 → `fraction×threshold` 门贴着噪底 → 噪声轻松过门。
+3. **无时间一致性 & 等功率翻转**：逐 dump 独立判定，无持久性约束；两路等功率使主/次峰翻转，Δ 正负乱变。
+> 结论修正：这**不只是"50m太近"**——即便 350m（12chip）分离，在此宽窗+弱信号下也会被噪声淹没。近距是硬墙，但当前检测器在远距下同样不鲁棒。
+
+**排查/改进路线（按优先级，低成本先做）**：
+- **Phase 0 · 先确认"看的是不是真信号"（不改代码，最高优先）**：① 锁 PRN——查 conf 固定/扫池、确认模拟器发 PRN18、分析脚本只吃目标 PRN 的 dump，排除 `sat_23` 互相关假峰；② 用 `plot_acq_3d.py` 肉眼看 best dump 谱峰面是"单峰+噪底"还是"稳定双峰"，别信 has2 flag；③ 几何自检——站两天线中间时两路程差可能≈0，用几何算清 expected Δ，别拿物理50m当预期；④ 同步自检——两模拟器共 10MHz/1PPS 否则码相位漂；⑤ **单路基线假警标定**——只开一台模拟器录一段跑同分析，理想 has2≈0，若单路也满屏 has2=1 说明当前窗/门就是假警机。
+- **Phase 1 · 收紧捕获域检测器（低成本）**：① `multipath_max_delay_chips` 按 expected Δ 收窄（预期6.8chip就设±10，别用90）；② 加大 `max_dwells` 非相干积分压噪底；③ 用单路基线把 `multipath_threshold_fraction` 标到单路 has2=0；④ **加时间一致性/持久性判据（核心）**——要求第二峰在 N 份连续 dump 落在同一 Δ±1chip 才算 has2=1；**先在 `analyze_multipath.py`/summary.tsv 后处理里做（免重编）验证**，有效再下沉 C++。此条可直接否掉图里的随机游走。
+- **Phase 2 · 近距(<~2chip)转跟踪域（架构B=`04`的Stage2）**：50m=1.7chip、10Msps 下码相位分辨≈1sample/chip，捕获域到底；即便 Phase1 全做对也分不开。出路：`dll_pll_veml_tracking` 加密相关器抽头重建相关函数→MEDLL/double-delta 估计直射+反射(时延,幅度)。先决：通读 tracking。
+- **Phase 3 · 验证方法学（找分离下限）**：距离阶梯 1000→700→350→200→100→50m，每级要求目标PRN正确+有效样本聚集+3D稳定双峰+Δ方差小；记录"哪级开始发散"= 捕获域分离下限 = 架构A↔B 交接点（本项目关键实验结论）。
+
+**下一步落点**：Phase 0 由用户在测试机做（现场因素只能现场排除）；Phase 1 的后处理一致性判据 + 收窗我可以先在分析脚本里实现，不需重编，能立刻在已录 dump 上验证是否把噪声游走压掉。
+
+---
+
 ## 2026-07-17
 
 ### ⚠️ 当前痛点：现场 L5 近距多径分离失效（约 50m 场景不稳定）
@@ -1457,3 +1536,42 @@ GPS L1 双径 sim 上多径日志实测正常（delta≈6码片、ratio≈4.6dB�
 ---
 
 *（新条目请加在本行上方、日期区块内）*
+---
+
+## 2026-07-20
+
+### Fix: GNSS-SDR main stdout did not print pseudorange / C/N0
+
+User observation: running `./build-conda/src/main/gnss-sdr --config_file=... | tee run.log`
+only showed tracking, loss-of-lock and overflow messages. It did not print the
+dual-path pseudorange or C/N0 values.
+
+Root cause: previous Stage-A work exported those values through side paths:
+
+- `Observables.dump_extended=true` writes `Signal_Path` and `CN0_dB_hz` into the
+  observables binary dump.
+- `Monitor.enable_monitor=true` can be watched by `watch_dualpath_monitor.py`.
+
+But the GNSS-SDR main stdout path itself had no low-rate observables printer.
+So a plain `gnss-sdr | tee run.log` was not enough to see pseudorange/CN0.
+
+Change made:
+
+- Added `Observables.stdout` and `Observables.stdout_interval_ms`.
+- The print point is after `Hybrid_Observables::compute_pranges()`, so it prints
+  the actual computed `Pseudorange_m`, not the acquisition code phase.
+- Output prefixes:
+  - `DUALPATH_OBS`: one valid channel/path row.
+  - `DUALPATH_PAIR`: path0/path1 pair for the same PRN, including `delta_m`.
+- Updated L5 generator and active B1I/L5 test configs to enable stdout every
+  1000 ms.
+
+How to inspect:
+
+```bash
+./build-conda/src/main/gnss-sdr --config_file=/tmp/l5_realtime_dualpath_prn18.conf 2>&1 | tee run.log
+grep 'DUALPATH' run.log | tail -40
+```
+
+If there are no `DUALPATH_*` rows, Observables did not have a valid pseudorange
+yet. Then check loss-of-lock, telemetry/word validity, PRN mismatch and overflow.

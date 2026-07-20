@@ -1,8 +1,11 @@
-# 07 - Stage 2 最小双跟踪原型交接记录
+# 07 · L5 双路径持续跟踪原型交接记录（架构 A 在 L5 的工程化）
+
+> **术语对齐（重要）**：本篇历史上曾自称 “Stage 2”，实为 `04` **架构 A（捕获双峰 + 双跟踪）在 GPS L5I 上的工程化 + observables/monitor 输出**，属于 `04` 的 Stage 1 家族。
+> `04` 正式定义的 **Stage 2 = 跟踪域多相关器（近距 <1 码片多径分解，架构 B）**，本篇**并未**触及。下文出现的 “第二阶段/Stage 2” 均按此对齐理解。
 
 ## 目标
 
-第一阶段已经验证：GPS L5I 比 B1I 更适合在捕获谱峰面上分离远距多径。第二阶段先不大改通道管理器，先做一个最小可运行原型：
+已验证 GPS L5I 比 B1I 更适合在捕获谱峰面上分离**远距**多径。本篇先不大改通道管理器，先做一个最小可运行原型：
 
 - 同一颗 L5 PRN 同时生成两条跟踪链路。
 - `Signal_Path=0` 跟踪捕获最强峰，标记为 `primary`。
@@ -405,3 +408,28 @@ Observables.dualpath_print_format=csv
 它在 observables 已经算出 `Pseudorange_m` 后，直接按 PRN 聚合 path0/path1，每秒向 stdout 打一行，不保存中间相关面和 tracking dump。
 
 建议优先走方案 A；如果 protobuf 接收端卡住，再做方案 B。
+---
+
+## 2026-07-20 update: direct stdout observables
+
+The previous implementation did not print pseudorange/C/N0 in the main
+`gnss-sdr` terminal. It only wrote extended observables dump or monitor UDP.
+This caused field runs to show only tracking/loss/overflow logs.
+
+New config knobs:
+
+```ini
+Observables.stdout=true
+Observables.stdout_interval_ms=1000
+```
+
+When enabled, `Hybrid_Observables` prints after `compute_pranges()`:
+
+```text
+DUALPATH_OBS prn=18 path=0 role=primary pseudorange_m=... cn0_db_hz=...
+DUALPATH_OBS prn=18 path=1 role=second pseudorange_m=... cn0_db_hz=...
+DUALPATH_PAIR prn=18 primary_pseudorange_m=... second_pseudorange_m=... delta_m=...
+```
+
+No `DUALPATH_*` output means no valid pseudorange has reached Observables yet.
+That is a lock/word/overflow/PRN problem, not a print-format problem.

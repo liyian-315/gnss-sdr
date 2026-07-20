@@ -66,7 +66,7 @@ SignalSource.antenna={ant}
 SignalSource.samples=0
 SignalSource.dump=false
 SignalSource.enable_throttle_control=false
-{device_address}
+{device_selector}
 """
 
 
@@ -105,6 +105,8 @@ TelemetryDecoder_L5.dump=false
 TelemetryDecoder_L5.dump_mat=false
 
 Observables.implementation=Hybrid_Observables
+Observables.stdout=true
+Observables.stdout_interval_ms=1000
 Observables.dump=true
 Observables.dump_extended=true
 Observables.dump_filename={observables_dump}
@@ -156,13 +158,19 @@ def build_config(args):
     if args.source == "file":
         signal_source = FILE_SOURCE_TEMPLATE.format(input_file=args.input, rate=args.rate)
     else:
+        device_selector = ""
+        if args.device_args:
+            if args.device_args.startswith("serial="):
+                device_selector = "SignalSource.device_serial=%s" % args.device_args.split("=", 1)[1]
+            else:
+                device_selector = "SignalSource.device_address=%s" % args.device_args
         signal_source = UHD_SOURCE_TEMPLATE.format(
             rate=args.rate,
             freq=args.freq,
             gain=args.gain,
             subdevice=args.subdevice,
             ant=args.ant,
-            device_address=("SignalSource.device_address=%s" % args.device_args) if args.device_args else "",
+            device_selector=device_selector,
         )
     monitor = ""
     if args.enable_monitor:
