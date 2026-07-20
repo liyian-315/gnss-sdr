@@ -14,6 +14,20 @@ import time
 from gnuradio import gr, blocks, uhd
 
 
+SAMPLE_TYPES = {
+    "gr_complex": {
+        "cpu_format": "fc32",
+        "item_size": gr.sizeof_gr_complex,
+        "label": "complex float32",
+    },
+    "ishort": {
+        "cpu_format": "sc16",
+        "item_size": gr.sizeof_short * 2,
+        "label": "interleaved int16 IQ",
+    },
+}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--freq", type=float, default=1561098000.0, help="中心频率[Hz]，B1I=1561098000")
@@ -26,8 +40,11 @@ def main():
     ap.add_argument("--secs", type=float, default=10.0, help="录制时长[秒]")
     ap.add_argument("--retries", type=int, default=5, help="UHD device open retries")
     ap.add_argument("--retry-delay", type=float, default=2.0, help="seconds between UHD open retries")
+    ap.add_argument("--sample-type", choices=sorted(SAMPLE_TYPES), default="gr_complex",
+                    help="output sample type: gr_complex=fc32, ishort=sc16 interleaved IQ")
     ap.add_argument("-o", "--out", default="/tmp/b1i_prn9.dat", help="输出文件(complex float32)")
     a = ap.parse_args()
+    sample_type = SAMPLE_TYPES[a.sample_type]
 
     nsamps = int(a.rate * a.secs)
     tb = gr.top_block()
@@ -35,7 +52,7 @@ def main():
     last_error = None
     for attempt in range(1, max(1, a.retries) + 1):
         try:
-            u = uhd.usrp_source(a.device_args, uhd.stream_args(cpu_format="fc32", channels=[0]))
+            u = uhd.usrp_source(a.device_args, uhd.stream_args(cpu_format=sample_type["cpu_format"], channels=[0]))
             break
         except RuntimeError as e:
             last_error = e
@@ -63,13 +80,13 @@ def main():
     except Exception as e:
         print("warn get actuals:", e)
 
-    h = blocks.head(gr.sizeof_gr_complex, nsamps)
-    s = blocks.file_sink(gr.sizeof_gr_complex, a.out, False)
+    h = blocks.head(sample_type["item_size"], nsamps)
+    s = blocks.file_sink(sample_type["item_size"], a.out, False)
     s.set_unbuffered(False)
     tb.connect(u, h, s)
 
-    print("recording %.1fs (%d samples) @ %.3f MHz, rate %.1f Msps, gain %g, ant %s -> %s"
-          % (a.secs, nsamps, a.freq / 1e6, a.rate / 1e6, a.gain, a.ant, a.out))
+    print("recording %.1fs (%d samples, %s) @ %.3f MHz, rate %.1f Msps, gain %g, ant %s -> %s"
+          % (a.secs, nsamps, sample_type["label"], a.freq / 1e6, a.rate / 1e6, a.gain, a.ant, a.out))
     tb.run()
     print("done:", a.out)
 

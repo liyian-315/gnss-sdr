@@ -32,7 +32,7 @@ ControlThread.wait_for_flowgraph=false
 
 {signal_source}
 SignalConditioner.implementation=Pass_Through
-DataTypeAdapter.implementation=Pass_Through
+DataTypeAdapter.implementation={data_type_adapter}
 InputFilter.implementation=Pass_Through
 Resampler.implementation=Pass_Through
 Resampler.item_type=gr_complex
@@ -48,7 +48,7 @@ Channel.signal=L5
 
 FILE_SOURCE_TEMPLATE = """SignalSource.implementation=File_Signal_Source
 SignalSource.filename={input_file}
-SignalSource.item_type=gr_complex
+SignalSource.item_type={sample_type}
 SignalSource.sampling_frequency={rate}
 SignalSource.samples=0
 SignalSource.repeat=false
@@ -155,8 +155,11 @@ def build_config(args):
     channels_in_acq = args.channels_in_acq or min(channel_count, 2)
     if channels_in_acq < 1 or channels_in_acq > channel_count:
         raise SystemExit("--channels-in-acq must be in 1..%d" % channel_count)
+    if args.source != "file" and args.sample_type != "gr_complex":
+        raise SystemExit("--sample-type is currently supported only with --source file")
+    data_type_adapter = "Ishort_To_Complex" if args.sample_type == "ishort" else "Pass_Through"
     if args.source == "file":
-        signal_source = FILE_SOURCE_TEMPLATE.format(input_file=args.input, rate=args.rate)
+        signal_source = FILE_SOURCE_TEMPLATE.format(input_file=args.input, rate=args.rate, sample_type=args.sample_type)
     else:
         device_selector = ""
         if args.device_args:
@@ -183,6 +186,7 @@ def build_config(args):
     text = TEMPLATE_HEAD.format(
         rate=args.rate,
         signal_source=signal_source.rstrip(),
+        data_type_adapter=data_type_adapter,
         channel_count=channel_count,
         channels_in_acq=channels_in_acq,
     )
@@ -217,6 +221,8 @@ def main():
     ap.add_argument("--input", default="/tmp/gps_l5_multi.dat", help="Recorded complex64 file")
     ap.add_argument("--output", required=True, help="Output .conf path")
     ap.add_argument("--rate", type=int, default=10000000, help="Sampling rate in sps")
+    ap.add_argument("--sample-type", choices=("gr_complex", "ishort"), default="gr_complex",
+                    help="File sample type: gr_complex=fc32, ishort=sc16 interleaved IQ")
     ap.add_argument("--freq", type=int, default=1176450000, help="UHD center frequency in Hz")
     ap.add_argument("--gain", type=float, default=76.0, help="UHD gain in dB")
     ap.add_argument("--ant", default="RX2", help="UHD antenna")
