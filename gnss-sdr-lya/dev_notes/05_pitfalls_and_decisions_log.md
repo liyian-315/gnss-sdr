@@ -1575,3 +1575,28 @@ grep 'DUALPATH' run.log | tail -40
 
 If there are no `DUALPATH_*` rows, Observables did not have a valid pseudorange
 yet. Then check loss-of-lock, telemetry/word validity, PRN mismatch and overflow.
+
+### Fix: L5I simulator was tracked as L5Q/pilot
+
+User confirmed the simulator transmits GPS L5I only. The previous L5 test
+configs used:
+
+```ini
+Acquisition_L5.implementation=GPS_L5i_PCPS_Acquisition
+Tracking_L5.track_pilot=true
+```
+
+That is inconsistent: acquisition searches L5I, but tracking asks the generic
+L5 tracking block to use the L5Q/pilot side. Runtime logs saying
+`Tracking of GPS L5Q signal started` matched this mismatch. This can produce
+short tracking starts, repeated loss-of-lock, weak/unstable C/N0, and missing
+valid pseudorange for path1.
+
+Change made:
+
+```ini
+Tracking_L5.track_pilot=false
+```
+
+Updated `make_l5_dualpath_conf.py` and active L5 configs so future PRN24/25
+configs track the L5I data component emitted by the simulator.

@@ -89,7 +89,7 @@ Acquisition_L5.dump_filename=./gps_l5_dualpath_acq
 
 Tracking_L5.implementation=GPS_L5_DLL_PLL_Tracking
 Tracking_L5.item_type=gr_complex
-Tracking_L5.track_pilot=true
+Tracking_L5.track_pilot=false
 Tracking_L5.pll_bw_hz=15.0
 Tracking_L5.dll_bw_hz=2.0
 Tracking_L5.pll_bw_narrow_hz=4.0
