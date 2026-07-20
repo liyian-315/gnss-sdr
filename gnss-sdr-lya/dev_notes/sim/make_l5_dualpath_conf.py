@@ -31,7 +31,7 @@ GNSS-SDR.internal_fs_sps={rate}
 ControlThread.wait_for_flowgraph=false
 
 {signal_source}
-SignalConditioner.implementation=Pass_Through
+SignalConditioner.implementation={signal_conditioner}
 DataTypeAdapter.implementation={data_type_adapter}
 InputFilter.implementation=Pass_Through
 Resampler.implementation=Pass_Through
@@ -157,6 +157,7 @@ def build_config(args):
         raise SystemExit("--channels-in-acq must be in 1..%d" % channel_count)
     if args.source != "file" and args.sample_type != "gr_complex":
         raise SystemExit("--sample-type is currently supported only with --source file")
+    signal_conditioner = "Signal_Conditioner" if args.sample_type == "ishort" else "Pass_Through"
     data_type_adapter = "Ishort_To_Complex" if args.sample_type == "ishort" else "Pass_Through"
     if args.source == "file":
         signal_source = FILE_SOURCE_TEMPLATE.format(input_file=args.input, rate=args.rate, sample_type=args.sample_type)
@@ -186,6 +187,7 @@ def build_config(args):
     text = TEMPLATE_HEAD.format(
         rate=args.rate,
         signal_source=signal_source.rstrip(),
+        signal_conditioner=signal_conditioner,
         data_type_adapter=data_type_adapter,
         channel_count=channel_count,
         channels_in_acq=channels_in_acq,
