@@ -29,9 +29,11 @@
 | 04 | `04_retrofit_plan_multipath_multisource.md` | 改造方案：多径识别 + 多源信号的切入点与设计 | 动手改造前 / 定方案时 | 🟡 规划中 |
 | 05 | `05_pitfalls_and_decisions_log.md` | 踩坑、关键决策、疑问（按日期追加） | 遇到怪问题 / 想知道"为什么这么做"时 | 🟡 持续追加 |
 | 06 | `06_b210_multipath_test_usage.md` | **★运行手册★** conda环境+B210多径测试：B1I/L5I 录制、离线分析、画图、调参、排错 | **在测试机上跑测试前必读** | ✅ 权威 |
-| 07 | `07_stage2_dual_tracking_prototype.md` | **Stage 2 最小双跟踪原型**：L5 固定 PRN 两通道持续 tracking，扩展 observables dump 输出路径标签、伪距、C/N0 | 改跟踪逻辑 / 验证两条径持续输出前必读 | 🟡 原型 |
+| 07 | `07_stage2_dual_tracking_prototype.md` | **L5 双路径持续跟踪原型（架构 A 工程化）**：L5 固定 PRN 两通道持续 tracking，扩展 observables dump 输出路径标签、伪距、C/N0。⚠️文件名带 stage2 是历史遗留，非 `04` 的 Stage 2 | 改跟踪逻辑 / 验证两条径持续输出前必读 | 🟡 原型 |
+| — | `USAGE_B1I.md` | B1I 专用早期操作手册（多径扫描 + 双路径跟踪的第一版流程） | 只在翻 B1I 早期 conf 时参考 | ⚪ 早期·大部分被 `06` 取代 |
+| 08 | `08_field_triage_runbook.md` | **★现场排查 runbook★** 从"噪声谱面"到"可信多径检出"的门禁式逐步流程：单星干净捕获→假警基线→导线注入→几何自检→距离阶梯 | **拿到设备手动排查/改进前必读** | ✅ 权威 |
 
-> 图例：✅ 已成稿可用 · 🟡 进行中 · ⬜ 未开始
+> 图例：✅ 已成稿可用 · 🟡 进行中 · ⚪ 历史/已被取代 · ⬜ 未开始
 
 ---
 
@@ -40,7 +42,9 @@
 > **维护约定**：每完成一个里程碑，更新这一节 + 在 `05_pitfalls_and_decisions_log.md` 追加一条。
 > 只改这里和相关的那一篇，不要动无关文档，省 token。
 
-**当前阶段：`B1I/B210/双模拟器多径捕获实测已跑通 ✅ → 远距多径可由捕获域识别 → 近距多径进入跟踪域方案`（详见 `05` 2026-07-16；运行手册 `06 §2C`）**
+**当前阶段：`B1I 捕获双峰(架构A)已实测跑通 ✅ → 架构A·L5 双路径持续跟踪原型工程化 🟡 → 真实环境第二峰噪声化待攻关 🔴`（捕获域详见 `05` 2026-07-16；L5 工程化交接见 `07`；真实环境痛点见 `05` 2026-07-18）**
+
+> 🟡 **Stage 2 进行中（2026-07-17→18，详见 `07`）**：改用 **GPS L5I**（谱峰面比 B1I 更易分远距多径）做最小双跟踪原型。已落地：① `Observables.dump_extended`（每通道 7→9 个 double，加 `signal_path`+`cn0_db_hz`）；② L5 双路径 conf + `make_l5_dualpath_conf.py`（多 PRN 通用化 / `--source uhd` 实时 / `--enable-monitor`）；③ `read_observables_dump.py` 兼容新旧格式、稳定 CSV/JSONL 字段；④ monitor-only 长跑方案（`watch_dualpath_monitor.py` 免 protobuf 依赖 + `gnss_synchro_monitor.cc` 改为“始终 consume、按抽样发送”）避免实时 overflow。**⚠️ C++ 改动仅过 Python 侧自测，尚需测试机 `build-conda` 完整编译 + B210/离线实跑验证。**
 
 > 🔧 **实测根因（2026-07-15，非改造代码）**：实时失锁/overflow/无定位 = ①12个Ctrl+Z挂起进程叠罗汉 ②Firefox吃95%CPU ③增益太低欠量化(gain45→70)。清空+关扰+gain70 后单星PRN9 45s 零失锁、CN0 82。饱和已实测排除。
 > **规范**：一次只跑一个实例；停止用 Ctrl+C 不用 Ctrl+Z；跑前关 Firefox；实时增益 ~65–70。离线看谱峰走"录制→File源+dump"。
@@ -75,9 +79,12 @@
       踩坑链(glog→absl / 关 ZMQ,LimeSDR,OSMOSDR,RAW_UDP / CNAV1 无守卫 glog)全解，完整配方见 `06 §5`。
 - [x] **仓库整理**：`sim/` 只留 `my_bds_b1i_twopath.conf`+`analyze_multipath.py`，历史入 `sim/archive/`，删 dump + 加 `.gitignore`。
 - [x] **B1I 双模拟器多径捕获实测**：B210/RX2 + 无源天线 + 双模拟器 PRN9。`+200m/-40/-40`、`+1000m/-40/-40`、`+1030m/-40/-40` 均得到 `positive=1 && has2=1` 的捕获域双峰；`+70m` 未分开，证明近距多径不能继续依赖捕获域 Top-2。
+- [~] **架构A · L5 双路径持续跟踪原型（机制已落地，待测试机编译验证）**：`Observables.dump_extended`(9列) + `l5_dualpath_prn18.conf` + `make_l5_dualpath_conf.py`(多PRN/实时/monitor) + `read_observables_dump.py` + monitor-only 长跑方案。详见 `07`。⚠️ C++ 改动仅过 Python 自测，需 `build-conda` 完整编译 + B210/离线实跑。
+  > 术语澄清：`07`（文件名带 stage2）实为**架构 A(捕获双峰)在 L5 上的持续跟踪 + observables/monitor 工程化**，并非 `04` 定义的 Stage 2（跟踪域多相关器）。近距 <1 码片多径的**多相关器分解仍未动**。
+- [ ] 🔴 **真实环境第二峰噪声化攻关（2026-07-18 双模拟器实测暴露）**：50m/等功率/CN0 35-40 场景下，`find_second_peak` 在宽窗内选到的"第二峰"随机游走(Δ从-2600m到+2400m)，`valid_positive_has2=0`。需收窗+时间一致性判据+单路基线标定，详见 `05` 2026-07-18。
 - [ ] ⏳ **连续统计 + 单路校准**：对 `+200m/+1000m/+1030m` 每组连续采 5 次，统计 `abs(Δm)` 均值/方差；必要时分别单开两台模拟器验证码相位差。
 - [ ] absl 日志下 `MULTIPATH` 可见性微调（验证多径时一并处理）。
-- [ ] Stage 2：跟踪域多相关器（近距<1码片多径）；Stage 3：LOS 判别 + PVT 整合。
+- [ ] **架构 B**：跟踪域多相关器（近距<1码片多径，MEDLL/峰形拟合，研究级，`04` 的 Stage 2）；**Stage 3**：LOS 判别 + PVT 整合。
 - [ ] （搁置）B1C CNAV1 telemetry decoder —— B1C 专用，**B1I 目标不需要**。
 
 **下一步 · 三步路线**（目标：对每颗卫星搜最强两条径、跟踪、并最终用第二径**提升定位**）：
@@ -137,4 +144,4 @@
 
 ---
 
-*最后更新：2026-07-17 · Stage 2 L5 最小双跟踪原型启动：扩展 observables dump + PRN18 双路径配置 · Codex/Claude 协同维护*
+*最后更新：2026-07-18 · 3D 谱面确认现场根本没干净捕获→新增 `08` 现场排查 runbook(门禁式) + `acq_health.py`/`multipath_consistency.py` 两个判定脚本 · Stage 2 L5 原型 + 索引对齐 · Codex/Claude 协同维护*
