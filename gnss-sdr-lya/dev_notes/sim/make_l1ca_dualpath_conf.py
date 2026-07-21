@@ -98,6 +98,11 @@ Tracking_1C.dll_bw_hz={dll_bw}
 Tracking_1C.pll_bw_narrow_hz={pll_bw_narrow}
 Tracking_1C.dll_bw_narrow_hz={dll_bw_narrow}
 Tracking_1C.extend_correlation_symbols={extend_symbols}
+Tracking_1C.enable_fll_pull_in={enable_fll}
+Tracking_1C.fll_bw_hz={fll_bw}
+Tracking_1C.pull_in_time_s={pull_in_time}
+Tracking_1C.carrier_lock_th={carrier_lock_th}
+Tracking_1C.cn0_min={cn0_min}
 Tracking_1C.order=3
 Tracking_1C.early_late_space_chips=0.5
 Tracking_1C.dump=false
@@ -146,12 +151,14 @@ SCENARIOS = {
     "antenna": {
         "single_path": True,
         "doppler_step": 100,
-        "pfa": "0.01",
-        "max_dwells": 15,
-        "pll_bw": 25.0,
-        "pll_bw_narrow": 5.0,
-        "dll_bw_narrow": 0.75,
-        "extend_symbols": 20,
+        "pfa": "0.001",
+        "max_dwells": 12,
+        "pll_bw": 20.0,
+        "enable_fll": True,
+        "fll_bw": 10.0,
+        "pull_in_time": 2.0,
+        "carrier_lock_th": 0.5,
+        "cn0_min": 20.0,
     },
 }
 
@@ -251,6 +258,11 @@ def build_config(args):
         pll_bw_narrow=args.pll_bw_narrow,
         dll_bw_narrow=args.dll_bw_narrow,
         extend_symbols=args.extend_symbols,
+        enable_fll="true" if args.enable_fll else "false",
+        fll_bw=args.fll_bw,
+        pull_in_time=args.pull_in_time,
+        carrier_lock_th=args.carrier_lock_th,
+        cn0_min=args.cn0_min,
         stdout_interval_ms=args.stdout_interval_ms,
         observables_dump_enabled="false" if args.enable_monitor else "true",
         observables_dump=args.observables_dump,
@@ -289,6 +301,11 @@ def main():
     ap.add_argument("--blocking", choices=("auto", "true", "false"), default="auto",
                     help="Acquisition.blocking; auto=false for uhd (real-time overflow-safe), true for file")
     ap.add_argument("--extend-symbols", type=int, default=1, help="Coherent integration symbols (L1 C/A up to 20 after bit sync)")
+    ap.add_argument("--enable-fll", action="store_true", help="FLL-assisted pull-in (robust carrier convergence at low CN0)")
+    ap.add_argument("--fll-bw", type=float, default=10.0, help="FLL bandwidth Hz (used with --enable-fll / scenario antenna)")
+    ap.add_argument("--pull-in-time", type=float, default=2.0, help="FLL pull-in duration seconds")
+    ap.add_argument("--carrier-lock-th", type=float, default=0.85, help="Carrier lock-loss threshold (gnss-sdr default 0.85; lower holds weak signals)")
+    ap.add_argument("--cn0-min", type=float, default=25.0, help="Min CN0 dB-Hz before loss (gnss-sdr default 25)")
     ap.add_argument("--pll-bw", type=float, default=30.0)
     ap.add_argument("--dll-bw", type=float, default=4.0)
     ap.add_argument("--pll-bw-narrow", type=float, default=8.0)

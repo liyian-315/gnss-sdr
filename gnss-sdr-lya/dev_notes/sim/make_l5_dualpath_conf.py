@@ -114,6 +114,11 @@ Tracking_L5.dll_bw_narrow_hz={dll_bw_narrow}
 Tracking_L5.order=2
 Tracking_L5.early_late_space_chips=0.5
 Tracking_L5.extend_correlation_symbols={extend_symbols}
+Tracking_L5.enable_fll_pull_in={enable_fll}
+Tracking_L5.fll_bw_hz={fll_bw}
+Tracking_L5.pull_in_time_s={pull_in_time}
+Tracking_L5.carrier_lock_th={carrier_lock_th}
+Tracking_L5.cn0_min={cn0_min}
 Tracking_L5.dump=false
 Tracking_L5.dump_filename=./gps_l5_dualpath_tracking_ch_
 
@@ -164,10 +169,14 @@ SCENARIOS = {
     "antenna": {
         "single_path": True,
         "doppler_step": 100,
-        "pfa": "0.01",
-        "max_dwells": 15,
-        "pll_bw": 15.0,
-        "pll_bw_narrow": 4.0,
+        "pfa": "0.001",
+        "max_dwells": 12,
+        "pll_bw": 20.0,
+        "enable_fll": True,
+        "fll_bw": 10.0,
+        "pull_in_time": 2.0,
+        "carrier_lock_th": 0.5,
+        "cn0_min": 20.0,
     },
 }
 
@@ -268,6 +277,11 @@ def build_config(args):
         pll_bw_narrow=args.pll_bw_narrow,
         dll_bw_narrow=args.dll_bw_narrow,
         extend_symbols=args.extend_symbols,
+        enable_fll="true" if args.enable_fll else "false",
+        fll_bw=args.fll_bw,
+        pull_in_time=args.pull_in_time,
+        carrier_lock_th=args.carrier_lock_th,
+        cn0_min=args.cn0_min,
         observables_dump=args.observables_dump,
         monitor=monitor.rstrip(),
     )
@@ -308,6 +322,11 @@ def main():
     ap.add_argument("--track-pilot", action="store_true",
                     help="Track L5Q pilot (dataless, cleaner carrier lock; CNAV still decoded from data)")
     ap.add_argument("--extend-symbols", type=int, default=1, help="Coherent integration symbols (pilot<=20, data<=10)")
+    ap.add_argument("--enable-fll", action="store_true", help="FLL-assisted pull-in (robust carrier convergence at low CN0)")
+    ap.add_argument("--fll-bw", type=float, default=10.0, help="FLL bandwidth Hz (used with --enable-fll / scenario antenna)")
+    ap.add_argument("--pull-in-time", type=float, default=2.0, help="FLL pull-in duration seconds")
+    ap.add_argument("--carrier-lock-th", type=float, default=0.85, help="Carrier lock-loss threshold (gnss-sdr default 0.85; lower holds weak signals)")
+    ap.add_argument("--cn0-min", type=float, default=25.0, help="Min CN0 dB-Hz before loss (gnss-sdr default 25)")
     ap.add_argument("--pll-bw", type=float, default=15.0)
     ap.add_argument("--dll-bw", type=float, default=2.0)
     ap.add_argument("--pll-bw-narrow", type=float, default=4.0)
