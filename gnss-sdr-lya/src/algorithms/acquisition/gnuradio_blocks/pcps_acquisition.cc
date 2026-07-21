@@ -886,8 +886,15 @@ int pcps_acquisition::general_work(int noutput_items __attribute__((unused)),
     gr::thread::scoped_lock lk(d_setlock);
     if (!d_active or d_worker_active)
         {
-            // do not consume samples while performing a non-coherent integration
-            const bool consume_samples = ((!d_active) || (d_worker_active && (d_num_noncoherent_integrations_counter == d_acq_parameters.max_dwells)));
+            // Real-time overflow fix: keep consuming (discarding) input while the acquisition
+            // worker thread is running a dwell, instead of stalling until the final dwell.
+            // Not consuming here back-pressures the USRP source and causes overflows at high
+            // sample rates (e.g. GPS L5 @ 20-30 Msps). The running dwell already holds its own
+            // buffered copy, and non-coherent integration does not require the dwells to be
+            // contiguous, so discarding samples during the compute is safe. blocking_on_standby
+            // (used by unit tests) still avoids consuming; blocking=true (file/offline) never
+            // sets d_worker_active, so its behavior is unchanged.
+            const bool consume_samples = ((!d_active) || d_worker_active);
             if ((!d_acq_parameters.blocking_on_standby) && consume_samples)
                 {
                     d_sample_count += static_cast<uint64_t>(ninput_items[0]);
