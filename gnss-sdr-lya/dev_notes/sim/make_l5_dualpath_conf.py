@@ -6,10 +6,13 @@ apply the config that actually worked for each:
 
   --scenario cable    strong direct-connect feed (CN0 ~70): clean single-sat
                       CNAV decode. single-path + fine doppler step + data tracking.
-  --scenario antenna  weak passive-antenna over-air (CN0 ~30, marginal): fine
-                      doppler, relaxed CFAR, more dwells, narrower loops. Best
-                      effort -- L5 over-air often too weak to decode; position
-                      the RX antenna close to the TX.
+  --scenario antenna  real-power passive-antenna over-air (CN0 ~20-30 -- a phone
+                      sees L5 ~25, this is NORMAL, not "weak"): fine doppler,
+                      relaxed CFAR, more dwells, narrower loops, loss-of-lock
+                      tolerances sized for CN0 ~25.
+  --scenario multipath  two-path L5 (direct + reflection) at real power: dual-path
+                      (second-path channel ON) + robust loss-of-lock so the
+                      weaker reflection (~CN0 25) holds lock instead of thrashing.
 
 Key lessons baked in:
   * blocking=auto -> false for real-time UHD. The acquisition worker must keep
@@ -119,6 +122,8 @@ Tracking_L5.fll_bw_hz={fll_bw}
 Tracking_L5.pull_in_time_s={pull_in_time}
 Tracking_L5.carrier_lock_th={carrier_lock_th}
 Tracking_L5.cn0_min={cn0_min}
+Tracking_L5.max_lock_fail={max_lock_fail}
+Tracking_L5.max_carrier_lock_fail={max_carrier_lock_fail}
 Tracking_L5.dump=false
 Tracking_L5.dump_filename=./gps_l5_dualpath_tracking_ch_
 
@@ -174,9 +179,42 @@ SCENARIOS = {
         "pll_bw": 20.0,
         "enable_fll": True,
         "fll_bw": 10.0,
-        "pull_in_time": 2.0,
-        "carrier_lock_th": 0.5,
-        "cn0_min": 20.0,
+        "pull_in_time": 3.0,
+        "carrier_lock_th": 0.45,
+        "cn0_min": 15.0,
+        "max_lock_fail": 200,
+        "max_carrier_lock_fail": 15000,
+    },
+    # Real-power two-path L5 (direct + reflection at CN0 ~20-35 like a phone,
+    # NOT the 40+ of an ideal simulator feed). Dual-path (second-path channel ON)
+    # plus tracking tolerances sized so a normal-power reflection (~CN0 25, often
+    # ~10 dB under the direct) rides out brief fades instead of dropping lock and
+    # thrashing (the intermittent 2nd-path loss). Every knob here is a
+    # Tracking_L5.* / Acquisition_L5.* config value -- no C++ change:
+    #   * threshold_fraction 0.12 -> the weaker second peak reliably clears the
+    #     second-path acquisition gate (has_second_peak stays true, no re-search churn).
+    #   * cn0_min 12 / carrier_lock_th 0.40 -> loss detectors sized for CN0 ~25.
+    #   * max_lock_fail / max_carrier_lock_fail large -> a transient CN0/carrier dip
+    #     no longer trips loss-of-lock.
+    #   * pull_in_time 4 s + narrow loops -> hold through L5Q secondary-code sync.
+    "multipath": {
+        "single_path": False,
+        "track_pilot": True,
+        "doppler_step": 100,
+        "pfa": "0.001",
+        "max_dwells": 8,
+        "max_delay_chips": 20.0,
+        "threshold_fraction": 0.12,
+        "pll_bw": 20.0,
+        "pll_bw_narrow": 2.0,
+        "dll_bw_narrow": 0.5,
+        "enable_fll": True,
+        "fll_bw": 10.0,
+        "pull_in_time": 4.0,
+        "carrier_lock_th": 0.40,
+        "cn0_min": 12.0,
+        "max_lock_fail": 300,
+        "max_carrier_lock_fail": 20000,
     },
 }
 
@@ -282,6 +320,8 @@ def build_config(args):
         pull_in_time=args.pull_in_time,
         carrier_lock_th=args.carrier_lock_th,
         cn0_min=args.cn0_min,
+        max_lock_fail=args.max_lock_fail,
+        max_carrier_lock_fail=args.max_carrier_lock_fail,
         observables_dump=args.observables_dump,
         monitor=monitor.rstrip(),
     )
@@ -314,7 +354,7 @@ def main():
     ap.add_argument("--device-args", default="", help="UHD device args, e.g. serial=30F4100")
     ap.add_argument("--channels-in-acq", type=int, default=0, help="Concurrent acquisition channels; default=min(2,count)")
     ap.add_argument("--scenario", choices=tuple(SCENARIOS), default=None,
-                    help="Field-tested preset: cable (strong direct) | antenna (weak over-air)")
+                    help="Preset: cable (strong direct, single-path) | antenna (real-power over-air, single-path) | multipath (real-power two-path, robust loss-of-lock for CN0~25)")
     ap.add_argument("--single-path", action="store_true",
                     help="Primary-only clean decode: one channel per PRN, no 2nd-path channel, multipath off")
     ap.add_argument("--blocking", choices=("auto", "true", "false"), default="auto",
@@ -326,7 +366,11 @@ def main():
     ap.add_argument("--fll-bw", type=float, default=10.0, help="FLL bandwidth Hz (used with --enable-fll / scenario antenna)")
     ap.add_argument("--pull-in-time", type=float, default=2.0, help="FLL pull-in duration seconds")
     ap.add_argument("--carrier-lock-th", type=float, default=0.85, help="Carrier lock-loss threshold (gnss-sdr default 0.85; lower holds weak signals)")
-    ap.add_argument("--cn0-min", type=float, default=25.0, help="Min CN0 dB-Hz before loss (gnss-sdr default 25)")
+    ap.add_argument("--cn0-min", type=float, default=25.0, help="Min CN0 dB-Hz before loss (gnss-sdr default 25; lower ~12-15 for normal-power CN0~25 signals)")
+    ap.add_argument("--max-lock-fail", type=int, default=50,
+                    help="Consecutive code-lock (CN0<cn0_min) fails before loss-of-lock (gnss-sdr default 50; raise so a CN0~25 signal rides out brief fades)")
+    ap.add_argument("--max-carrier-lock-fail", type=int, default=5000,
+                    help="Consecutive carrier-lock fails before loss-of-lock (gnss-sdr default 5000; raise for weak/normal-power signals)")
     ap.add_argument("--pll-bw", type=float, default=15.0)
     ap.add_argument("--dll-bw", type=float, default=2.0)
     ap.add_argument("--pll-bw-narrow", type=float, default=4.0)
