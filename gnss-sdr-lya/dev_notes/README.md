@@ -32,6 +32,7 @@
 | 07 | `07_stage2_dual_tracking_prototype.md` | **L5 双路径持续跟踪原型（架构 A 工程化）**：L5 固定 PRN 两通道持续 tracking，扩展 observables dump 输出路径标签、伪距、C/N0。⚠️文件名带 stage2 是历史遗留，非 `04` 的 Stage 2 | 改跟踪逻辑 / 验证两条径持续输出前必读 | 🟡 原型 |
 | — | `USAGE_B1I.md` | B1I 专用早期操作手册（多径扫描 + 双路径跟踪的第一版流程） | 只在翻 B1I 早期 conf 时参考 | ⚪ 早期·大部分被 `06` 取代 |
 | 08 | `08_field_triage_runbook.md` | **★现场排查 runbook★** 从"噪声谱面"到"可信多径检出"的门禁式逐步流程：单星干净捕获→假警基线→导线注入→几何自检→距离阶梯 | **拿到设备手动排查/改进前必读** | ✅ 权威 |
+| 09 | `09_academic_reference_multipath_algorithms.md` | **★学术参考/算法笔记★** MEDLL、CADLL、RAKE、多特征 LOS/NLOS 分类等论文的工作、可借鉴点、对当前卡点的启发和待讨论问题 | 暂停调参、准备算法改造/和 Claude 讨论论文前必读 | 🟡 持续更新 |
 
 > 图例：✅ 已成稿可用 · 🟡 进行中 · ⚪ 历史/已被取代 · ⬜ 未开始
 
@@ -43,6 +44,8 @@
 > 只改这里和相关的那一篇，不要动无关文档，省 token。
 
 **当前阶段：`B1I 捕获双峰(架构A)已实测跑通 ✅ → 架构A·L5 双路径持续跟踪原型工程化 🟡 → 真实环境第二峰噪声化待攻关 🔴`（捕获域详见 `05` 2026-07-16；L5 工程化交接见 `07`；真实环境痛点见 `05` 2026-07-18）**
+
+> 📚 **2026-07-23 算法研究转向**：暂停继续盲调 `pfa/cn0_min/lock_fail` 等参数，新增 `09_academic_reference_multipath_algorithms.md` 作为 Codex/Claude 共用学术参考。当前论文梳理显示：近距/融合多径不应继续依赖 acquisition Top-2 峰，而应转向 tracking 域多相关器 + MEDLL/CADLL 类相关峰形参数估计；RAKE 捕获可作为候选初始化，多特征分类用于后续可信度判别。
 
 > 🟡 **Stage 2 进行中（2026-07-17→18，详见 `07`）**：改用 **GPS L5I**（谱峰面比 B1I 更易分远距多径）做最小双跟踪原型。已落地：① `Observables.dump_extended`（每通道 7→9 个 double，加 `signal_path`+`cn0_db_hz`）；② L5 双路径 conf + `make_l5_dualpath_conf.py`（多 PRN 通用化 / `--source uhd` 实时 / `--enable-monitor`）；③ `read_observables_dump.py` 兼容新旧格式、稳定 CSV/JSONL 字段；④ monitor-only 长跑方案（`watch_dualpath_monitor.py` 免 protobuf 依赖 + `gnss_synchro_monitor.cc` 改为“始终 consume、按抽样发送”）避免实时 overflow。**⚠️ C++ 改动仅过 Python 侧自测，尚需测试机 `build-conda` 完整编译 + B210/离线实跑验证。**
 
