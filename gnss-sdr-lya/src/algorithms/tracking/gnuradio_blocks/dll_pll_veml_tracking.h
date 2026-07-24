@@ -40,6 +40,7 @@
 #include <string>                             // for string
 #include <typeinfo>                           // for typeid
 #include <utility>                            // for pair
+#include <vector>                             // for vector
 
 /** \addtogroup Tracking
  * \{ */
@@ -86,6 +87,7 @@ private:
     void save_correlation_results();
     void log_data();
     void configure_bit_synchronizer();
+    void configure_dense_correlator_taps();
     bool cn0_and_tracking_lock_status(double coh_integration_time_s);
     bool acquire_secondary();
     int64_t uint64diff(uint64_t first, uint64_t second);
@@ -109,6 +111,7 @@ private:
     volk_gnsssdr::vector<float> d_tracking_code;
     volk_gnsssdr::vector<float> d_data_code;
     volk_gnsssdr::vector<float> d_local_code_shift_chips;
+    volk_gnsssdr::vector<float> d_dense_code_shift_samples;
     volk_gnsssdr::vector<gr_complex> d_correlator_outs;
     volk_gnsssdr::vector<gr_complex> d_Prompt_Data;
     volk_gnsssdr::vector<gr_complex> d_Prompt_buffer;
@@ -170,6 +173,7 @@ private:
     std::string d_signal_type;
     std::string d_signal_pretty_name;
     std::string d_dump_filename;
+    std::vector<float> d_dense_code_shift_chips;
 
     std::ofstream d_dump_file;
 
@@ -191,6 +195,7 @@ private:
     int32_t d_state;
     int32_t d_correlation_length_ms;
     int32_t d_n_correlator_taps;
+    int32_t d_n_dense_correlator_taps;
     int32_t d_current_prn_length_samples;
     int32_t d_extend_correlation_symbols_count;
     int32_t d_extend_correlation_symbols;

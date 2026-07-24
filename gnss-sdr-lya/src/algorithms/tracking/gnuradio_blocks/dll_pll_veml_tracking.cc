@@ -66,6 +66,8 @@
 #include <map>
 #include <memory>
 #include <numeric>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 #if USE_GLOG_AND_GFLAGS
@@ -86,6 +88,72 @@ namespace wht = boost;
 #include <any>
 namespace wht = std;
 #endif
+
+namespace
+{
+constexpr size_t kMaxDenseCorrelatorTaps = 257;
+
+std::string trim_copy(const std::string &value)
+{
+    const auto first = value.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos)
+        {
+            return {};
+        }
+    const auto last = value.find_last_not_of(" \t\r\n");
+    return value.substr(first, last - first + 1);
+}
+
+bool parse_dense_correlator_taps_chips(const std::string &spec, std::vector<float> *taps)
+{
+    if (taps == nullptr)
+        {
+            return false;
+        }
+    taps->clear();
+
+    const auto first_separator = spec.find(':');
+    const auto second_separator = spec.find(':', first_separator == std::string::npos ? first_separator : first_separator + 1);
+    if (first_separator == std::string::npos || second_separator == std::string::npos || spec.find(':', second_separator + 1) != std::string::npos)
+        {
+            return false;
+        }
+
+    try
+        {
+            const auto start = std::stod(trim_copy(spec.substr(0, first_separator)));
+            const auto step = std::stod(trim_copy(spec.substr(first_separator + 1, second_separator - first_separator - 1)));
+            const auto stop = std::stod(trim_copy(spec.substr(second_separator + 1)));
+
+            if (!std::isfinite(start) || !std::isfinite(step) || !std::isfinite(stop) || step == 0.0)
+                {
+                    return false;
+                }
+            if ((start < stop && step < 0.0) || (start > stop && step > 0.0))
+                {
+                    return false;
+                }
+
+            const double epsilon = std::abs(step) * 1e-6;
+            for (double tap = start; step > 0.0 ? tap <= stop + epsilon : tap >= stop - epsilon; tap += step)
+                {
+                    taps->push_back(static_cast<float>(tap));
+                    if (taps->size() > kMaxDenseCorrelatorTaps)
+                        {
+                            taps->clear();
+                            return false;
+                        }
+                }
+        }
+    catch (const std::exception &)
+        {
+            taps->clear();
+            return false;
+        }
+
+    return !taps->empty();
+}
+}  // namespace
 
 dll_pll_veml_tracking_sptr dll_pll_veml_make_tracking(const Dll_Pll_Conf &conf_)
 {
@@ -128,6 +196,7 @@ dll_pll_veml_tracking::dll_pll_veml_tracking(const Dll_Pll_Conf &conf_)
       d_cn0_estimation_counter(0),
       d_carrier_lock_fail_counter(0),
       d_code_lock_fail_counter(0),
+      d_n_dense_correlator_taps(0),
       d_channel(0),
       d_secondary_code_length(0U),
       d_data_secondary_code_length(0U),
@@ -676,6 +745,7 @@ dll_pll_veml_tracking::dll_pll_veml_tracking(const Dll_Pll_Conf &conf_)
         }
 
     d_multicorrelator_cpu.init(static_cast<int>(2 * d_trk_parameters.vector_length), d_n_correlator_taps);
+    configure_dense_correlator_taps();
 
     if (d_trk_parameters.extend_correlation_symbols > 1)
         {
@@ -1116,6 +1186,43 @@ void dll_pll_veml_tracking::start_tracking()
     d_corrected_doppler = false;
     d_acc_carrier_phase_initialized = false;
     configure_bit_synchronizer();
+}
+
+
+void dll_pll_veml_tracking::configure_dense_correlator_taps()
+{
+    d_dense_code_shift_chips.clear();
+    d_dense_code_shift_samples = volk_gnsssdr::vector<float>();
+    d_n_dense_correlator_taps = 0;
+
+    if (!d_trk_parameters.dense_correlator_dump)
+        {
+            return;
+        }
+
+    std::vector<float> parsed_taps;
+    if (!parse_dense_correlator_taps_chips(d_trk_parameters.dense_correlator_taps_chips, &parsed_taps))
+        {
+            LOG(WARNING) << "Invalid dense_correlator_taps_chips='" << d_trk_parameters.dense_correlator_taps_chips
+                         << "'. Expected start:step:stop with at most " << kMaxDenseCorrelatorTaps
+                         << " taps. Dense correlator dump has been disabled.";
+            d_trk_parameters.dense_correlator_dump = false;
+            return;
+        }
+
+    d_dense_code_shift_chips = parsed_taps;
+    d_n_dense_correlator_taps = static_cast<int32_t>(d_dense_code_shift_chips.size());
+    d_dense_code_shift_samples = volk_gnsssdr::vector<float>(d_n_dense_correlator_taps);
+
+    const float samples_per_chip = static_cast<float>(d_code_samples_per_chip);
+    for (int32_t tap_index = 0; tap_index < d_n_dense_correlator_taps; ++tap_index)
+        {
+            d_dense_code_shift_samples[tap_index] = d_dense_code_shift_chips[tap_index] * samples_per_chip;
+        }
+
+    DLOG(INFO) << "Dense correlator configured with " << d_n_dense_correlator_taps
+               << " taps from '" << d_trk_parameters.dense_correlator_taps_chips
+               << "' chips (" << samples_per_chip << " samples/chip).";
 }
 
 

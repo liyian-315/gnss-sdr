@@ -10,7 +10,7 @@ Export dense tracking-domain complex correlator taps for offline multipath / mul
 ## Development Checklist
 
 - [x] Step 1: Extend `Dll_Pll_Conf` with dense correlator configuration fields.
-- [ ] Step 2: Parse `start:step:stop` tap strings and convert chip offsets to sample offsets inside the tracking block.
+- [x] Step 2: Parse `start:step:stop` tap strings and convert chip offsets to sample offsets inside the tracking block.
 - [ ] Step 3: Add an independent dense multicorrelator, gated by decimation so non-dump epochs do not compute dense taps.
 - [ ] Step 4: Write dense binary dump using the existing tracking dump style, plus a JSON metadata sidecar.
 - [ ] Step 5: Add Python tools to inspect and plot dense correlation profiles.
@@ -43,5 +43,30 @@ Current behavior:
 Decision:
 
 Use the existing tracking dump style for the main binary stream. JSON is reserved for metadata only.
+
+-- Codex, 2026-07-24
+
+## Step 2 Notes
+
+Changed:
+
+```text
+src/algorithms/tracking/gnuradio_blocks/dll_pll_veml_tracking.h
+src/algorithms/tracking/gnuradio_blocks/dll_pll_veml_tracking.cc
+```
+
+Implemented:
+
+- Parses `Tracking_XX.dense_correlator_taps_chips` as `start:step:stop`.
+- Rejects malformed specs, zero step, wrong step direction, and more than 257 taps.
+- Converts tap offsets from chips to samples using `d_code_samples_per_chip`.
+- Stores both forms:
+  - `d_dense_code_shift_chips`: chip units for metadata / human inspection.
+  - `d_dense_code_shift_samples`: sample units for the multicorrelator.
+- If parsing fails while dense dump is enabled, dense dump is disabled with a warning rather than affecting normal tracking.
+
+Judgment:
+
+The existing `d_local_code_shift_chips` name is misleading because it stores sample offsets. Dense export therefore uses an explicit `d_dense_code_shift_samples` name for the internal values. This directly addresses the tap-unit trap noted in the handoff.
 
 -- Codex, 2026-07-24
