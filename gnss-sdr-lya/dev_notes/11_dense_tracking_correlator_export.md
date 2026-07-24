@@ -12,7 +12,7 @@ Export dense tracking-domain complex correlator taps for offline multipath / mul
 - [x] Step 1: Extend `Dll_Pll_Conf` with dense correlator configuration fields.
 - [x] Step 2: Parse `start:step:stop` tap strings and convert chip offsets to sample offsets inside the tracking block.
 - [x] Step 3: Add an independent dense multicorrelator, gated by decimation so non-dump epochs do not compute dense taps.
-- [ ] Step 4: Write dense binary dump using the existing tracking dump style, plus a JSON metadata sidecar.
+- [x] Step 4: Write dense binary dump using the existing tracking dump style, plus a JSON metadata sidecar.
 - [ ] Step 5: Add Python tools to inspect and plot dense correlation profiles.
 - [ ] Step 6: Validate first with offline File Source, then real-time if CPU headroom is acceptable.
 
@@ -43,6 +43,61 @@ Current behavior:
 Decision:
 
 Use the existing tracking dump style for the main binary stream. JSON is reserved for metadata only.
+
+-- Codex, 2026-07-24
+
+## Step 4 Notes
+
+Changed:
+
+```text
+src/algorithms/tracking/gnuradio_blocks/dll_pll_veml_tracking.h
+src/algorithms/tracking/gnuradio_blocks/dll_pll_veml_tracking.cc
+```
+
+Implemented:
+
+- Opens a per-channel dense dump file when `dense_correlator_dump=true`.
+- Writes a JSON sidecar next to the binary file: `<dense_dump>.dat.json`.
+- Writes one binary record only for decimation-selected dense epochs.
+- Keeps the main binary stream in the existing `ofstream.write()` style.
+- Adds a separate `d_dense_correlator_initialized` flag so the dense multicorrelator is freed even if dumping is disabled later because of path/open failures.
+
+Binary record layout:
+
+```text
+uint64  sample_counter
+uint64  epoch_counter
+uint32  channel
+uint32  prn
+uint64  tow_ms
+int32   wn
+float32 rem_carr_phase_rad
+float32 acc_carrier_phase_rad
+float32 carrier_doppler_hz
+float32 carrier_phase_step_rad
+float32 carrier_phase_rate_step_rad
+float32 rem_code_phase_chips
+float32 code_phase_step_chips
+float32 code_phase_rate_step_chips
+float32 cn0_snv_db_hz
+float32 carrier_lock_test
+complex64[tap_count] tap_iq
+```
+
+Metadata fields include:
+
+- `tap_count`
+- `taps_chips`
+- `decimation_epochs`
+- `sampling_frequency_hz`
+- `code_samples_per_chip`
+- `record_size_bytes`
+- field names and primitive types
+
+Judgment:
+
+The dense binary file is not converted to `.mat` in this step. A dynamic number of taps fits better with a small JSON-described binary reader, which will be added in Step 5.
 
 -- Codex, 2026-07-24
 

@@ -153,6 +153,37 @@ bool parse_dense_correlator_taps_chips(const std::string &spec, std::vector<floa
 
     return !taps->empty();
 }
+
+std::string json_escape(const std::string &value)
+{
+    std::string escaped;
+    escaped.reserve(value.size());
+    for (const auto ch : value)
+        {
+            switch (ch)
+                {
+                case '\\':
+                    escaped += "\\\\";
+                    break;
+                case '"':
+                    escaped += "\\\"";
+                    break;
+                case '\n':
+                    escaped += "\\n";
+                    break;
+                case '\r':
+                    escaped += "\\r";
+                    break;
+                case '\t':
+                    escaped += "\\t";
+                    break;
+                default:
+                    escaped += ch;
+                    break;
+                }
+        }
+    return escaped;
+}
 }  // namespace
 
 dll_pll_veml_tracking_sptr dll_pll_veml_make_tracking(const Dll_Pll_Conf &conf_)
@@ -208,6 +239,7 @@ dll_pll_veml_tracking::dll_pll_veml_tracking(const Dll_Pll_Conf &conf_)
       d_cloop(true),
       d_dump(d_trk_parameters.dump),
       d_dump_mat(d_trk_parameters.dump_mat && d_dump),
+      d_dense_correlator_initialized(false),
       d_acc_carrier_phase_initialized(false),
       d_Flag_PLL_180_deg_phase_locked(false),
       d_use_histogram_bit_sync(false)
@@ -752,6 +784,7 @@ dll_pll_veml_tracking::dll_pll_veml_tracking(const Dll_Pll_Conf &conf_)
             d_dense_correlator_outs = volk_gnsssdr::vector<gr_complex>(d_n_dense_correlator_taps);
             d_dense_multicorrelator_cpu.init(static_cast<int>(2 * d_trk_parameters.vector_length), d_n_dense_correlator_taps);
             d_dense_multicorrelator_cpu.set_high_dynamics_resampler(d_trk_parameters.high_dyn);
+            d_dense_correlator_initialized = true;
         }
 
     if (d_trk_parameters.extend_correlation_symbols > 1)
@@ -838,6 +871,36 @@ dll_pll_veml_tracking::dll_pll_veml_tracking(const Dll_Pll_Conf &conf_)
                 {
                     std::cerr << "GNSS-SDR cannot create dump files for the tracking block. Wrong permissions?\n";
                     d_dump = false;
+                }
+        }
+    if (d_trk_parameters.dense_correlator_dump)
+        {
+            d_dense_dump_filename = d_trk_parameters.dense_correlator_dump_filename;
+            std::string dump_path;
+            if (d_dense_dump_filename.find_last_of('/') != std::string::npos)
+                {
+                    std::string dump_filename_ = d_dense_dump_filename.substr(d_dense_dump_filename.find_last_of('/') + 1);
+                    dump_path = d_dense_dump_filename.substr(0, d_dense_dump_filename.find_last_of('/'));
+                    d_dense_dump_filename = std::move(dump_filename_);
+                }
+            else
+                {
+                    dump_path = std::string(".");
+                }
+            if (d_dense_dump_filename.empty())
+                {
+                    d_dense_dump_filename = "dense_trk_channel_";
+                }
+            if (d_dense_dump_filename.substr(1).find_last_of('.') != std::string::npos)
+                {
+                    d_dense_dump_filename = d_dense_dump_filename.substr(0, d_dense_dump_filename.find_last_of('.'));
+                }
+
+            d_dense_dump_filename = dump_path + fs::path::preferred_separator + d_dense_dump_filename;
+            if (!gnss_sdr_create_directory(dump_path))
+                {
+                    std::cerr << "GNSS-SDR cannot create dense correlator dump files for the tracking block. Wrong permissions?\n";
+                    d_trk_parameters.dense_correlator_dump = false;
                 }
         }
     d_last_timetag_samplecounter = 0;
@@ -1252,6 +1315,17 @@ dll_pll_veml_tracking::~dll_pll_veml_tracking()
                     LOG(WARNING) << "Exception in Tracking block destructor: " << ex.what();
                 }
         }
+    if (d_dense_dump_file.is_open())
+        {
+            try
+                {
+                    d_dense_dump_file.close();
+                }
+            catch (const std::exception &ex)
+                {
+                    LOG(WARNING) << "Exception closing dense correlator dump file: " << ex.what();
+                }
+        }
     if (d_dump_mat)
         {
             try
@@ -1269,7 +1343,7 @@ dll_pll_veml_tracking::~dll_pll_veml_tracking()
                 {
                     d_correlator_data_cpu.free();
                 }
-            if (d_trk_parameters.dense_correlator_dump)
+            if (d_dense_correlator_initialized)
                 {
                     d_dense_multicorrelator_cpu.free();
                 }
@@ -1419,6 +1493,7 @@ void dll_pll_veml_tracking::do_correlation_step(const gr_complex *input_samples)
                         static_cast<float>(d_code_phase_step_chips) * static_cast<float>(d_code_samples_per_chip),
                         static_cast<float>(d_code_phase_rate_step_chips) * static_cast<float>(d_code_samples_per_chip),
                         d_trk_parameters.vector_length);
+                    log_dense_correlator_data();
                 }
             d_dense_correlator_epoch_counter++;
         }
@@ -1882,6 +1957,66 @@ void dll_pll_veml_tracking::log_data()
 }
 
 
+void dll_pll_veml_tracking::log_dense_correlator_data()
+{
+    if (!d_trk_parameters.dense_correlator_dump || !d_dense_dump_file.is_open())
+        {
+            return;
+        }
+
+    try
+        {
+            const uint64_t sample_counter = this->nitems_read(0) + static_cast<uint64_t>(d_current_prn_length_samples);
+            const uint64_t epoch_counter = d_dense_correlator_epoch_counter;
+            const uint32_t channel = d_channel;
+            const uint32_t prn = d_acquisition_gnss_synchro != nullptr ? d_acquisition_gnss_synchro->PRN : 0U;
+            const uint64_t tow_ms = d_tow_from_telemetry_ms;
+            const int32_t wn = d_wn_from_telemetry;
+            float tmp_float;
+
+            d_dense_dump_file.write(reinterpret_cast<const char *>(&sample_counter), sizeof(uint64_t));
+            d_dense_dump_file.write(reinterpret_cast<const char *>(&epoch_counter), sizeof(uint64_t));
+            d_dense_dump_file.write(reinterpret_cast<const char *>(&channel), sizeof(uint32_t));
+            d_dense_dump_file.write(reinterpret_cast<const char *>(&prn), sizeof(uint32_t));
+            d_dense_dump_file.write(reinterpret_cast<const char *>(&tow_ms), sizeof(uint64_t));
+            d_dense_dump_file.write(reinterpret_cast<const char *>(&wn), sizeof(int32_t));
+
+            tmp_float = d_rem_carr_phase_rad;
+            d_dense_dump_file.write(reinterpret_cast<const char *>(&tmp_float), sizeof(float));
+            tmp_float = static_cast<float>(d_acc_carrier_phase_rad);
+            d_dense_dump_file.write(reinterpret_cast<const char *>(&tmp_float), sizeof(float));
+            tmp_float = static_cast<float>(d_carrier_doppler_hz);
+            d_dense_dump_file.write(reinterpret_cast<const char *>(&tmp_float), sizeof(float));
+            tmp_float = static_cast<float>(d_carrier_phase_step_rad);
+            d_dense_dump_file.write(reinterpret_cast<const char *>(&tmp_float), sizeof(float));
+            tmp_float = static_cast<float>(d_carrier_phase_rate_step_rad);
+            d_dense_dump_file.write(reinterpret_cast<const char *>(&tmp_float), sizeof(float));
+            tmp_float = static_cast<float>(d_rem_code_phase_chips);
+            d_dense_dump_file.write(reinterpret_cast<const char *>(&tmp_float), sizeof(float));
+            tmp_float = static_cast<float>(d_code_phase_step_chips);
+            d_dense_dump_file.write(reinterpret_cast<const char *>(&tmp_float), sizeof(float));
+            tmp_float = static_cast<float>(d_code_phase_rate_step_chips);
+            d_dense_dump_file.write(reinterpret_cast<const char *>(&tmp_float), sizeof(float));
+            tmp_float = static_cast<float>(d_CN0_SNV_dB_Hz);
+            d_dense_dump_file.write(reinterpret_cast<const char *>(&tmp_float), sizeof(float));
+            tmp_float = static_cast<float>(d_carrier_lock_test);
+            d_dense_dump_file.write(reinterpret_cast<const char *>(&tmp_float), sizeof(float));
+
+            for (int32_t tap_index = 0; tap_index < d_n_dense_correlator_taps; ++tap_index)
+                {
+                    tmp_float = d_dense_correlator_outs[tap_index].real();
+                    d_dense_dump_file.write(reinterpret_cast<const char *>(&tmp_float), sizeof(float));
+                    tmp_float = d_dense_correlator_outs[tap_index].imag();
+                    d_dense_dump_file.write(reinterpret_cast<const char *>(&tmp_float), sizeof(float));
+                }
+        }
+    catch (const std::ofstream::failure &e)
+        {
+            LOG(WARNING) << "Exception writing dense correlator dump file: " << e.what();
+        }
+}
+
+
 int32_t dll_pll_veml_tracking::save_matfile() const
 {
     // READ DUMP FILE
@@ -2051,6 +2186,88 @@ void dll_pll_veml_tracking::set_channel(uint32_t channel)
                         }
                 }
         }
+    if (d_trk_parameters.dense_correlator_dump)
+        {
+            std::string dump_filename_ = d_dense_dump_filename;
+            dump_filename_.append(std::to_string(d_channel));
+            dump_filename_.append(".dat");
+
+            if (!d_dense_dump_file.is_open())
+                {
+                    try
+                        {
+                            d_dense_dump_file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+                            d_dense_dump_file.open(dump_filename_.c_str(), std::ios::out | std::ios::binary);
+                            write_dense_correlator_metadata();
+                            LOG(INFO) << "Dense correlator dump enabled on channel " << d_channel << " Log file: " << dump_filename_.c_str();
+                        }
+                    catch (const std::ofstream::failure &e)
+                        {
+                            LOG(WARNING) << "channel " << d_channel << " Exception opening dense correlator dump file " << e.what();
+                            d_trk_parameters.dense_correlator_dump = false;
+                        }
+                }
+        }
+}
+
+
+void dll_pll_veml_tracking::write_dense_correlator_metadata() const
+{
+    std::string dump_filename_ = d_dense_dump_filename;
+    dump_filename_.append(std::to_string(d_channel));
+    dump_filename_.append(".dat");
+
+    std::ofstream metadata_file;
+    metadata_file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+    metadata_file.open((dump_filename_ + ".json").c_str(), std::ios::out);
+
+    metadata_file << "{\n";
+    metadata_file << "  \"format\": \"gnss-sdr dense tracking correlator dump\",\n";
+    metadata_file << "  \"version\": 1,\n";
+    metadata_file << "  \"binary_file\": \"" << json_escape(dump_filename_) << "\",\n";
+    metadata_file << "  \"record_byte_order\": \"native_little_endian\",\n";
+    metadata_file << "  \"channel\": " << d_channel << ",\n";
+    metadata_file << "  \"system\": \"" << json_escape(d_systemName) << "\",\n";
+    metadata_file << "  \"signal\": \"" << json_escape(d_signal_type) << "\",\n";
+    metadata_file << "  \"signal_pretty_name\": \"" << json_escape(d_signal_pretty_name) << "\",\n";
+    metadata_file << "  \"sampling_frequency_hz\": " << d_trk_parameters.fs_in << ",\n";
+    metadata_file << "  \"code_samples_per_chip\": " << d_code_samples_per_chip << ",\n";
+    metadata_file << "  \"code_length_chips\": " << d_code_length_chips << ",\n";
+    metadata_file << "  \"vector_length_samples\": " << d_trk_parameters.vector_length << ",\n";
+    metadata_file << "  \"decimation_epochs\": " << d_trk_parameters.dense_correlator_decimation << ",\n";
+    metadata_file << "  \"tap_units\": \"chips\",\n";
+    metadata_file << "  \"tap_count\": " << d_n_dense_correlator_taps << ",\n";
+    metadata_file << "  \"taps_chips\": [";
+    for (int32_t tap_index = 0; tap_index < d_n_dense_correlator_taps; ++tap_index)
+        {
+            if (tap_index != 0)
+                {
+                    metadata_file << ", ";
+                }
+            metadata_file << d_dense_code_shift_chips[tap_index];
+        }
+    metadata_file << "],\n";
+    metadata_file << "  \"record_fields\": [\n";
+    metadata_file << "    {\"name\": \"sample_counter\", \"type\": \"uint64\"},\n";
+    metadata_file << "    {\"name\": \"epoch_counter\", \"type\": \"uint64\"},\n";
+    metadata_file << "    {\"name\": \"channel\", \"type\": \"uint32\"},\n";
+    metadata_file << "    {\"name\": \"prn\", \"type\": \"uint32\"},\n";
+    metadata_file << "    {\"name\": \"tow_ms\", \"type\": \"uint64\"},\n";
+    metadata_file << "    {\"name\": \"wn\", \"type\": \"int32\"},\n";
+    metadata_file << "    {\"name\": \"rem_carr_phase_rad\", \"type\": \"float32\"},\n";
+    metadata_file << "    {\"name\": \"acc_carrier_phase_rad\", \"type\": \"float32\"},\n";
+    metadata_file << "    {\"name\": \"carrier_doppler_hz\", \"type\": \"float32\"},\n";
+    metadata_file << "    {\"name\": \"carrier_phase_step_rad\", \"type\": \"float32\"},\n";
+    metadata_file << "    {\"name\": \"carrier_phase_rate_step_rad\", \"type\": \"float32\"},\n";
+    metadata_file << "    {\"name\": \"rem_code_phase_chips\", \"type\": \"float32\"},\n";
+    metadata_file << "    {\"name\": \"code_phase_step_chips\", \"type\": \"float32\"},\n";
+    metadata_file << "    {\"name\": \"code_phase_rate_step_chips\", \"type\": \"float32\"},\n";
+    metadata_file << "    {\"name\": \"cn0_snv_db_hz\", \"type\": \"float32\"},\n";
+    metadata_file << "    {\"name\": \"carrier_lock_test\", \"type\": \"float32\"},\n";
+    metadata_file << "    {\"name\": \"tap_iq\", \"type\": \"complex64[tap_count]\"}\n";
+    metadata_file << "  ],\n";
+    metadata_file << "  \"record_size_bytes\": " << (sizeof(uint64_t) * 3 + sizeof(uint32_t) * 2 + sizeof(int32_t) + sizeof(float) * 10 + sizeof(float) * 2 * static_cast<size_t>(d_n_dense_correlator_taps)) << "\n";
+    metadata_file << "}\n";
 }
 
 

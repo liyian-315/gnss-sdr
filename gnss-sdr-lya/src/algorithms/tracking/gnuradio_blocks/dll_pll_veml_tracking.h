@@ -88,6 +88,8 @@ private:
     void log_data();
     void configure_bit_synchronizer();
     void configure_dense_correlator_taps();
+    void log_dense_correlator_data();
+    void write_dense_correlator_metadata() const;
     bool cn0_and_tracking_lock_status(double coh_integration_time_s);
     bool acquire_secondary();
     int64_t uint64diff(uint64_t first, uint64_t second);
@@ -175,9 +177,11 @@ private:
     std::string d_signal_type;
     std::string d_signal_pretty_name;
     std::string d_dump_filename;
+    std::string d_dense_dump_filename;
     std::vector<float> d_dense_code_shift_chips;
 
     std::ofstream d_dump_file;
+    std::ofstream d_dense_dump_file;
 
     // uint64_t d_sample_counter;
     uint64_t d_acq_sample_stamp;
@@ -222,6 +226,7 @@ private:
     bool d_secondary;
     bool d_dump;
     bool d_dump_mat;
+    bool d_dense_correlator_initialized;
     bool d_acc_carrier_phase_initialized;
     bool d_enable_extended_integration;
     bool d_Flag_PLL_180_deg_phase_locked;
