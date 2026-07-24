@@ -95,6 +95,7 @@ private:
 
     Cpu_Multicorrelator_Real_Codes d_multicorrelator_cpu;
     Cpu_Multicorrelator_Real_Codes d_correlator_data_cpu;  // for data channel
+    Cpu_Multicorrelator_Real_Codes d_dense_multicorrelator_cpu;
 
     Dll_Pll_Conf d_trk_parameters;
 
@@ -113,6 +114,7 @@ private:
     volk_gnsssdr::vector<float> d_local_code_shift_chips;
     volk_gnsssdr::vector<float> d_dense_code_shift_samples;
     volk_gnsssdr::vector<gr_complex> d_correlator_outs;
+    volk_gnsssdr::vector<gr_complex> d_dense_correlator_outs;
     volk_gnsssdr::vector<gr_complex> d_Prompt_Data;
     volk_gnsssdr::vector<gr_complex> d_Prompt_buffer;
 
@@ -179,6 +181,7 @@ private:
 
     // uint64_t d_sample_counter;
     uint64_t d_acq_sample_stamp;
+    uint64_t d_dense_correlator_epoch_counter;
     GnssTime d_last_timetag{};
     std::shared_ptr<TOW_to_trk> d_last_tow_received;
     uint64_t d_last_timetag_samplecounter;

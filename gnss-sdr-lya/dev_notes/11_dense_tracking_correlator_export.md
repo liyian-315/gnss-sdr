@@ -11,7 +11,7 @@ Export dense tracking-domain complex correlator taps for offline multipath / mul
 
 - [x] Step 1: Extend `Dll_Pll_Conf` with dense correlator configuration fields.
 - [x] Step 2: Parse `start:step:stop` tap strings and convert chip offsets to sample offsets inside the tracking block.
-- [ ] Step 3: Add an independent dense multicorrelator, gated by decimation so non-dump epochs do not compute dense taps.
+- [x] Step 3: Add an independent dense multicorrelator, gated by decimation so non-dump epochs do not compute dense taps.
 - [ ] Step 4: Write dense binary dump using the existing tracking dump style, plus a JSON metadata sidecar.
 - [ ] Step 5: Add Python tools to inspect and plot dense correlation profiles.
 - [ ] Step 6: Validate first with offline File Source, then real-time if CPU headroom is acceptable.
@@ -68,5 +68,32 @@ Implemented:
 Judgment:
 
 The existing `d_local_code_shift_chips` name is misleading because it stores sample offsets. Dense export therefore uses an explicit `d_dense_code_shift_samples` name for the internal values. This directly addresses the tap-unit trap noted in the handoff.
+
+-- Codex, 2026-07-24
+
+## Step 3 Notes
+
+Changed:
+
+```text
+src/algorithms/tracking/gnuradio_blocks/dll_pll_veml_tracking.h
+src/algorithms/tracking/gnuradio_blocks/dll_pll_veml_tracking.cc
+```
+
+Implemented:
+
+- Added an independent `d_dense_multicorrelator_cpu`.
+- Added `d_dense_correlator_outs` for dense complex correlator outputs.
+- Initializes the dense multicorrelator only when `dense_correlator_dump=true` and the tap config parsed successfully.
+- Sets dense local code and sample-offset taps in `start_tracking()`, after the PRN-specific tracking code is generated.
+- Gates dense correlation computation in `do_correlation_step()` by `dense_correlator_decimation`.
+
+Important judgment:
+
+The decimation gate is placed before `Carrier_wipeoff_multicorrelator_resampler()`. Non-selected epochs therefore do not compute dense taps at all, which keeps the added CPU cost approximately `1 / dense_correlator_decimation` of full dense tracking.
+
+Current limitation:
+
+This step computes dense taps but does not persist them. File output, metadata sidecar, and carrier phase fields are Step 4.
 
 -- Codex, 2026-07-24

@@ -188,6 +188,7 @@ dll_pll_veml_tracking::dll_pll_veml_tracking(const Dll_Pll_Conf &conf_)
       d_code_phase_rate_step_chips(0.0),
       d_rem_code_phase_samples(0.0),  // Residual code phase (in chips)
       d_acq_sample_stamp(0ULL),
+      d_dense_correlator_epoch_counter(0ULL),
       d_rem_carr_phase_rad(0.0),  // Residual carrier phase
       d_state(0),                 // initial state: standby
       d_current_prn_length_samples(static_cast<int32_t>(d_trk_parameters.vector_length)),
@@ -746,6 +747,12 @@ dll_pll_veml_tracking::dll_pll_veml_tracking(const Dll_Pll_Conf &conf_)
 
     d_multicorrelator_cpu.init(static_cast<int>(2 * d_trk_parameters.vector_length), d_n_correlator_taps);
     configure_dense_correlator_taps();
+    if (d_trk_parameters.dense_correlator_dump)
+        {
+            d_dense_correlator_outs = volk_gnsssdr::vector<gr_complex>(d_n_dense_correlator_taps);
+            d_dense_multicorrelator_cpu.init(static_cast<int>(2 * d_trk_parameters.vector_length), d_n_dense_correlator_taps);
+            d_dense_multicorrelator_cpu.set_high_dynamics_resampler(d_trk_parameters.high_dyn);
+        }
 
     if (d_trk_parameters.extend_correlation_symbols > 1)
         {
@@ -1139,6 +1146,12 @@ void dll_pll_veml_tracking::start_tracking()
         }
 
     d_multicorrelator_cpu.set_local_code_and_taps(d_code_samples_per_chip * d_code_length_chips, d_tracking_code.data(), d_local_code_shift_chips.data());
+    if (d_trk_parameters.dense_correlator_dump)
+        {
+            d_dense_multicorrelator_cpu.set_local_code_and_taps(d_code_samples_per_chip * d_code_length_chips, d_tracking_code.data(), d_dense_code_shift_samples.data());
+            std::fill_n(d_dense_correlator_outs.begin(), d_n_dense_correlator_taps, gr_complex(0.0, 0.0));
+            d_dense_correlator_epoch_counter = 0ULL;
+        }
     std::fill_n(d_correlator_outs.begin(), d_n_correlator_taps, gr_complex(0.0, 0.0));
 
     d_carrier_lock_fail_counter = 0;
@@ -1255,6 +1268,10 @@ dll_pll_veml_tracking::~dll_pll_veml_tracking()
             if (d_trk_parameters.track_pilot)
                 {
                     d_correlator_data_cpu.free();
+                }
+            if (d_trk_parameters.dense_correlator_dump)
+                {
+                    d_dense_multicorrelator_cpu.free();
                 }
             d_multicorrelator_cpu.free();
         }
@@ -1389,6 +1406,22 @@ void dll_pll_veml_tracking::do_correlation_step(const gr_complex *input_samples)
         static_cast<float>(d_code_phase_step_chips) * static_cast<float>(d_code_samples_per_chip),
         static_cast<float>(d_code_phase_rate_step_chips) * static_cast<float>(d_code_samples_per_chip),
         d_trk_parameters.vector_length);
+
+    if (d_trk_parameters.dense_correlator_dump)
+        {
+            if ((d_dense_correlator_epoch_counter % static_cast<uint64_t>(d_trk_parameters.dense_correlator_decimation)) == 0ULL)
+                {
+                    d_dense_multicorrelator_cpu.set_input_output_vectors(d_dense_correlator_outs.data(), input_samples);
+                    d_dense_multicorrelator_cpu.Carrier_wipeoff_multicorrelator_resampler(
+                        d_rem_carr_phase_rad,
+                        static_cast<float>(d_carrier_phase_step_rad), static_cast<float>(d_carrier_phase_rate_step_rad),
+                        static_cast<float>(d_rem_code_phase_chips) * static_cast<float>(d_code_samples_per_chip),
+                        static_cast<float>(d_code_phase_step_chips) * static_cast<float>(d_code_samples_per_chip),
+                        static_cast<float>(d_code_phase_rate_step_chips) * static_cast<float>(d_code_samples_per_chip),
+                        d_trk_parameters.vector_length);
+                }
+            d_dense_correlator_epoch_counter++;
+        }
 
     // DATA CORRELATOR (if tracking tracks the pilot signal)
     if (d_trk_parameters.track_pilot)
