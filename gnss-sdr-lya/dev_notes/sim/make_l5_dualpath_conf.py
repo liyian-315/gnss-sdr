@@ -126,6 +126,7 @@ Tracking_L5.max_lock_fail={max_lock_fail}
 Tracking_L5.max_carrier_lock_fail={max_carrier_lock_fail}
 Tracking_L5.dump=false
 Tracking_L5.dump_filename=./gps_l5_dualpath_tracking_ch_
+{dense_correlator}
 
 TelemetryDecoder_L5.implementation=GPS_L5_Telemetry_Decoder
 TelemetryDecoder_L5.dump=false
@@ -234,6 +235,21 @@ def parse_prns(text):
     return prns
 
 
+def dense_correlator_block(args, role):
+    if not args.enable_dense_correlator:
+        return ""
+    return """{role}.dense_correlator_dump=true
+{role}.dense_correlator_dump_filename={prefix}
+{role}.dense_correlator_taps_chips={taps}
+{role}.dense_correlator_decimation={decimation}
+""".format(
+        role=role,
+        prefix=args.dense_dump_prefix,
+        taps=args.dense_taps,
+        decimation=args.dense_decimation,
+    ).rstrip()
+
+
 def build_config(args):
     prns = parse_prns(args.prns)
     dual = not args.single_path
@@ -322,6 +338,7 @@ def build_config(args):
         cn0_min=args.cn0_min,
         max_lock_fail=args.max_lock_fail,
         max_carrier_lock_fail=args.max_carrier_lock_fail,
+        dense_correlator=dense_correlator_block(args, "Tracking_L5"),
         observables_dump=args.observables_dump,
         monitor=monitor.rstrip(),
     )
@@ -382,6 +399,14 @@ def main():
     ap.add_argument("--max-delay-chips", type=float, default=90.0)
     ap.add_argument("--threshold-fraction", type=float, default=0.25)
     ap.add_argument("--observables-dump", default="./gps_l5_dualpath_observables.dat")
+    ap.add_argument("--enable-dense-correlator", action="store_true",
+                    help="Enable dense tracking correlator binary dump + JSON sidecar")
+    ap.add_argument("--dense-taps", default="-1.5:0.1:1.5",
+                    help="Dense correlator tap offsets in chips as start:step:stop")
+    ap.add_argument("--dense-decimation", type=int, default=20,
+                    help="Compute and dump dense taps every N tracking epochs")
+    ap.add_argument("--dense-dump-prefix", default="./gps_l5_dense_ch_",
+                    help="Dense dump filename prefix; channel number and .dat are appended")
     ap.add_argument("--enable-monitor", action="store_true", help="Enable UDP Monitor and disable Observables.dump")
     ap.add_argument("--monitor-address", default="127.0.0.1")
     ap.add_argument("--monitor-port", default="1234")

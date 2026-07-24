@@ -46,6 +46,54 @@ Use the existing tracking dump style for the main binary stream. JSON is reserve
 
 -- Codex, 2026-07-24
 
+## Config Generator Integration
+
+Date: 2026-07-24
+Author: Codex
+
+Changed:
+
+```text
+dev_notes/sim/make_l1ca_dualpath_conf.py
+dev_notes/sim/make_l5_dualpath_conf.py
+```
+
+Added shared command-line options to both generators:
+
+```bash
+--enable-dense-correlator
+--dense-taps -1.5:0.1:1.5
+--dense-decimation 20
+--dense-dump-prefix ./gps_l1ca_dense_ch_
+--dense-dump-prefix ./gps_l5_dense_ch_
+```
+
+Default behavior is unchanged: dense export remains disabled unless `--enable-dense-correlator` is explicitly provided.
+
+Example L1:
+
+```bash
+python3 dev_notes/sim/make_l1ca_dualpath_conf.py --source file --input /path/to/l1.dat --rate 4000000 --prns 28 --single-path --enable-dense-correlator --dense-dump-prefix /tmp/dense_l1_ch_ --output /tmp/l1_dense.conf
+```
+
+Example L5:
+
+```bash
+python3 dev_notes/sim/make_l5_dualpath_conf.py --source file --input /path/to/l5.dat --rate 10000000 --prns 18 --single-path --track-pilot --enable-dense-correlator --dense-dump-prefix /tmp/dense_l5_ch_ --output /tmp/l5_dense.conf
+```
+
+If a custom tap spec starts with a negative value, pass it with `=` so `argparse` does not interpret it as an option:
+
+```bash
+--dense-taps=-2:0.2:2
+```
+
+Judgment:
+
+This turns dense export from a hand-edited config capability into a repeatable experiment setup while preserving existing L1/L5 test configs by default.
+
+-- Codex, 2026-07-24
+
 ## Step 6 Notes
 
 Validation host:
