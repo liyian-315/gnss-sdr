@@ -1,3 +1,10 @@
 
 # Claude Code local config
 .claude/
+
+# Local build outputs. Keep these on each host; do not track CMake products.
+gnss-sdr-lya/build/
+gnss-sdr-lya/build-*/
+gnss-sdr-lya/build_*/
+gnss-sdr-lya/buildconda/
+gnss-sdr-lya/build-conda/
