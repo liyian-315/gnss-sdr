@@ -14,7 +14,7 @@ Export dense tracking-domain complex correlator taps for offline multipath / mul
 - [x] Step 3: Add an independent dense multicorrelator, gated by decimation so non-dump epochs do not compute dense taps.
 - [x] Step 4: Write dense binary dump using the existing tracking dump style, plus a JSON metadata sidecar.
 - [x] Step 5: Add Python tools to inspect and plot dense correlation profiles.
-- [ ] Step 6: Validate first with offline File Source, then real-time if CPU headroom is acceptable.
+- [x] Step 6: Validate first with offline File Source, then real-time if CPU headroom is acceptable.
 
 ## Step 1 Notes
 
@@ -43,6 +43,93 @@ Current behavior:
 Decision:
 
 Use the existing tracking dump style for the main binary stream. JSON is reserved for metadata only.
+
+-- Codex, 2026-07-24
+
+## Step 6 Notes
+
+Validation host:
+
+```text
+NUC11BTMi9
+/home/bupt/lya/gnss-sdr
+branch: research/multipath-correlator-fit
+commit: a69a4910f before validation doc update
+```
+
+Input data:
+
+```text
+/home/bupt/SignalSim/IFdataGen/GPS_BDS_GAL_L1CA_L1C_B1C_B1I_E1.bin
+format: IQ8 / ibyte
+sampling_frequency: 18479000 sps
+GNSS-SDR internal_fs_sps: 12000000
+signal used for validation: GPS L1 C/A
+```
+
+Temporary config:
+
+```text
+/tmp/gnss_dense_step6/l1_dense_step6.conf
+```
+
+The config was derived from:
+
+```text
+/home/bupt/SignalSim/IFdataGen/gnsssdr-configs/GPS_BDS_GAL_L1CA_L1C_B1C_B1I_E1.conf
+```
+
+Dense settings added:
+
+```ini
+Tracking_1C.dense_correlator_dump=true
+Tracking_1C.dense_correlator_dump_filename=/tmp/gnss_dense_step6/l1_dense_ch_
+Tracking_1C.dense_correlator_taps_chips=-1.5:0.1:1.5
+Tracking_1C.dense_correlator_decimation=20
+```
+
+Run command:
+
+```bash
+cd ~/lya/gnss-sdr/gnss-sdr-lya
+timeout 90s ./build/src/main/gnss-sdr --config_file=/tmp/gnss_dense_step6/l1_dense_step6.conf 2>&1 | tee /tmp/gnss_dense_step6/run.log
+```
+
+Generated files:
+
+```text
+/tmp/gnss_dense_step6/l1_dense_ch_0.dat       175 KB
+/tmp/gnss_dense_step6/l1_dense_ch_0.dat.json  1.6 KB
+```
+
+Reader validation:
+
+```bash
+python3 dev_notes/sim/read_dense_correlator_dump.py /tmp/gnss_dense_step6/l1_dense_ch_0.dat.json --max 12 --epoch -1 --plot-out /tmp/gnss_dense_step6/dense_epoch_last.png
+python3 dev_notes/sim/read_dense_correlator_dump.py /tmp/gnss_dense_step6/l1_dense_ch_0.dat --max 3
+```
+
+Observed result:
+
+```text
+records: 550
+record_size: 324 bytes
+tap_count: 31
+signal: GPS 1C
+channel: 0
+decimation: 20
+fs: 12.000 MHz
+tap span: -1.500 .. 1.500 chips
+plot generated: /tmp/gnss_dense_step6/dense_epoch_last.png, 104 KB
+```
+
+Tracking note:
+
+The SignalSim file acquired and tracked GPS PRN 11, then later reported one loss of lock. This is acceptable for Step 6 because the goal was dump-format closure, not tracking performance evaluation. The dense writer produced records, metadata matched the reader dtype, both `.json` and `.dat` reader entry points worked, and plotting succeeded.
+
+Judgment:
+
+Dense export is now validated end-to-end for offline File Source on NUC: C++ dense writer -> binary + JSON -> Python reader -> PNG plot.
 
 -- Codex, 2026-07-24
 
