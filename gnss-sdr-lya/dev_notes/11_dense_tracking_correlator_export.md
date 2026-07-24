@@ -14,7 +14,86 @@ Export dense tracking-domain complex correlator taps for offline multipath / mul
 - [x] Step 3: Add an independent dense multicorrelator, gated by decimation so non-dump epochs do not compute dense taps.
 - [x] Step 4: Write dense binary dump using the existing tracking dump style, plus a JSON metadata sidecar.
 - [x] Step 5: Add Python tools to inspect and plot dense correlation profiles.
-- [x] Step 6: Validate first with offline File Source, then real-time if CPU headroom is acceptable.
+- [x] Step 6: Validate BYTE FORMAT with offline File Source (Step 6 notes below).
+- [ ] **Phase A: validate the export PHYSICALLY on one clean cabled path (tap0==Prompt + smooth reference R(tau)). Runbook below. ← current step.**
+
+> ⚠️ Step 6 only proved byte-format closure on a lossy multi-sat file. The
+> substantive criteria — tap0 ≈ Prompt, and a smooth single-path R(tau) — are
+> Phase A and are still open. Do not treat "dump produces bytes" as "dump is
+> physically correct".
+
+## Phase A Runbook — physical validation on one clean cabled path
+
+Author: Claude (Opus 4.8). Date: 2026-07-24.
+
+Scenario reminder (see README §0.1): our target is **indoor DAS multi-source**,
+where each path is a meaningful re-radiated source, not a reflection to suppress.
+Phase A does not test separation yet — it validates the instrument and calibrates
+the reference correlation function `R(tau)` that the later multi-source fit needs.
+
+Hardware (Phase A): ONE simulator (NavSimUI), cabled direct to the B210 through
+an attenuator, NO combiner. NavSimUI assigns one 载体 per connected simulator, so
+two paths (Phase B) require two simulator boxes combined through the 2-way
+splitter used in reverse as a combiner.
+
+Simulator settings to confirm before recording:
+
+```text
+调制方式 = 扩频码 (spread code, NOT single carrier)
+轨迹 = static (constant position; keeps R(tau) undistorted)
+电离层 / 对流层 = off
+功率模式 = 等同功率, set high CN0 (~48-52 dB-Hz)
+one GPS PRN only
+```
+
+Artifacts (all committed):
+
+```text
+dev_notes/sim/l1ca_offline_dense.conf     File_Source + dense dump + main dump, extend=1, decim=1
+dev_notes/sim/check_dense_vs_prompt.py    criterion (3) tap0==Prompt + (4) averaged reference R(tau)
+dev_notes/sim/read_dense_correlator_dump.py   single-epoch profile / smooth-peak sanity
+dev_notes/sim/record_b210.py              raw IQ recorder (gr_complex)
+```
+
+Pipeline:
+
+```bash
+# 1) record raw (conda env gnsssdr); set gain so the capture is NOT clipping
+python3 dev_notes/sim/record_b210.py --secs 90 \
+  --freq 1575420000 --rate 4000000 --bw 4000000 --gain 40 --ant RX2 \
+  -o /tmp/l1_phaseA.dat
+python3 dev_notes/sim/l5_capstats.py /tmp/l1_phaseA.dat   # confirm no ADC clipping
+
+# 2) set Channel0.satellite to the transmitted PRN in the conf, then run offline
+./build-conda/src/main/gnss-sdr --config_file=dev_notes/sim/l1ca_offline_dense.conf
+
+# 3) analyze
+python3 dev_notes/sim/read_dense_correlator_dump.py ./l1_phaseA_dense_ch_0.dat.json \
+  --max 12 --epoch -1 --plot-out l1_phaseA_epoch_last.png
+python3 dev_notes/sim/check_dense_vs_prompt.py \
+  --dense ./l1_phaseA_dense_ch_0.dat.json --trk ./l1_phaseA_trk_ch_0.dat \
+  --ref-out l1_phaseA_reference_Rtau.png
+```
+
+Success criteria:
+
+```text
+(3) |tap0|/|Prompt| median ~= 1.0 and phase(tap0)-phase(Prompt) ~= 0  -> PASS line
+(4) coherent |R(tau)| peaks at 0 chip, symmetric (+/- asymmetry small),
+    smooth single main lobe -> reference template saved as CSV
+```
+
+Design choices baked into the conf (do not "fix" without reason):
+
+- `extend_correlation_symbols=1`: main-dump Prompt is `d_Prompt` (single 1 ms
+  period), which matches dense tap0 1:1. With N>1 the Prompt would carry a 1/N
+  scaling relative to a single-period dense tap and criterion (3) would look off.
+- `dense_correlator_decimation=1`: offline, dump every epoch for maximum
+  averaging of the reference `R(tau)`.
+- `record --rate` must equal `GNSS-SDR.internal_fs_sps`, and stay the SAME for
+  the same-band Phase B, or the reference `R(tau)` is not comparable.
+
+-- Claude (Opus 4.8), 2026-07-24
 
 ## Step 1 Notes
 
