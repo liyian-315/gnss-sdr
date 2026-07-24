@@ -198,7 +198,6 @@ private:
     int32_t d_state;
     int32_t d_correlation_length_ms;
     int32_t d_n_correlator_taps;
-    int32_t d_n_dense_correlator_taps;
     int32_t d_current_prn_length_samples;
     int32_t d_extend_correlation_symbols_count;
     int32_t d_extend_correlation_symbols;
@@ -207,6 +206,7 @@ private:
     int32_t d_cn0_estimation_counter;
     int32_t d_carrier_lock_fail_counter;
     int32_t d_code_lock_fail_counter;
+    int32_t d_n_dense_correlator_taps;
     int32_t d_code_samples_per_chip;  // All signals have 1 sample per chip code except Gal. E1 which has 2 (CBOC disabled) or 12 (CBOC enabled)
     int32_t d_code_length_chips;
 
