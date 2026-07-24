@@ -13,7 +13,7 @@ Export dense tracking-domain complex correlator taps for offline multipath / mul
 - [x] Step 2: Parse `start:step:stop` tap strings and convert chip offsets to sample offsets inside the tracking block.
 - [x] Step 3: Add an independent dense multicorrelator, gated by decimation so non-dump epochs do not compute dense taps.
 - [x] Step 4: Write dense binary dump using the existing tracking dump style, plus a JSON metadata sidecar.
-- [ ] Step 5: Add Python tools to inspect and plot dense correlation profiles.
+- [x] Step 5: Add Python tools to inspect and plot dense correlation profiles.
 - [ ] Step 6: Validate first with offline File Source, then real-time if CPU headroom is acceptable.
 
 ## Step 1 Notes
@@ -43,6 +43,36 @@ Current behavior:
 Decision:
 
 Use the existing tracking dump style for the main binary stream. JSON is reserved for metadata only.
+
+-- Codex, 2026-07-24
+
+## Step 5 Notes
+
+Changed:
+
+```text
+dev_notes/sim/read_dense_correlator_dump.py
+```
+
+Implemented:
+
+- Reads either `<dense_dump>.dat` or `<dense_dump>.dat.json`.
+- Validates `record_size_bytes` against the NumPy dtype.
+- Prints a compact table with epoch, sample counter, PRN, CN0, Doppler, strongest tap, and peak/median ratio.
+- Plots a selected epoch as two panels:
+  - `|corr|` versus tap offset in chips.
+  - complex phase versus tap offset in chips.
+
+Example:
+
+```bash
+python3 dev_notes/sim/read_dense_correlator_dump.py ./dense_trk_channel_0.dat.json --max 10
+python3 dev_notes/sim/read_dense_correlator_dump.py ./dense_trk_channel_0.dat --epoch -1 --plot-out dense_epoch_last.png
+```
+
+Judgment:
+
+This is intentionally a reader/inspection tool, not a fitter. The first milestone after dump generation is verifying that the dense complex profiles are readable, phase-bearing, and stable enough to justify MEDLL-style or sparse model fitting.
 
 -- Codex, 2026-07-24
 
