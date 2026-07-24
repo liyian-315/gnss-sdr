@@ -38,6 +38,8 @@ public:
     /* DLL/PLL tracking configuration */
     std::string item_type{"gr_complex"};
     std::string dump_filename{"./dll_pll_dump.dat"};
+    std::string dense_correlator_dump_filename{"./dense_correlator_dump.dat"};
+    std::string dense_correlator_taps_chips{"-1.5:0.1:1.5"};
     double fs_in{2000000.0};
     double carrier_lock_th{0.0};
     double bs_dominance_ratio{0.6};
@@ -74,6 +76,7 @@ public:
     int32_t max_carrier_lock_fail{0};
     int32_t bs_stable_best_required{3};
     int32_t bs_min_events_for_lock{10};
+    int32_t dense_correlator_decimation{20};
     char signal[3]{};
     char system{'G'};
     bool enable_fll_pull_in{false};
@@ -84,6 +87,7 @@ public:
     bool high_dyn{false};
     bool dump{false};
     bool dump_mat{true};
+    bool dense_correlator_dump{false};
     bool tow_to_trk{false};
     bool bs_use_phase_dot_detector{true};
 };

@@ -61,6 +61,15 @@ void Dll_Pll_Conf::SetFromConfiguration(const ConfigurationInterface *configurat
     dump = configuration->property(role + ".dump", dump);
     dump_filename = configuration->property(role + ".dump_filename", dump_filename);
     dump_mat = configuration->property(role + ".dump_mat", dump_mat);
+    dense_correlator_dump = configuration->property(role + ".dense_correlator_dump", dense_correlator_dump);
+    dense_correlator_dump_filename = configuration->property(role + ".dense_correlator_dump_filename", dense_correlator_dump_filename);
+    dense_correlator_taps_chips = configuration->property(role + ".dense_correlator_taps_chips", dense_correlator_taps_chips);
+    dense_correlator_decimation = configuration->property(role + ".dense_correlator_decimation", dense_correlator_decimation);
+    if (dense_correlator_decimation < 1)
+        {
+            LOG(WARNING) << "dense_correlator_decimation must be bigger than 0. It has been set to 1";
+            dense_correlator_decimation = 1;
+        }
     pll_bw_hz = configuration->property(role + ".pll_bw_hz", pll_bw_hz);
 #if USE_GLOG_AND_GFLAGS
     if (FLAGS_pll_bw_hz != 0.0)

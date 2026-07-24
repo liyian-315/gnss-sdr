@@ -34,6 +34,7 @@
 | 08 | `08_field_triage_runbook.md` | **★现场排查 runbook★** 从“噪声谱面”到“可信多径检出”的门禁式逐步流程：单星干净捕获→假警基线→导线注入→几何自检→距离阶梯 | **拿到设备手动排查/改进前必读** | ✅ 权威 |
 | 09 | `09_academic_reference_multipath_algorithms.md` | **★学术参考/算法笔记★** MEDLL、CADLL、RAKE、多特征 LOS/NLOS 分类等论文的工作、可借鉴点、对当前卡点的启发和待讨论问题 | 暂停调参、准备算法改造/和 Claude 讨论论文前必读 | 🟡 持续更新 |
 | 10 | `10_branch_cleanup_handoff_20260724.md` | **★分支/数据目录交接★** v0.1 后研究分支、`build/` 不再入 Git、NUC 实验数据目录规范：`~/lya/gnss_data/{raw,logs,outputs,analysis}` | 切分支、同步 NUC、保存采集数据前必读 | ✅ 冻结 |
+| 11 | `11_dense_tracking_correlator_export.md` | **dense tracking correlator export 开发记录**：跟踪域密集复数相关器导出，用于 MEDLL/CADLL 离线拟合和参考相关函数标定 | 开发/验证 dense correlator dump 前必读 | 🟡 开发中 |
 
 > 图例：✅ 已成稿可用 · 🟡 进行中 · ⚪ 历史/已被取代 · ⬜ 未开始
 
