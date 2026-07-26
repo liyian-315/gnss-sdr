@@ -487,6 +487,104 @@ grid above.
 
 -- Codex, 2026-07-26
 
+## Phase A L5 20Msps Preflight and First Wideband Capture
+
+Date: 2026-07-26
+Author: Codex
+
+Condition:
+
+```text
+Signal: GPS L5I PRN28
+Simulator L5 output power: -60
+B210: RX2, serial=31502C6
+Receiver gain: 40 dB
+Target sample rate: 20 Msps
+Sample type: ishort/sc16
+```
+
+Preflight result:
+
+```text
+5 s via dev_notes/sim/record_b210.py:
+  output: /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr60_20m_preflight/
+  overflow: 0
+  file size: 382 MB
+  IQ stats: rms=32.14 counts, p99=71.18, p999=102.45, max=172.33, near_clip_pct=0.0
+  GNSS-SDR File_Source: L5I tracking started, secondary code locked, dense dump generated
+  tap0 vs Prompt: PASS
+
+5 s via uhd_rx_cfile:
+  output: /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr60_20m_preflight_uhd/
+  command used uhd_rx_cfile -s -N 100000000
+  overflow: 0
+  file size: 382 MB
+  IQ stats: rms=31.49 counts, p99=67.54, p999=82.15, max=147.51, near_clip_pct=0.0
+  GNSS-SDR File_Source: L5I tracking started, secondary code locked, dense dump generated
+  tap0 vs Prompt: PASS
+```
+
+Overflow diagnosis for 30 s 20Msps sc16:
+
+```text
+30 s via record_b210.py to NVMe:
+  output: /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr60_20m_run1/
+  overflow count: 6
+  judgment: keep for traceability only; not a clean baseline sample
+
+30 s via uhd_rx_cfile to NVMe:
+  output: /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr60_20m_run1_uhd/
+  overflow count: 1
+  judgment: better than Python recorder but still not strict Phase A quality
+
+30 s via uhd_rx_cfile to /dev/null:
+  overflow count: 0
+  judgment: USB/B210 streaming path can sustain 20 Msps; the remaining overflow is
+            caused by real-time file write jitter.
+```
+
+Working capture method:
+
+```bash
+uhd_rx_cfile -a serial=31502C6 -f 1176450000 -r 20000000 -g 40 -A RX2 -s --stream-args num_recv_frames=1024 -N 600000000 /dev/shm/l5_phaseA_prn28_pwr60_20m_g40_30s_shm_ishort.dat
+mv /dev/shm/l5_phaseA_prn28_pwr60_20m_g40_30s_shm_ishort.dat /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr60_20m_run1_shm/l5_phaseA_prn28_pwr60_20m_g40_30s_shm_ishort.dat
+```
+
+The `/dev/shm` method avoids real-time NVMe write jitter. This NUC has a 16 GB
+`/dev/shm`, enough for one 30 s 20Msps sc16 capture (~2.3 GB).
+
+First clean 20Msps L5 capture:
+
+```text
+Output: /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr60_20m_run1_shm/
+Capture: 30 s, 20 Msps, ishort/sc16, /dev/shm first, then moved to gnss_data
+Overflow: 0
+File size: 2.3 GB
+IQ stats: rms=31.37 counts, p99=66.94, p999=81.88, max=129.87, near_clip_pct=0.0
+```
+
+GNSS-SDR offline result for the clean 20Msps capture:
+
+```text
+Tracking: L5I entered tracking at 1 s; secondary code locked at 4, 14, and 20 s.
+Loss-of-lock: at 9 s, 17 s, and 25 s.
+Observables/CNAV: no continuous DUALPATH_OBS/CNAV in this -60 power run.
+Dense records: 29373, tap_count=31, tap span=-1.5..+1.5 chips, fs=20 MHz.
+Criterion (3): |tap0|/|Prompt| median=1.0000, phase median=0.0000 rad, verdict=PASS.
+Criterion (4): coherent |R| peak at 0.000 chip, R(0)=1.000-0.000j, asymmetry=0.0393.
+Reference files: l5_phaseA_reference_Rtau.png and l5_phaseA_reference_Rtau.png.csv.
+```
+
+Judgment:
+
+The wideband L5 capture path is now proven viable on this NUC if the sample file
+is first written to `/dev/shm`. At L5 output power -60, the dense clean-peak
+fingerprint can be measured, but tracking/observable continuity is poor. This
+condition belongs in the low-power/CN0 end of the Phase A sweep; it should not
+be used alone as the nominal high-CN0 L5 reference.
+
+-- Codex, 2026-07-26
+
 ## Step 1 Notes
 
 Changed:
