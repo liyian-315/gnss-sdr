@@ -95,6 +95,103 @@ Design choices baked into the conf (do not "fix" without reason):
 
 -- Claude (Opus 4.8), 2026-07-24
 
+## Phase A Result - L1/L5 PRN28 Clean Single-Path Baseline
+
+Date: 2026-07-26
+Author: Codex
+
+User framing accepted:
+
+Phase A is not only an instrument/software sanity check. It is also the baseline
+for understanding what a clean single-path peak looks like. Later two-source
+captures can produce a wider, shifted, shouldered, or otherwise distorted peak.
+The clean `R(tau)` from Phase A is therefore the reference "single peak
+fingerprint" used to decide whether a later peak shape is still a normal clean
+signal or a multi-source/multipath deformation.
+
+NUC / B210 test setup:
+
+```text
+Host: bupt@192.168.114.204
+Repo: /home/bupt/lya/gnss-sdr/gnss-sdr-lya
+Branch: research/multipath-correlator-fit
+Commit: d4f2e7d feat: Phase A dense-correlator validation kit + indoor DAS scenario framing
+B210 serial: 31502C6
+Temporary UHD fix: export UHD_IMAGES_DIR=/usr/local/share/uhd/images
+Connection: one simulator path cabled directly to RX2
+PRN: GPS 28
+Simulator output power: L1=-60, L5=-50
+```
+
+Important NUC note:
+
+The system `uhd_find_devices` initially reported missing `usrp_b200_fw.hex`.
+The image files already existed under `/usr/local/share/uhd/images`; exporting
+`UHD_IMAGES_DIR=/usr/local/share/uhd/images` made the B210 visible. This is an
+environment issue, not a hardware discovery failure.
+
+Artifacts are intentionally outside the source tree:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l1_prn28_20260726/
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726/
+```
+
+L1 Phase A command flow:
+
+```bash
+python3 dev_notes/sim/record_b210.py --secs 30 --freq 1575420000 --rate 4000000 --bw 4000000 --gain 40 --ant RX2 --device-args serial=31502C6 -o /home/bupt/lya/gnss_data/phaseA_l1_prn28_20260726/l1_phaseA_prn28_g40_30s.dat
+./build/src/main/gnss-sdr --config_file=/tmp/phaseA_l1_prn28_20260726/l1ca_phaseA_prn28_g40_30s.conf
+python3 dev_notes/sim/check_dense_vs_prompt.py --dense /home/bupt/lya/gnss_data/phaseA_l1_prn28_20260726/l1_phaseA_dense_ch_0.dat.json --trk /home/bupt/lya/gnss_data/phaseA_l1_prn28_20260726/l1_phaseA_trk_ch_0.dat --ref-out /home/bupt/lya/gnss_data/phaseA_l1_prn28_20260726/l1_phaseA_reference_Rtau.png
+```
+
+L1 observations:
+
+```text
+Capture: 30 s, 4 Msps, gain 40, no overflow seen in recorder output.
+IQ check: rms=0.0005109, p99=0.001079, p999=0.002395, max=0.006803, near_clip_pct=0.0.
+Tracking: GPS L1 C/A PRN28 entered tracking at 1 s; no loss-of-lock in the 30 s offline run.
+Dense records: 29779, tap_count=31, tap span=-1.5..+1.5 chips, decimation=1.
+Criterion (3): |tap0|/|Prompt| median=1.0000, phase median=0.0000 rad, verdict=PASS.
+Criterion (4): coherent |R| peak at 0.000 chip, R(0)=1.000-0.000j, asymmetry=0.0116.
+Reference files: l1_phaseA_reference_Rtau.png and l1_phaseA_reference_Rtau.png.csv.
+```
+
+L5I Phase A command flow:
+
+```bash
+python3 dev_notes/sim/record_b210.py --secs 30 --freq 1176450000 --rate 10000000 --bw 10000000 --gain 40 --ant RX2 --device-args serial=31502C6 -o /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726/l5_phaseA_prn28_g40_30s.dat
+python3 dev_notes/sim/make_l5_dualpath_conf.py --source file --input /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726/l5_phaseA_prn28_g40_30s.dat --output /tmp/phaseA_l5_prn28_20260726_l5i_g40_30s.conf --prns 28 --rate 10000000 --scenario cable --channels-in-acq 1 --enable-dense-correlator --dense-taps=-1.5:0.1:1.5 --dense-decimation 1 --dense-dump-prefix /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726/l5_phaseA_dense_ch_
+./build/src/main/gnss-sdr --config_file=/tmp/phaseA_l5_prn28_20260726_l5i_g40_30s.conf
+python3 dev_notes/sim/check_dense_vs_prompt.py --dense /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726/l5_phaseA_dense_ch_0.dat.json --trk /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726/l5_phaseA_trk_ch_0.dat --cn0-min 35 --lock-min 0.6 --skip-epochs 200 --ref-out /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726/l5_phaseA_reference_Rtau.png
+```
+
+L5I observations:
+
+```text
+Capture: 30 s, 10 Msps, gain 40, no overflow seen in recorder output.
+IQ check: rms=0.0007810, p99=0.001641, p999=0.002017, max=0.003439, near_clip_pct=0.0.
+Tracking: GPS L5I PRN28 entered tracking at 1 s; secondary code locked at 4 s; one loss-of-lock at 9 s; reacquired and produced valid observables from 20 s onward.
+Observable examples: CN0 about 52.5..53.6 dB-Hz, doppler about -760 Hz.
+Dense records: 29666, tap_count=31, tap span=-1.5..+1.5 chips, decimation=1.
+Criterion (3): |tap0|/|Prompt| median=1.0000, phase median=0.0000 rad, verdict=PASS.
+Criterion (4): coherent |R| peak at 0.000 chip, R(0)=1.000-0.000j, asymmetry=0.0428.
+Reference files: l5_phaseA_reference_Rtau.png and l5_phaseA_reference_Rtau.png.csv.
+```
+
+Judgment:
+
+The dense export implementation is physically aligned with the existing Prompt
+tracking dump for both L1 C/A and L5I on this clean cabled PRN28 test. L1 is the
+cleaner first reference: it locked without loss and has lower averaged
+correlation asymmetry. L5I is also usable as a reference, but the one early
+loss-of-lock and larger asymmetry should be kept in mind when comparing later
+two-source L5 experiments. Do not interpret Phase A as path separation success;
+it only establishes the clean single-path baseline and validates that dense
+complex taps preserve the same Prompt phase/amplitude as the original tracker.
+
+-- Codex, 2026-07-26
+
 ## Step 1 Notes
 
 Changed:
