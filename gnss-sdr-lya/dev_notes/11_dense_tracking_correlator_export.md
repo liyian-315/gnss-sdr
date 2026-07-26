@@ -786,6 +786,61 @@ post-loss epochs into `R(tau)`.
 
 -- Codex, 2026-07-26
 
+## Phase A Tooling + Read on the 20 Msps L5 Results
+
+Date: 2026-07-26
+Author: Claude (Opus 4.8)
+
+The two tools Codex asks for above are now committed and smoke-tested:
+
+```text
+dev_notes/sim/aggregate_reference_fingerprint.py
+    Reads N reference_Rtau CSVs, extracts per run peak_chip, fwhm_chips (main-lobe
+    width), asym_max, skew_chips, noise_floor, tap_std_mean; groups by label,
+    prints mean +/- std, and AUTO-FLAGS an outlier run so run3-type instability is
+    not averaged away. --chip-m -> widths in metres; --plot overlays runs.
+check_dense_vs_prompt.py  (stricter locked-segment selection)
+    New --min-lock-run / --settle-epochs: keep only SUSTAINED contiguous locked
+    runs, drop each run's settling head, and REPORT dropped segments/fraction.
+    This directly addresses Codex's note that cn0-min=0/lock-min=0 averaged pull-in
+    and post-loss epochs into R(tau).
+```
+
+Read on the 20 Msps L5 data (important):
+
+```text
+Going 10 -> 20 Msps was the RIGHT call, but for RESOLUTION (main-lobe width in
+metres), NOT for stability. The instability is a SEPARATE problem and persists:
+  L5 -50, 20 Msps, CN0 ~55 dB-Hz (strong): loss-of-lock still recurs at 9/17/25 s
+  and asym over 3 runs = 0.0246 / 0.0221 / 0.1151 -- same range and same outlier
+  as the 10 Msps runs. Bandwidth did not cure it, and CN0 55 rules out "too weak".
+Conclusion: L5I loss-of-lock at high CN0 is a tracking-config issue, not bandwidth
+and not power.
+```
+
+Two next actions, cheapest first:
+
+```text
+1) RE-ANALYZE existing captures, no recapture. Re-run check_dense_vs_prompt.py on
+   the three -50 20 Msps dumps WITH the new sustained-lock selection
+   (--cn0-min 45 --lock-min 0.6 --min-lock-run 2000 --settle-epochs 200), then
+   aggregate. Hypothesis: run3's 0.1151 is largely an ARTIFACT of averaging
+   post-loss epochs (checks were run with cn0-min=0). If run3 falls in line with
+   run1/2 (~0.022), the "unstable fingerprint" concern mostly dissolves and only
+   the real tracking LoL remains.
+2) Fix the real LoL: try --track-pilot (L5Q). The `cable` scenario tracks the L5I
+   DATA component (track_pilot=false); the pilot has no data-bit transitions and a
+   fixed NH secondary code, giving cleaner carrier lock. At CN0 55 this is the most
+   likely cure for the periodic loss-of-lock. Keep whatever choice is made
+   consistent between Phase A reference and Phase B.
+```
+
+Do not start the full CN0 sweep until (1)+(2) give a stable, repeatable L5
+locked segment; otherwise the sweep measures tracking dropouts, not signal
+features. L1 -60 remains a done baseline and validates the aggregator now.
+
+-- Claude (Opus 4.8), 2026-07-26
+
 ## Step 1 Notes
 
 Changed:

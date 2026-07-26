@@ -74,13 +74,48 @@ def zero_tap_index(taps):
     return idx
 
 
+def select_locked(dense, cn0_min, lock_min, skip, min_run, settle):
+    """Keep only records inside SUSTAINED locked runs, excluding settling/transients.
+
+    Returns (mask, n_segments_total, n_segments_kept). A run that fails the CN0 or
+    carrier-lock gate breaks the segment, so a capture that reacquires several
+    times (e.g. an unstable L5 run) contributes only its stable stretches, and the
+    caller can see how much was dropped instead of silently averaging transients.
+    """
+    base = ((dense["cn0_snv_db_hz"] >= cn0_min) & (dense["carrier_lock_test"] >= lock_min)).copy()
+    if skip > 0:
+        base[:skip] = False
+    keep = np.zeros(len(base), dtype=bool)
+    n_seg = n_kept = 0
+    i, n = 0, len(base)
+    while i < n:
+        if not base[i]:
+            i += 1
+            continue
+        j = i
+        while j < n and base[j]:
+            j += 1
+        n_seg += 1
+        if (j - i) >= min_run:
+            n_kept += 1
+            start = i + settle
+            if start < j:
+                keep[start:j] = True
+        i = j
+    return keep, n_seg, n_kept
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dense", required=True, help="dense .dat or .dat.json")
     ap.add_argument("--trk", required=True, help="main tracking .dat")
     ap.add_argument("--cn0-min", type=float, default=35.0, help="lock filter: min CN0 dB-Hz")
     ap.add_argument("--lock-min", type=float, default=0.6, help="lock filter: min carrier_lock_test")
-    ap.add_argument("--skip-epochs", type=int, default=200, help="drop first N dense epochs (pull-in)")
+    ap.add_argument("--skip-epochs", type=int, default=0, help="drop first N dense records globally")
+    ap.add_argument("--min-lock-run", type=int, default=2000,
+                    help="keep only contiguous locked runs of >=N dense records (reject reacquisition transients)")
+    ap.add_argument("--settle-epochs", type=int, default=200,
+                    help="drop first N records of EACH kept locked run (loop settling)")
     ap.add_argument("--ref-out", help="PNG path for the averaged reference R(tau)")
     ap.add_argument("--ref-csv", help="CSV path for the coherent reference R(tau) (default: <ref-out>.csv)")
     args = ap.parse_args()
@@ -97,15 +132,20 @@ def main():
     trk = read_trk_dump(args.trk)
     print("trk records:   %d" % len(trk))
 
-    # --- lock filter on dense epochs ---
-    lock = (dense["cn0_snv_db_hz"] >= args.cn0_min) & (dense["carrier_lock_test"] >= args.lock_min)
-    if args.skip_epochs > 0:
-        lock[:args.skip_epochs] = False
-    dense_ok = dense[lock]
-    print("locked dense epochs (CN0>=%.0f, lock>=%.2f, skip %d): %d"
-          % (args.cn0_min, args.lock_min, args.skip_epochs, len(dense_ok)))
+    # --- sustained-lock selection on dense records ---
+    keep, n_seg, n_kept = select_locked(dense, args.cn0_min, args.lock_min,
+                                        args.skip_epochs, args.min_lock_run, args.settle_epochs)
+    dense_ok = dense[keep]
+    gated = int(((dense["cn0_snv_db_hz"] >= args.cn0_min) & (dense["carrier_lock_test"] >= args.lock_min)).sum())
+    print("lock gate (CN0>=%.0f, lock>=%.2f): %d/%d records; locked segments: %d total, %d kept (>=%d rec)"
+          % (args.cn0_min, args.lock_min, gated, len(dense), n_seg, n_kept, args.min_lock_run))
+    print("kept after settle=%d, min-run=%d: %d records (%.1f%% of file)"
+          % (args.settle_epochs, args.min_lock_run, len(dense_ok), 100.0 * len(dense_ok) / max(1, len(dense))))
+    if n_seg > n_kept:
+        print("  note: %d short/transient segment(s) rejected — reacquisition churn, not averaged"
+              % (n_seg - n_kept))
     if len(dense_ok) == 0:
-        raise SystemExit("no locked dense epochs survived the filter")
+        raise SystemExit("no sustained-locked records survived; lower --min-lock-run or check tracking stability")
 
     # ---------- Criterion (3): dense tap0 vs main-dump Prompt ----------
     trk_prompt = {int(s): complex(float(i), float(q))
