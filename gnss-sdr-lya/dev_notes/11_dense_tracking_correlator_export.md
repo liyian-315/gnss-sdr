@@ -192,6 +192,65 @@ complex taps preserve the same Prompt phase/amplitude as the original tracker.
 
 -- Codex, 2026-07-26
 
+## Phase A Repeat Capture - Same Power, Run 2
+
+Date: 2026-07-26
+Author: Codex
+
+Reason:
+
+One capture is not enough to define a clean peak feature. For each simulator
+output power and RF condition, collect repeated captures so the clean
+single-path fingerprint can be described by stable statistics, not one lucky
+plot. At minimum, compare peak position, `tap0` alignment, coherent `R(tau)`
+asymmetry, main-lobe width, and run-to-run variation.
+
+Run 2 artifacts:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l1_prn28_20260726_run2/
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_run2/
+```
+
+L1 PRN28 run 2:
+
+```text
+Capture: 30 s, 4 Msps, gain 40, RX2, no overflow seen.
+IQ check: rms=0.0005164, p99=0.001082, p999=0.002588, max=0.007406, near_clip_pct=0.0.
+Tracking: entered tracking at 1 s; no loss-of-lock; NAV subframe seen; CN0 about 51 dB-Hz.
+Dense records: 29770, tap_count=31, tap span=-1.5..+1.5 chips, decimation=1.
+Criterion (3): |tap0|/|Prompt| median=1.0000, phase median=0.0000 rad, verdict=PASS.
+Criterion (4): coherent |R| peak at 0.000 chip, R(0)=1.000+0.000j, asymmetry=0.0125.
+Reference files: l1_phaseA_reference_Rtau.png and l1_phaseA_reference_Rtau.png.csv.
+```
+
+L5I PRN28 run 2:
+
+```text
+Capture: 30 s, 10 Msps, gain 40, RX2, no overflow seen.
+IQ check: rms=0.0007804, p99=0.001641, p999=0.002008, max=0.003741, near_clip_pct=0.0.
+Tracking: entered tracking at 1 s; loss-of-lock at 9 s and near 30 s; dense locked epochs still sufficient for shape validation.
+Dense records: 29499, tap_count=31, tap span=-1.5..+1.5 chips, decimation=1.
+Criterion (3): |tap0|/|Prompt| median=1.0000, phase median=0.0000 rad, verdict=PASS.
+Criterion (4): coherent |R| peak at 0.000 chip, R(0)=1.000-0.000j, asymmetry=0.0201.
+Reference files: l5_phaseA_reference_Rtau.png and l5_phaseA_reference_Rtau.png.csv.
+```
+
+Run-to-run judgment:
+
+```text
+L1 asymmetry: run1=0.0116, run2=0.0125. This is stable and currently the best clean-peak reference.
+L5I asymmetry: run1=0.0428, run2=0.0201. Dense alignment is stable, but tracking stability and shape asymmetry vary more than L1.
+```
+
+Next measurement need:
+
+For each power point, repeat at least 3 times before treating any feature as a
+baseline. The next script should aggregate multiple `*_reference_Rtau*.csv`
+files and report mean/std of the clean peak features.
+
+-- Codex, 2026-07-26
+
 ## Step 1 Notes
 
 Changed:
