@@ -649,6 +649,64 @@ point, not as the nominal L5 fingerprint.
 
 -- Codex, 2026-07-26
 
+## Phase A L5 20Msps Capture - Power -50
+
+Date: 2026-07-26
+Author: Codex
+
+Condition:
+
+```text
+Signal: GPS L5I PRN28
+Simulator L5 output power: -50
+B210: RX2, serial=31502C6
+Receiver gain: 40 dB
+Sample rate: 20 Msps
+Sample type: ishort/sc16
+Capture method: uhd_rx_cfile to /dev/shm, then move to gnss_data
+```
+
+Capture artifact:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_run1_shm/
+```
+
+Capture observations:
+
+```text
+Capture: 30 s, 20 Msps, ishort/sc16, 0 overflow.
+File size: 2.3 GB.
+IQ stats: rms=34.90 counts, p99=71.81, p999=90.44, max=136.40, near_clip_pct=0.0.
+Compared with L5 -55 wideband run: rms rose from 32.29 to 34.90 counts.
+```
+
+GNSS-SDR offline result:
+
+```text
+Tracking: L5I entered tracking at 1 s.
+Secondary code locked: at 4 s and 12 s.
+Loss-of-lock: one early event at 9 s.
+Observables: valid DUALPATH_OBS from 24 s to 30 s.
+CN0: about 55.2..55.6 dB-Hz.
+CNAV: no CNAV ephemeris seen in this 30 s run.
+Dense records: 29767, tap_count=31, tap span=-1.5..+1.5 chips, fs=20 MHz.
+Criterion (3): |tap0|/|Prompt| median=1.0000, phase median=0.0000 rad, verdict=PASS.
+Criterion (4): coherent |R| peak at 0.000 chip, R(0)=1.000-0.000j, asymmetry=0.0246.
+Reference files: l5_phaseA_reference_Rtau.png and l5_phaseA_reference_Rtau.png.csv.
+```
+
+Judgment:
+
+This is the best wideband L5 Phase A condition so far. It still has one early
+loss-of-lock, but it later holds well enough to produce valid pseudorange/CN0
+observables, and the coherent `R(tau)` asymmetry is much lower than the -55 run
+(0.0246 vs 0.0908). Treat this as a candidate high-CN0 L5 wideband
+single-source fingerprint, but repeat it at least two more times before using it
+as the nominal baseline.
+
+-- Codex, 2026-07-26
+
 ## Step 1 Notes
 
 Changed:
