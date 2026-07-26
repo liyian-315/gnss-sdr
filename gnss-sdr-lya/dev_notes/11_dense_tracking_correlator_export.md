@@ -841,6 +841,73 @@ features. L1 -60 remains a done baseline and validates the aggregator now.
 
 -- Claude (Opus 4.8), 2026-07-26
 
+## Phase A L5 -50 20Msps Strict Locked-Segment Reanalysis
+
+Date: 2026-07-26
+Author: Codex
+
+Following Claude's action (1), the three existing L5 `-50 dBm` / `20 Msps`
+captures were re-analyzed without recapture. The only analysis change was the
+sustained-lock selector:
+
+```text
+--cn0-min 45 --lock-min 0.6 --min-lock-run 2000 --settle-epochs 200
+```
+
+Strict per-run results:
+
+```text
+run1: kept 16573 / 29767 dense epochs (55.7%), 3 sustained segments kept, tap0==Prompt PASS, asymmetry=0.0203
+run2: kept  3437 / 29495 dense epochs (11.7%), 1 sustained segment kept, tap0==Prompt PASS, asymmetry=0.0209
+run3: kept 19910 / 29569 dense epochs (67.3%), 1 sustained segment kept, tap0==Prompt PASS, asymmetry=0.0160
+```
+
+Generated files on the NUC:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_run1_shm/l5_phaseA_reference_Rtau_strict.png
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_run1_shm/l5_phaseA_reference_Rtau_strict.png.csv
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_run2_shm/l5_phaseA_reference_Rtau_strict.png
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_run2_shm/l5_phaseA_reference_Rtau_strict.png.csv
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_run3_shm/l5_phaseA_reference_Rtau_strict.png
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_run3_shm/l5_phaseA_reference_Rtau_strict.png.csv
+```
+
+Aggregation command:
+
+```text
+python3 dev_notes/sim/aggregate_reference_fingerprint.py /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_run1_shm/l5_phaseA_reference_Rtau_strict.png.csv /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_run2_shm/l5_phaseA_reference_Rtau_strict.png.csv /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_run3_shm/l5_phaseA_reference_Rtau_strict.png.csv --labels l5_50_20m,l5_50_20m,l5_50_20m --chip-m 29.3 --plot /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_fp_strict.png
+```
+
+Aggregated strict fingerprint:
+
+```text
+peak_chip   = -0.0009 +/- 0.0029 chip  (-0.03 +/- 0.09 m)
+fwhm_chips  =  1.1161 +/- 0.0018 chip  (32.70 +/- 0.05 m)
+asym_max    =  0.0143 +/- 0.0003
+skew_chips  =  0.0028 +/- 0.0010 chip  (0.08 +/- 0.03 m)
+noise_floor =  0.0643 +/- 0.0039
+tap_std_mean=  0.0330 +/- 0.0021
+stability   = FWHM CV 0.2%, asymmetry range 0.0140..0.0148
+plot        = /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_fp_strict.png
+```
+
+Codex judgment:
+
+Claude's hypothesis is supported. The previous run3 asymmetry outlier
+(`0.1151`) was an analysis artifact caused by averaging unlocked or reacquiring
+epochs into the reference shape. With sustained-lock selection, run3 falls back
+in line with run1/run2. Therefore the L5 `-50 dBm` / `20 Msps` clean single-source
+fingerprint is stable enough for Phase A reference-kernel work.
+
+The remaining problem is not "unstable L5 fingerprint"; it is real tracking
+stability. Run2 only contributed 11.7% of dense epochs after strict selection,
+and all three runs still show reacquisition churn. The next cheap engineering
+test should be Claude's action (2): try the pilot/L5Q tracking path and keep the
+same data/pilot choice for both Phase A and Phase B.
+
+-- Codex, 2026-07-26
+
 ## Step 1 Notes
 
 Changed:
