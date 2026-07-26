@@ -104,10 +104,13 @@ User framing accepted:
 
 Phase A is not only an instrument/software sanity check. It is also the baseline
 for understanding what a clean single-path peak looks like. Later two-source
-captures can produce a wider, shifted, shouldered, or otherwise distorted peak.
+captures can produce a wider, shifted, or shouldered peak because two meaningful
+DAS sources are superposed.
 The clean `R(tau)` from Phase A is therefore the reference "single peak
 fingerprint" used to decide whether a later peak shape is still a normal clean
-signal or a multi-source/multipath deformation.
+single-source observation or contains an additional source. The goal is not to
+"repair a bad signal"; it is to detect and estimate the additional meaningful
+source(s).
 
 NUC / B210 test setup:
 
@@ -399,6 +402,88 @@ metric. For later Phase B, this means we should preserve both:
 shape metrics from dense R(tau)
 tracking/telemetry metrics from run logs
 ```
+
+-- Codex, 2026-07-26
+
+## Phase A Design Correction - L5 Must Be Recollected at Wider Bandwidth
+
+Date: 2026-07-26
+Author: Codex
+
+Claude's critique is accepted with one wording correction to keep the DAS
+multi-source framing consistent:
+
+```text
+Additional-source detection rule:
+  deviation from clean single-source R(tau) => additional meaningful source(s)
+
+Avoid:
+  language that implies the second source should be suppressed or removed.
+```
+
+The clean `R(tau)` fingerprint is stronger than a visual comparison template.
+It is the kernel of the later two-source model:
+
+```text
+y(tau) = A0 * R(tau - tau0) + A1 * R(tau - tau1) * exp(j*phi)
+```
+
+Therefore Phase A must preserve the full per-tap complex reference and
+statistics, not only scalar summaries such as peak position or asymmetry. The
+existing `check_dense_vs_prompt.py` output CSV is the right artifact to keep:
+
+```text
+tap_chips,coherent_re,coherent_im,mag_mean,mag_std
+```
+
+Important correction to prior L5 Phase A runs:
+
+```text
+The existing L5 Phase A captures used 10 Msps / 10 MHz bandwidth.
+GPS L5 code rate is 10.23 Mcps, so 10 Msps is <1 sample/chip and does not
+capture the L5 main-lobe shape needed for high-resolution separation.
+Those runs are useful only as "10 Msps bandwidth-limited L5 references"; they
+must not be treated as the final L5 clean fingerprint.
+```
+
+Updated Phase A acquisition design:
+
+```text
+L5: recollect at >=20 Msps, preferably 20-25 Msps if the B210 host can do it
+without overflow. Use sc16/ishort recording to keep disk bandwidth manageable.
+L1: 4 Msps is acceptable for C/A; 8 Msps is optional but not the bottleneck.
+B1I: later use about 8-10 Msps at 1561.098 MHz.
+```
+
+Power/CN0 sweep design:
+
+```text
+Target CN0 grid: 50, 45, 40, 35, 30 dB-Hz.
+Tune simulator output power by measured Observables.stdout CN0, not by assuming
+a fixed dBm-to-CN0 mapping.
+Capture length: 20-30 s per run.
+Repeats: at least 3 per condition; use 5 for the key same-power condition.
+```
+
+Features to extract per condition:
+
+```text
+tap0==Prompt verdict
+peak position
+main-lobe width at half maximum
+coherent R(tau) asymmetry
+per-tap magnitude std envelope
+run-to-run std envelope
+tracking/telemetry continuity from logs
+```
+
+Judgment:
+
+The current L1 Phase A set is still valid as a clean single-source baseline.
+The current L5 set should be kept for traceability but relabeled as
+bandwidth-limited. The next real Phase A work is to preflight whether this NUC
+can record L5 at 20 Msps sc16 without overflow, then recollect L5 at the CN0
+grid above.
 
 -- Codex, 2026-07-26
 
