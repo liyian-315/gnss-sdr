@@ -1002,6 +1002,74 @@ Use the existing tracking dump style for the main binary stream. JSON is reserve
 
 -- Codex, 2026-07-24
 
+## Phase A L5 20Msps Capture - Power -45, Strict Single-Run Sample
+
+Date: 2026-07-26
+Author: Codex
+
+Condition:
+
+```text
+Signal: GPS L5I PRN28
+Simulator L5 output power: -45
+B210: RX2, serial=31502C6
+Receiver gain: 40 dB
+Sample rate: 20 Msps
+Sample type: ishort/sc16
+Capture method: uhd_rx_cfile to /dev/shm, then move to gnss_data
+```
+
+Artifact:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr45_20m_run1_shm/
+```
+
+Capture result:
+
+```text
+Capture: 30 s, 20 Msps, ishort/sc16, 0 overflow.
+File size: 2.3 GB.
+IQ stats: rms=42.67 counts, p99=86.21, p999=112.00, max=192.67, near_clip_pct=0.0.
+```
+
+GNSS-SDR offline result:
+
+```text
+Tracking: L5I entered tracking at 1 s.
+Secondary code locked: at about 6 s, 12 s, and 28 s.
+Loss-of-lock: at about 9 s, 21 s, and 29 s.
+Dense records: 29366, tap_count=31, tap span=-1.5..+1.5 chips, fs=20 MHz.
+Strict selector: CN0>=45, lock>=0.6, min-lock-run=2000, settle=200.
+Strict kept records: 6017 / 29366 (20.5% of file), 2 sustained segments kept, 7 short/transient segments rejected.
+Criterion (3): |tap0|/|Prompt| median=1.0000, phase median=0.0000 rad, verdict=PASS.
+Criterion (4): coherent |R| peak at 0.000 chip, R(0)=1.000+0.000j, asymmetry=0.0208.
+```
+
+Single-run aggregate features:
+
+```text
+peak_chip   = -0.0028 chip (-0.08 m)
+fwhm_chips  =  1.1166 chip (32.72 m)
+asym_max    =  0.0157
+skew_chips  =  0.0039 chip (0.11 m)
+noise_floor =  0.04634
+tap_std_mean=  0.01986
+plot        = /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr45_20m_fp_strict.png
+```
+
+Codex judgment:
+
+The -45 sample confirms the clean single-source L5 wideband fingerprint shape:
+FWHM is essentially identical to the strict -50 aggregate (`32.72 m` vs
+`32.70 m`), and strict asymmetry remains low. The higher input level improves
+the dense reference noise floor, but it does not remove the L5I tracking
+dropouts. Therefore raising simulator power helps SNR but is not the root fix
+for the periodic loss-of-lock. This sample is useful as a high-CN0 single-run
+fingerprint, but it needs repeats before becoming a condition baseline.
+
+-- Codex, 2026-07-26
+
 ## Config Generator Integration
 
 Date: 2026-07-24
