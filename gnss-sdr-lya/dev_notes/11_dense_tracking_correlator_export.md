@@ -585,6 +585,70 @@ be used alone as the nominal high-CN0 L5 reference.
 
 -- Codex, 2026-07-26
 
+## Phase A L5 20Msps Capture - Power -55
+
+Date: 2026-07-26
+Author: Codex
+
+Condition:
+
+```text
+Signal: GPS L5I PRN28
+Simulator L5 output power: -55
+B210: RX2, serial=31502C6
+Receiver gain: 40 dB
+Sample rate: 20 Msps
+Sample type: ishort/sc16
+Capture method: uhd_rx_cfile to /dev/shm, then move to gnss_data
+```
+
+Capture artifact:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr55_20m_run1_shm/
+```
+
+Capture command:
+
+```bash
+uhd_rx_cfile -a serial=31502C6 -f 1176450000 -r 20000000 -g 40 -A RX2 -s --stream-args num_recv_frames=1024 -N 600000000 /dev/shm/l5_phaseA_prn28_pwr55_20m_g40_30s_shm_ishort.dat
+mv /dev/shm/l5_phaseA_prn28_pwr55_20m_g40_30s_shm_ishort.dat /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr55_20m_run1_shm/l5_phaseA_prn28_pwr55_20m_g40_30s_shm_ishort.dat
+```
+
+Capture observations:
+
+```text
+Capture: 30 s, 20 Msps, ishort/sc16, 0 overflow.
+File size: 2.3 GB.
+IQ stats: rms=32.29 counts, p99=68.25, p999=86.31, max=150.94, near_clip_pct=0.0.
+Compared with L5 -60 wideband run: rms rose only slightly (31.37 -> 32.29 counts).
+```
+
+GNSS-SDR offline result:
+
+```text
+Tracking: L5I entered tracking at 1 s.
+Secondary code locked: at 4 s, 21 s, and 28 s.
+Loss-of-lock: at 9 s, 17 s, and 25 s.
+Observables/CNAV: no continuous DUALPATH_OBS/CNAV in this -55 power run.
+Dense records: 29456, tap_count=31, tap span=-1.5..+1.5 chips, fs=20 MHz.
+Criterion (3): |tap0|/|Prompt| median=1.0000, phase median=0.0000 rad, verdict=PASS.
+Criterion (4): coherent |R| peak at 0.000 chip, R(0)=1.000-0.000j, asymmetry=0.0908.
+Reference files: l5_phaseA_reference_Rtau.png and l5_phaseA_reference_Rtau.png.csv.
+```
+
+Judgment:
+
+Dense export remains physically aligned (`tap0==Prompt` PASS), but the -55
+wideband sample is not a clean high-quality L5 reference: tracking still cycles
+through loss/reacquisition, and the coherent `R(tau)` asymmetry is worse than the
+-60 wideband run (0.0908 vs 0.0393). This suggests the current L5I 20Msps
+tracking/filtering setup is still not providing a stable enough locked segment
+at this condition. Treat this capture as a low-power/unstable-tracking data
+point, not as the nominal L5 fingerprint.
+
+-- Codex, 2026-07-26
+
 ## Step 1 Notes
 
 Changed:
