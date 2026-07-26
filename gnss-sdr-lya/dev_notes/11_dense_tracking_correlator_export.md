@@ -325,6 +325,83 @@ Question 2: Does L5I produce continuous pseudorange/CN0 output under this config
 
 -- Codex, 2026-07-26
 
+## Phase A Repeat Capture - Run 4, L5 Power Still -45
+
+Date: 2026-07-26
+Author: Codex
+
+Condition:
+
+```text
+L1 simulator output power: unchanged at -60
+L5 simulator output power: unchanged at -45
+Receiver gain: unchanged at 40 dB
+PRN: GPS 28
+Connection: one cabled path to B210 RX2
+```
+
+Run 4 artifacts:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l1_prn28_20260726_run4/
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_run4_pwr45/
+```
+
+L1 PRN28 run 4:
+
+```text
+Capture: 30 s, 4 Msps, gain 40, RX2, no overflow seen.
+IQ check: rms=0.0005186, p99=0.001084, p999=0.002618, max=0.007528, near_clip_pct=0.0.
+Tracking: entered tracking at 1 s; no loss-of-lock; NAV subframe seen; CN0 about 51 dB-Hz.
+Dense records: 29767, tap_count=31, tap span=-1.5..+1.5 chips, decimation=1.
+Criterion (3): |tap0|/|Prompt| median=1.0000, phase median=0.0000 rad, verdict=PASS.
+Criterion (4): coherent |R| peak at 0.000 chip, R(0)=1.000-0.000j, asymmetry=0.0130.
+Reference files: l1_phaseA_reference_Rtau.png and l1_phaseA_reference_Rtau.png.csv.
+```
+
+L5I PRN28 run 4, L5 output power -45:
+
+```text
+Capture: 30 s, 10 Msps, gain 40, RX2, no overflow seen.
+IQ check: rms=0.001024, p99=0.002008, p999=0.002377, max=0.003305, near_clip_pct=0.0.
+Tracking: entered tracking at 1 s; secondary code locked at 4 s; no loss-of-lock in this offline run.
+Observables: valid DUALPATH_OBS from 16 s to 30 s, CN0 about 57.9..58.7 dB-Hz.
+Telemetry: GPS L5 CNAV ephemeris received at 27 s.
+Dense records: 29858, tap_count=31, tap span=-1.5..+1.5 chips, decimation=1.
+Criterion (3): |tap0|/|Prompt| median=1.0000, phase median=0.0000 rad, verdict=PASS.
+Criterion (4): coherent |R| peak at 0.000 chip, R(0)=1.000+0.000j, asymmetry=0.0428.
+Reference files: l5_phaseA_reference_Rtau.png and l5_phaseA_reference_Rtau.png.csv.
+```
+
+Run-to-run judgment:
+
+```text
+L1 asymmetry so far: run1=0.0116, run2=0.0125, run3=0.0117, run4=0.0130.
+L1 remains very stable as a clean single-peak baseline.
+
+L5I asymmetry so far:
+  - power -50: run1=0.0428, run2=0.0201
+  - power -45: run3=0.0293, run4=0.0428
+L5 -45 input RMS is stable around 0.001024 with no clipping.
+L5 -45 tracking/observable behavior is not deterministic over one 30 s capture:
+  run3 had one loss-of-lock and no valid DUALPATH_OBS;
+  run4 had no loss-of-lock, valid DUALPATH_OBS, and CNAV ephemeris.
+```
+
+Judgment:
+
+For L5I at this power, a single 30 s capture is not enough to classify tracking
+stability. Treat the dense clean-peak reference as valid only after filtering
+locked epochs, and treat observables/CNAV continuity as a separate repeatability
+metric. For later Phase B, this means we should preserve both:
+
+```text
+shape metrics from dense R(tau)
+tracking/telemetry metrics from run logs
+```
+
+-- Codex, 2026-07-26
+
 ## Step 1 Notes
 
 Changed:
