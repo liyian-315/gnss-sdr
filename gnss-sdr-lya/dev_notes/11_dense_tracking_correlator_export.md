@@ -707,6 +707,85 @@ as the nominal baseline.
 
 -- Codex, 2026-07-26
 
+## Phase A L5 20Msps Capture - Power -50 Repeats
+
+Date: 2026-07-26
+Author: Codex
+
+Condition:
+
+```text
+Signal: GPS L5I PRN28
+Simulator L5 output power: -50
+B210: RX2, serial=31502C6
+Receiver gain: 40 dB
+Sample rate: 20 Msps
+Sample type: ishort/sc16
+Capture method: uhd_rx_cfile to /dev/shm, then move to gnss_data
+```
+
+Artifacts:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_run2_shm/
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_run3_shm/
+```
+
+Run 2:
+
+```text
+Capture: 30 s, 20 Msps, ishort/sc16, 0 overflow.
+IQ stats: rms=35.00 counts, p99=71.87, p999=91.02, max=137.64, near_clip_pct=0.0.
+Tracking: entered tracking at 1 s.
+Secondary code locked: at 4 s, 20 s, and 28 s.
+Loss-of-lock: at 9 s, 17 s, and 25 s.
+Observables/CNAV: no continuous DUALPATH_OBS/CNAV.
+Dense records: 29495, tap_count=31, tap span=-1.5..+1.5 chips, fs=20 MHz.
+Criterion (3): |tap0|/|Prompt| median=1.0000, phase median=0.0000 rad, verdict=PASS.
+Criterion (4): coherent |R| peak at 0.000 chip, R(0)=1.000+0.000j, asymmetry=0.0221.
+```
+
+Run 3:
+
+```text
+Capture: 30 s, 20 Msps, ishort/sc16, 0 overflow.
+IQ stats: rms=35.07 counts, p99=72.07, p999=93.30, max=151.79, near_clip_pct=0.0.
+Tracking: entered tracking at 1 s.
+Secondary code locked: at 4 s.
+Loss-of-lock: at 9 s and near 30 s.
+Observables/CNAV: no continuous DUALPATH_OBS/CNAV.
+Dense records: 29569, tap_count=31, tap span=-1.5..+1.5 chips, fs=20 MHz.
+Criterion (3): |tap0|/|Prompt| median=1.0000, phase median=0.0000 rad, verdict=PASS.
+Criterion (4): coherent |R| peak at 0.000 chip, R(0)=1.000-0.000j, asymmetry=0.1151.
+```
+
+Run-to-run comparison for L5 -50 wideband:
+
+```text
+run1: rms=34.90 counts, one early loss-of-lock, valid DUALPATH_OBS from 24..30 s, asymmetry=0.0246.
+run2: rms=35.00 counts, loss-of-lock at 9/17/25 s, no continuous observables, asymmetry=0.0221.
+run3: rms=35.07 counts, loss-of-lock at 9 s and near 30 s, no continuous observables, asymmetry=0.1151.
+```
+
+Judgment:
+
+The RF amplitude and dense `tap0==Prompt` alignment are repeatable at L5 -50,
+but this condition is not yet a closed nominal baseline. The asymmetry is stable
+for run1/run2 but not run3, and the tracking/observable continuity is not
+repeatable. This is exactly why Phase A must use multiple captures and report
+statistics rather than blessing one good-looking plot.
+
+Next technical need:
+
+Before continuing the full CN0 sweep, add an aggregation script that reads all
+`*_reference_Rtau*.csv` files for a condition and reports mean/std of peak
+position, half-height width, asymmetry, and per-tap std. Also consider a stricter
+locked-segment selector for L5I wideband, because the current check uses
+`cn0-min=0` / `lock-min=0` for low-power runs and may average pull-in or
+post-loss epochs into `R(tau)`.
+
+-- Codex, 2026-07-26
+
 ## Step 1 Notes
 
 Changed:
