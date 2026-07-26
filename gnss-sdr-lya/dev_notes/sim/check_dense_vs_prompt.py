@@ -108,7 +108,9 @@ def select_locked(dense, cn0_min, lock_min, skip, min_run, settle):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dense", required=True, help="dense .dat or .dat.json")
-    ap.add_argument("--trk", required=True, help="main tracking .dat")
+    ap.add_argument("--trk", help="main tracking .dat (optional; enables criterion 3 tap0==Prompt). "
+                                  "Omit for track_pilot runs, where the main dump Prompt is the DATA "
+                                  "component while dense taps sample the PILOT -> they legitimately differ.")
     ap.add_argument("--cn0-min", type=float, default=35.0, help="lock filter: min CN0 dB-Hz")
     ap.add_argument("--lock-min", type=float, default=0.6, help="lock filter: min carrier_lock_test")
     ap.add_argument("--skip-epochs", type=int, default=0, help="drop first N dense records globally")
@@ -128,9 +130,10 @@ def main():
     print("dense records: %d  taps: %d  zero-tap idx: %d (%.3f chip)  signal: %s"
           % (len(dense), len(taps), zt, taps[zt], meta.get("signal", "")))
 
-    # --- load main trk dump ---
-    trk = read_trk_dump(args.trk)
-    print("trk records:   %d" % len(trk))
+    # --- load main trk dump (optional; only needed for criterion 3) ---
+    trk = read_trk_dump(args.trk) if args.trk else None
+    if trk is not None:
+        print("trk records:   %d" % len(trk))
 
     # --- sustained-lock selection on dense records ---
     keep, n_seg, n_kept = select_locked(dense, args.cn0_min, args.lock_min,
@@ -148,31 +151,34 @@ def main():
         raise SystemExit("no sustained-locked records survived; lower --min-lock-run or check tracking stability")
 
     # ---------- Criterion (3): dense tap0 vs main-dump Prompt ----------
-    trk_prompt = {int(s): complex(float(i), float(q))
-                  for s, i, q in zip(trk["sample_counter"], trk["prompt_I"], trk["prompt_Q"])}
-    ratios, dphases, matched = [], [], 0
-    for row in dense_ok:
-        p = trk_prompt.get(int(row["sample_counter"]))
-        if p is None:
-            continue
-        matched += 1
-        tap0 = complex(row["tap_iq"][zt])
-        if abs(p) > 0.0:
-            ratios.append(abs(tap0) / abs(p))
-            dphases.append(np.angle(tap0 * np.conj(p)))
-    print("\n--- Criterion (3): dense tap0  vs  main-dump Prompt ---")
-    print("matched-by-sample_counter epochs: %d / %d" % (matched, len(dense_ok)))
-    if matched == 0:
-        print("!! no sample_counter matches — check decimation=1 and same run")
+    if trk is None:
+        print("\n--- Criterion (3): skipped (no --trk) ---")
     else:
-        ratios = np.asarray(ratios)
-        dphases = np.asarray(dphases)
-        print("|tap0|/|Prompt|   median=%.4f  (expect ~1.0)   IQR=[%.4f, %.4f]"
-              % (np.median(ratios), np.percentile(ratios, 25), np.percentile(ratios, 75)))
-        print("phase(tap0)-phase(Prompt)  median=%+.4f rad (%.2f deg)   std=%.4f rad"
-              % (np.median(dphases), np.degrees(np.median(dphases)), np.std(dphases)))
-        ok3 = abs(np.median(ratios) - 1.0) < 0.10 and abs(np.median(dphases)) < 0.10
-        print("verdict (3): %s" % ("PASS" if ok3 else "REVIEW — ratio/phase off, see notes"))
+        trk_prompt = {int(s): complex(float(i), float(q))
+                      for s, i, q in zip(trk["sample_counter"], trk["prompt_I"], trk["prompt_Q"])}
+        ratios, dphases, matched = [], [], 0
+        for row in dense_ok:
+            p = trk_prompt.get(int(row["sample_counter"]))
+            if p is None:
+                continue
+            matched += 1
+            tap0 = complex(row["tap_iq"][zt])
+            if abs(p) > 0.0:
+                ratios.append(abs(tap0) / abs(p))
+                dphases.append(np.angle(tap0 * np.conj(p)))
+        print("\n--- Criterion (3): dense tap0  vs  main-dump Prompt ---")
+        print("matched-by-sample_counter epochs: %d / %d" % (matched, len(dense_ok)))
+        if matched == 0:
+            print("!! no sample_counter matches — check decimation=1 and same run")
+        else:
+            ratios = np.asarray(ratios)
+            dphases = np.asarray(dphases)
+            print("|tap0|/|Prompt|   median=%.4f  (expect ~1.0)   IQR=[%.4f, %.4f]"
+                  % (np.median(ratios), np.percentile(ratios, 25), np.percentile(ratios, 75)))
+            print("phase(tap0)-phase(Prompt)  median=%+.4f rad (%.2f deg)   std=%.4f rad"
+                  % (np.median(dphases), np.degrees(np.median(dphases)), np.std(dphases)))
+            ok3 = abs(np.median(ratios) - 1.0) < 0.10 and abs(np.median(dphases)) < 0.10
+            print("verdict (3): %s" % ("PASS" if ok3 else "REVIEW — ratio/phase off, see notes"))
 
     # ---------- Criterion (4): averaged reference R(tau) ----------
     iq = dense_ok["tap_iq"].astype(np.complex128)           # (Nep, Ntap)

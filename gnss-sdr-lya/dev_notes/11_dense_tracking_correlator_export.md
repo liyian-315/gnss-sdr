@@ -908,6 +908,70 @@ same data/pilot choice for both Phase A and Phase B.
 
 -- Codex, 2026-07-26
 
+## Phase A Action (2) Runbook — L5Q pilot tracking vs L5I periodic loss-of-lock
+
+Date: 2026-07-26
+Author: Claude (Opus 4.8)
+
+Action (1) confirmed: run3 asymmetry 0.1151 -> 0.0160 under sustained-lock
+selection; aggregated L5 -50/20 Msps fingerprint is stable (asym 0.0143 +/-
+0.0003, FWHM 1.116 chip = 32.7 m). The remaining problem is REAL tracking churn
+(run2 kept only 11.7% of epochs). Action (2) tests whether tracking the L5Q pilot
+cures it.
+
+Make it a clean A/B test — reuse an EXISTING -50/20 Msps raw capture (no
+recapture), change ONLY track_pilot. Use run2 (the churniest, 11.7% kept) so an
+improvement is unambiguous.
+
+```bash
+RAW=/home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_run2_shm/l5_phaseA_prn28_pwr50_20m_g40_30s_shm_ishort.dat
+OUT=/home/bupt/lya/gnss_data/phaseA_l5_prn28_pwr50_20m_run2_PILOT
+mkdir -p "$OUT"
+
+# 1) regenerate conf from the SAME raw, only adding --track-pilot
+python3 dev_notes/sim/make_l5_dualpath_conf.py --source file --input "$RAW" \
+  --sample-type ishort --output /tmp/l5_pilot_run2.conf \
+  --prns 28 --rate 20000000 --scenario cable --track-pilot \
+  --enable-dense-correlator --dense-taps=-1.5:0.1:1.5 --dense-decimation 1 \
+  --dense-dump-prefix "$OUT/l5_pilot_dense_ch_"
+
+# 2) run offline, capture the tracking log
+./build/src/main/gnss-sdr --config_file=/tmp/l5_pilot_run2.conf 2>&1 | tee "$OUT/run_pilot.log"
+
+# 3) PRIMARY metric: loss-of-lock events (compare to data-tracking run2 @ 9/17/25 s)
+grep -iE "loss of lock|loss-of-lock|Tracking lost|lost lock|reacquir" "$OUT/run_pilot.log"
+
+# 4) R(tau) + % epochs kept under the SAME strict selector (apples-to-apples)
+python3 dev_notes/sim/check_dense_vs_prompt.py --dense "$OUT/l5_pilot_dense_ch_0.dat.json" \
+  --cn0-min 45 --lock-min 0.6 --min-lock-run 2000 --settle-epochs 200 \
+  --ref-out "$OUT/l5_pilot_run2_Rtau.png"
+```
+
+Read the results as:
+
+```text
+WIN  if: loss-of-lock events drop (ideally gone), % epochs kept rises well above
+         run2's 11.7%, and asymmetry stays ~0.015. -> adopt track_pilot for L5,
+         keep it consistent in Phase B.
+NULL if: LoL pattern unchanged -> the churn is not the data component; look at the
+         cable-scenario L5 loop params (pll_bw / fll / lock-fail counters) or a
+         periodic artifact in the sim scenario itself (LoL at ~8 s spacing).
+```
+
+Two caveats baked into the tooling (do not misread them as regressions):
+
+```text
+- Criterion (3) is intentionally SKIPPED here: with track_pilot the main dump
+  Prompt is the DATA component while dense taps sample the PILOT, so they
+  legitimately differ. check_dense_vs_prompt.py --trk is now optional; omit it.
+  Criterion (3) was already proven PASS on the data-tracking runs.
+- Under track_pilot the dense R(tau) is the PILOT autocorrelation (no data-bit
+  transitions) — a CLEANER fitting kernel. Same chip rate, so FWHM stays ~1.12
+  chip; the fingerprint width is comparable to the data-tracking reference.
+```
+
+-- Claude (Opus 4.8), 2026-07-26
+
 ## Step 1 Notes
 
 Changed:
