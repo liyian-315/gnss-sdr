@@ -251,6 +251,80 @@ files and report mean/std of the clean peak features.
 
 -- Codex, 2026-07-26
 
+## Phase A Repeat Capture - Run 3, L5 Power Raised
+
+Date: 2026-07-26
+Author: Codex
+
+Changed RF condition:
+
+```text
+L1 simulator output power: unchanged at -60
+L5 simulator output power: raised from -50 to -45
+Receiver gain: unchanged at 40 dB
+PRN: GPS 28
+Connection: one cabled path to B210 RX2
+```
+
+Run 3 artifacts:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l1_prn28_20260726_run3/
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_run3_pwr45/
+```
+
+L1 PRN28 run 3:
+
+```text
+Capture: 30 s, 4 Msps, gain 40, RX2, no overflow seen.
+IQ check: rms=0.0004994, p99=0.001075, p999=0.001473, max=0.004230, near_clip_pct=0.0.
+Tracking: entered tracking at 1 s; no loss-of-lock; NAV subframe seen; CN0 about 51 dB-Hz.
+Dense records: 29774, tap_count=31, tap span=-1.5..+1.5 chips, decimation=1.
+Criterion (3): |tap0|/|Prompt| median=1.0000, phase median=0.0000 rad, verdict=PASS.
+Criterion (4): coherent |R| peak at 0.000 chip, R(0)=1.000-0.000j, asymmetry=0.0117.
+Reference files: l1_phaseA_reference_Rtau.png and l1_phaseA_reference_Rtau.png.csv.
+```
+
+L5I PRN28 run 3, L5 output power -45:
+
+```text
+Capture: 30 s, 10 Msps, gain 40, RX2, no overflow seen.
+IQ check: rms=0.001024, p99=0.002014, p999=0.002403, max=0.004071, near_clip_pct=0.0.
+Tracking: entered tracking at 1 s; one loss-of-lock at 22 s; reacquired and secondary code locked at 25 s.
+Observables: no valid DUALPATH_OBS was printed in this 30 s offline run.
+Dense records: 29669, tap_count=31, tap span=-1.5..+1.5 chips, decimation=1.
+Criterion (3): |tap0|/|Prompt| median=1.0000, phase median=0.0000 rad, verdict=PASS.
+Criterion (4): coherent |R| peak at 0.000 chip, R(0)=1.000+0.000j, asymmetry=0.0293.
+Reference files: l5_phaseA_reference_Rtau.png and l5_phaseA_reference_Rtau.png.csv.
+```
+
+Run-to-run judgment:
+
+```text
+L1 asymmetry so far: run1=0.0116, run2=0.0125, run3=0.0117.
+L1 is very stable as a clean single-peak baseline.
+
+L5I asymmetry so far:
+  - power -50: run1=0.0428, run2=0.0201
+  - power -45: run3=0.0293
+Raising L5 power increased captured IQ RMS from about 0.00078 to 0.00102, with no clipping.
+Dense tap alignment stayed correct, but L5I tracking/observable stability did not become fully clean.
+```
+
+Judgment:
+
+For Phase A, the dense clean-peak shape is usable for L5I even when observables
+are intermittent, because the dense profile is filtered over locked epochs and
+`tap0` remains exactly aligned with Prompt. However, do not mix the two success
+questions:
+
+```text
+Question 1: Is dense export physically correct and is the clean peak measurable? yes.
+Question 2: Does L5I produce continuous pseudorange/CN0 output under this config? not yet.
+```
+
+-- Codex, 2026-07-26
+
 ## Step 1 Notes
 
 Changed:
