@@ -30,6 +30,64 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import read_dense_correlator_dump as rd  # noqa: E402
 
 
+def integrated_autocorr_time(x, c=5.0):
+    """Integrated autocorrelation time tau of a 1-D series (Sokal windowing).
+
+    N_eff = N / tau is the number of effectively-independent samples. Tracking-loop
+    epochs are correlated (loop memory ~tens of ms), so tau > 1 and the naive
+    SEM = std/sqrt(N) is too optimistic; SEM_eff = std/sqrt(N_eff) corrects it.
+    """
+    x = np.asarray(x, dtype=float)
+    n = x.size
+    if n < 8:
+        return 1.0
+    x = x - x.mean()
+    c0 = float(np.dot(x, x) / n)
+    if c0 <= 0.0:
+        return 1.0
+    nfft = 1
+    while nfft < 2 * n:
+        nfft *= 2
+    f = np.fft.rfft(x, nfft)
+    acov = np.fft.irfft(f * np.conj(f), nfft)[:n] / n
+    rho = acov / c0
+    tau, csum = 1.0, 0.0
+    for k in range(1, n):
+        csum += rho[k]
+        tau = 1.0 + 2.0 * csum
+        if k >= c * tau:          # Sokal automatic window
+            break
+        if rho[k] < 0.0:          # stop at end of initial positive sequence
+            break
+    return max(1.0, float(tau))
+
+
+def effective_n(mag_matrix, mag_std):
+    """Conservative N_eff for a per-epoch x per-tap magnitude matrix: take the
+    LARGEST tau_int across the informative taps (smallest N_eff -> honest SEM)."""
+    n = mag_matrix.shape[0]
+    thr = 0.2 * float(np.max(mag_std)) if mag_std.size else 0.0
+    taus = [integrated_autocorr_time(mag_matrix[:, j])
+            for j in range(mag_matrix.shape[1]) if mag_std[j] > thr]
+    tau = max(taus) if taus else 1.0
+    return n / tau, tau
+
+
+def batch_means_sem(mag_matrix, mag_std, tau):
+    """Worst-tap batch-means (blocking) SEM. Block length = ceil(3*tau) so block
+    means are ~independent; SEM = std(block_means)/sqrt(B). This does NOT assume
+    independent epochs. Returns (worst_sem, n_blocks). Falls back to naive SEM if
+    too few blocks."""
+    n, ntap = mag_matrix.shape
+    L = max(1, int(np.ceil(3.0 * tau)))
+    B = n // L
+    if B < 2:
+        return float(np.max(mag_std) / np.sqrt(max(1, n))), B
+    blocks = mag_matrix[:B * L].reshape(B, L, ntap).mean(axis=1)   # (B, ntap)
+    sem_tap = blocks.std(axis=0, ddof=1) / np.sqrt(B)
+    return float(np.max(sem_tap)), B
+
+
 # Main GPS/GNSS dll_pll_veml_tracking dump record layout (packed, little-endian).
 # Matches dll_pll_veml_tracking.cc::log_data() field-for-field (108 bytes/record).
 TRK_DTYPE = np.dtype([
@@ -202,8 +260,9 @@ def main():
     # normalize each epoch by its own tap0 (amplitude + phase) -> shape only, R(0)=1
     norm = iq / tap0[:, None]
     coherent = norm.mean(axis=0)                            # complex reference R(tau)
-    mag_mean = (np.abs(iq) / np.abs(tap0)[:, None]).mean(axis=0)
-    mag_std = (np.abs(iq) / np.abs(tap0)[:, None]).std(axis=0)
+    magm = np.abs(iq) / np.abs(tap0)[:, None]               # (Nep, Ntap) per-epoch shape
+    mag_mean = magm.mean(axis=0)
+    mag_std = magm.std(axis=0)
     peak_idx = int(np.argmax(np.abs(coherent)))
     print("\n--- Criterion (4): averaged reference R(tau) over %d epochs ---" % len(iq))
     print("coherent |R| peak at %.3f chip (expect ~0.0)" % taps[peak_idx])
@@ -212,9 +271,19 @@ def main():
     # symmetry: compare +/- tau magnitude
     asym = float(np.max(np.abs(np.abs(coherent) - np.abs(coherent)[::-1])))
     print("max |R(+tau)|-|R(-tau)| asymmetry = %.4f (small=symmetric, clean single path)" % asym)
-    max_sem = float(np.max(mag_std) / np.sqrt(len(iq))) if len(iq) else float("nan")
-    print("precision: N_kept=%d  worst-tap SEM=%.5f  (fingerprint noise ~ 1/sqrt(N); "
-          "kept_fraction is only a churn diagnostic, not the quality gate)" % (len(iq), max_sem))
+    # precision: correlation-corrected. Epochs are temporally correlated, so the
+    # naive SEM=std/sqrt(N) is too optimistic; report N_eff (autocorr) and the
+    # blocking (batch-means) SEM, which does not assume independence.
+    n_kept_c4 = len(iq)
+    sem_naive = float(np.max(mag_std) / np.sqrt(n_kept_c4)) if n_kept_c4 else float("nan")
+    n_eff, tau_int = effective_n(magm, mag_std)
+    sem_worst, n_blocks = batch_means_sem(magm, mag_std, tau_int)
+    print("precision (correlation-corrected):")
+    print("  tau_int=%.1f epochs  N_kept=%d  N_eff=%.0f  n_blocks=%d" % (tau_int, n_kept_c4, n_eff, n_blocks))
+    print("  worst-tap SEM: naive=%.5f  blocking=%.5f  (blocking is honest; naive under-estimates)"
+          % (sem_naive, sem_worst))
+    print("  -> sigma(asym) ~ sqrt(2)*SEM_block = %.5f  (error-propagated; calibrate vs cross-run std)"
+          % (np.sqrt(2.0) * sem_worst))
 
     ref_csv = args.ref_csv or (args.ref_out + ".csv" if args.ref_out else None)
     if ref_csv:
@@ -223,9 +292,11 @@ def main():
         with open(ref_csv, "w") as fh:
             # '#' metadata line (aggregator reads it; np.genfromtxt skips it)
             fh.write("# kept_records=%d total_records=%d kept_fraction=%.4f n_segments_kept=%d "
+                     "tau_int=%.2f n_eff=%.1f n_blocks=%d sem_block_worst=%.6f asym=%.5f "
                      "cn0_min=%.1f lock_min=%.2f min_lock_run=%d settle=%d guard_before_loss=%d "
                      "signal=%s fs_hz=%s\n"
                      % (len(dense_ok), len(dense), kept_frac, n_kept,
+                        tau_int, n_eff, n_blocks, sem_worst, asym,
                         args.cn0_min, args.lock_min, args.min_lock_run, args.settle_epochs,
                         args.guard_before_loss, meta.get("signal", "?"), meta.get("sampling_frequency_hz", "?")))
             fh.write(hdr + "\n")

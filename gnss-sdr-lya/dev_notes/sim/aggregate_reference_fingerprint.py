@@ -131,14 +131,14 @@ def main():
     ap.add_argument("csvs", nargs="+", help="reference_Rtau CSV files (check_dense_vs_prompt.py --ref-csv)")
     ap.add_argument("--labels", help="comma list, one per csv; default = each file's parent dir name")
     ap.add_argument("--chip-m", type=float, help="chip length in meters (L1 C/A=293.0, B1I=146.6, L5=29.3) to also print widths in meters")
-    ap.add_argument("--min-epochs", type=int, default=2000,
-                    help="measurability floor on ABSOLUTE kept epochs. Naive SEM=tap_std/sqrt(N) "
-                         "assumes independent epochs, but tracking epochs are correlated over the loop "
-                         "memory (~tens of ms), so effective N << raw N; ~2000 raw (~2 s at decim=1) "
-                         "keeps enough effectively-independent samples. Not a kept-fraction gate.")
+    ap.add_argument("--min-blocks", type=int, default=20,
+                    help="measurability floor on EFFECTIVE independent samples (batch-means blocks, "
+                         "n_blocks=N/tau from the CSV). Epochs are correlated, so this gates on n_blocks, "
+                         "not raw epochs; ~20 blocks is the floor for a stable SEM estimate.")
     ap.add_argument("--sem-target", type=float, default=0.002,
-                    help="precision target: worst-tap SEM of |R(tau)| should be <= this "
-                         "(default 0.002 ~= 1/8 of the ~0.016 clean asymmetry)")
+                    help="INTERIM engineering threshold on the blocking (correlation-corrected) worst-tap "
+                         "SEM. NOT yet physically calibrated: the trusted uncertainty is the cross-run "
+                         "empirical std; sigma(asym)~sqrt(2)*SEM is printed for calibration against it.")
     ap.add_argument("--fwhm-cv-max", type=float, default=0.02,
                     help="reproducibility: max cross-run FWHM coefficient of variation to call a condition reproducible")
     ap.add_argument("--asym-std-max", type=float, default=0.003,
@@ -158,33 +158,37 @@ def main():
         taps, mag, tap_std, meta = load_csv(path)
         feat = features(taps, mag, tap_std)
         kept_frac = float(meta["kept_fraction"]) if "kept_fraction" in meta else float("nan")
-        n_kept = int(meta["kept_records"]) if "kept_records" in meta else (
-            int(round(kept_frac * int(meta["total_records"]))) if ("kept_fraction" in meta and "total_records" in meta) else -1)
-        sem = max_tap_sem(tap_std, n_kept)
-        runs.append((label, path, taps, mag, feat, kept_frac, n_kept, sem))
+        n_kept = int(meta["kept_records"]) if "kept_records" in meta else -1
+        n_eff = float(meta["n_eff"]) if "n_eff" in meta else float("nan")
+        n_blocks = int(meta["n_blocks"]) if "n_blocks" in meta else -1
+        # prefer the correlation-corrected (blocking) SEM from the CSV; fall back to naive
+        sem = float(meta["sem_block_worst"]) if "sem_block_worst" in meta else max_tap_sem(tap_std, n_kept)
+        runs.append(dict(label=label, path=path, taps=taps, mag=mag, feat=feat,
+                         kept_frac=kept_frac, n_kept=n_kept, n_eff=n_eff, n_blocks=n_blocks, sem=sem))
 
-    # ---- per-run table (precision = SEM; kept% is diagnostic only) ----
+    # ---- per-run table (precision = correlation-corrected SEM; kept% is diagnostic) ----
     print("=== per-run fingerprint features ===")
-    hdr = "label            peak_chip  fwhm_chips  asym_max   N_kept  max_SEM   kept%(diag)  file"
+    hdr = "label            peak_chip  fwhm_chips  asym_max   N_kept   N_eff  blk  SEM_blk   kept%  file"
     print(hdr); print("-" * len(hdr))
-    for label, path, _taps, _mag, f, kf, nk, sem in runs:
-        kfs = ("%4.0f" % (100 * kf)) if np.isfinite(kf) else "  NA"
-        nks = ("%7d" % nk) if nk >= 0 else "     NA"
-        sems = ("%.5f" % sem) if np.isfinite(sem) else "   NA"
-        under = "  <under-sampled>" if (nk >= 0 and nk < args.min_epochs) else ""
-        print("%-15s  %+8.4f  %10.4f  %8.4f  %s  %s      %s%%   %s%s"
-              % (label, f["peak_chip"], f["fwhm_chips"], f["asym_max"], nks, sems, kfs,
-                 os.path.basename(path), under))
+    for r in runs:
+        f = r["feat"]
+        nks = ("%7d" % r["n_kept"]) if r["n_kept"] >= 0 else "     NA"
+        nes = ("%6.0f" % r["n_eff"]) if np.isfinite(r["n_eff"]) else "    NA"
+        blk = ("%3d" % r["n_blocks"]) if r["n_blocks"] >= 0 else " NA"
+        sems = ("%.5f" % r["sem"]) if np.isfinite(r["sem"]) else "   NA"
+        kfs = ("%4.0f" % (100 * r["kept_frac"])) if np.isfinite(r["kept_frac"]) else "  NA"
+        under = "  <under-sampled>" if (r["n_blocks"] >= 0 and r["n_blocks"] < args.min_blocks) else ""
+        print("%-15s  %+8.4f  %10.4f  %8.4f  %s  %s  %s  %s   %s%%  %s%s"
+              % (r["label"], f["peak_chip"], f["fwhm_chips"], f["asym_max"], nks, nes, blk, sems, kfs,
+                 os.path.basename(r["path"]), under))
 
-    # ---- per-group: means, precision, reproducibility, verdict ----
+    # ---- per-group: means, precision, reproducibility (PRIMARY), calibration, verdict ----
     print("\n=== per-group baseline (mean +/- std over repeats) ===")
     groups = {}
     for r in runs:
-        groups.setdefault(r[0], []).append(r)
+        groups.setdefault(r["label"], []).append(r)
     for label, items in groups.items():
-        flist = [r[4] for r in items]
-        nks = [r[6] for r in items]
-        sems = [r[7] for r in items]
+        flist = [r["feat"] for r in items]
         n = len(flist)
         print("[%s] n=%d" % (label, n))
         for key in FEATURE_KEYS:
@@ -195,16 +199,18 @@ def main():
                 line += "   (%.2f +/- %.2f m)" % (mean * args.chip_m, std * args.chip_m)
             print(line)
 
-        # measurability + precision
-        min_nk = min([x for x in nks if x >= 0], default=-1)
-        worst_sem = np.nanmax(sems) if any(np.isfinite(s) for s in sems) else float("nan")
-        measurable = (min_nk < 0) or (min_nk >= args.min_epochs)   # unknown N -> don't fail on it
+        # precision (correlation-corrected) + measurability on effective blocks
+        blks = [r["n_blocks"] for r in items if r["n_blocks"] >= 0]
+        min_blk = min(blks) if blks else -1
+        sems = [r["sem"] for r in items if np.isfinite(r["sem"])]
+        worst_sem = max(sems) if sems else float("nan")
+        measurable = (min_blk < 0) or (min_blk >= args.min_blocks)
         precise = np.isfinite(worst_sem) and worst_sem <= args.sem_target
-        print("    precision:     min N_kept=%s   worst max-SEM=%s (target %.4f)"
-              % (("unknown" if min_nk < 0 else str(min_nk)),
+        print("    precision:     min n_blocks=%s   worst SEM_block=%s (interim target %.4f)"
+              % (("unknown" if min_blk < 0 else str(min_blk)),
                  ("%.5f" % worst_sem if np.isfinite(worst_sem) else "NA"), args.sem_target))
 
-        # reproducibility across repeats
+        # reproducibility across repeats -- the assumption-free, PRIMARY uncertainty
         fwhm = np.array([fl["fwhm_chips"] for fl in flist], dtype=float)
         asym = np.array([fl["asym_max"] for fl in flist], dtype=float)
         peak = np.array([fl["peak_chip"] for fl in flist], dtype=float)
@@ -212,31 +218,33 @@ def main():
         asym_std = float(np.nanstd(asym))
         reproducible = (n >= 2) and np.isfinite(cv) and (cv <= args.fwhm_cv_max) and (asym_std <= args.asym_std_max)
         if n >= 2:
-            print("    reproducibility: FWHM CV=%.2f%%  asym std=%.4f  peak std=%.4f chip  (n=%d)"
+            print("    reproducibility: FWHM CV=%.2f%%  asym std=%.5f  peak std=%.5f chip  (n=%d)"
                   % (100 * cv, asym_std, float(np.nanstd(peak)), n))
+            # calibration: cross-run empirical sigma(asym) vs error-propagated within-run prediction
+            pred = float(np.sqrt(2.0) * worst_sem) if np.isfinite(worst_sem) else float("nan")
+            if np.isfinite(pred) and pred > 0:
+                ratio = asym_std / pred
+                tag = ("consistent" if 0.33 <= ratio <= 3.0 else
+                       ("cross-run >> within-run SEM: between-run systematics dominate -> trust empirical"
+                        if ratio > 3.0 else "cross-run << SEM (very few runs / underestimate)"))
+                print("    calibration:   sigma(asym) empirical=%.5f  vs  sqrt(2)*SEM=%.5f  ratio=%.1f -> %s"
+                      % (asym_std, pred, ratio, tag))
         else:
-            print("    reproducibility: n=1 (need repeats to assess)")
+            print("    reproducibility: n=1 (need repeats; cross-run std is the trusted uncertainty)")
 
-        # verdict
         if not measurable:
-            verdict = "INSUFFICIENT (min N_kept %d < %d -> R(tau) not well-determined)" % (min_nk, args.min_epochs)
+            verdict = "INSUFFICIENT (min n_blocks %d < %d; SEM/uncertainty unreliable)" % (min_blk, args.min_blocks)
         elif n < 2:
-            verdict = "SINGLE-RUN (precision %s; repeat >=3x for a trusted baseline)" % ("OK" if precise else "weak")
-        elif precise and reproducible:
-            verdict = "TRUSTWORTHY (precise + reproducible)"
+            verdict = "SINGLE-RUN (repeat >=3x; trust is cross-run reproducibility, not one SEM)"
+        elif reproducible:
+            verdict = "TRUSTWORTHY (reproducible across runs)"
         else:
-            reasons = []
-            if not precise:
-                reasons.append("SEM %.5f > target %.4f" % (worst_sem, args.sem_target))
-            if not reproducible:
-                reasons.append("not reproducible (FWHM CV %.2f%% / asym std %.4f)" % (100 * cv, asym_std))
-            verdict = "MARGINAL (" + "; ".join(reasons) + ")"
-        print("    VERDICT: %s" % verdict)
+            verdict = "MARGINAL (not reproducible: FWHM CV %.2f%% / asym std %.5f)" % (100 * cv, asym_std)
+        print("    VERDICT: %s  [precision: %s]" % (verdict, "OK" if precise else "SEM above interim target"))
 
-        # kept fraction kept only as a tracking-health diagnostic
-        valid_kf = [r[5] for r in items if np.isfinite(r[5])]
+        valid_kf = [r["kept_frac"] for r in items if np.isfinite(r["kept_frac"])]
         if valid_kf:
-            print("    diag: kept_fraction mean %.0f%% min %.0f%% (tracking-churn indicator, not a quality gate)"
+            print("    diag: kept_fraction mean %.0f%% min %.0f%% (tracking-churn indicator, not a gate)"
                   % (100 * np.mean(valid_kf), 100 * min(valid_kf)))
 
     if args.plot:
@@ -247,7 +255,7 @@ def main():
         color_of, seen = {}, set()
         fig, ax = plt.subplots(figsize=(10, 6))
         for r in runs:
-            label, taps, mag = r[0], r[2], r[3]
+            label, taps, mag = r["label"], r["taps"], r["mag"]
             color_of.setdefault(label, colors[len(color_of) % len(colors)])
             ax.plot(taps, mag, lw=1.0, alpha=0.7, color=color_of[label],
                     label=None if label in seen else label)

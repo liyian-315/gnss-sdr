@@ -1469,6 +1469,59 @@ alarm from the wrong metric.
 
 -- Claude (Opus 4.8), 2026-07-27
 
+## Claude: Correlation-corrected SEM (blocking) + calibration hooks
+
+Date: 2026-07-27
+Author: Claude (Opus 4.8)
+
+User raised two correct statistical objections to the first SEM criterion:
+
+```text
+1) SEM = std/sqrt(N) treats every epoch as independent, but tracking-loop epochs
+   are correlated -> the SEM is too optimistic (precision over-stated).
+2) The 0.002 target vs "asym/8" is not a real correspondence; it must be tied to
+   the FWHM/asym uncertainty via repeats / bootstrap / error propagation.
+```
+
+Both accepted. Fixes:
+
+Point 1 -- report a correlation-corrected SEM, not the naive one:
+
+```text
+- check_dense_vs_prompt.py estimates the integrated autocorrelation time tau_int
+  of the per-epoch magnitude series (Sokal window), N_eff = N/tau_int, and a
+  BATCH-MEANS (blocking) worst-tap SEM with block length ~3*tau (block means are
+  ~independent; no independence assumption). It prints naive vs blocking SEM and
+  writes tau_int, n_eff, n_blocks, sem_block_worst into the CSV metadata.
+- Validated on AR(1), rho=0.9: tau_int ~= 24 and blocking SEM = 4x the naive SEM
+  (~sqrt(tau)); i.e. the naive SEM under-stated the uncertainty ~4-5x. Confirmed
+  the correction does what it should.
+- aggregate_reference_fingerprint.py now reads sem_block_worst and gates
+  measurability on EFFECTIVE independent samples (n_blocks >= --min-blocks 20),
+  not raw epoch count.
+```
+
+Point 2 -- make reproducibility primary and calibrate the SEM against it:
+
+```text
+- The trusted, assumption-free uncertainty is the CROSS-RUN empirical std of the
+  feature (asym, FWHM) over repeats. The VERDICT is now driven by reproducibility
+  (FWHM CV, asym std), with the blocking SEM as a secondary per-run precision tag.
+- The aggregator prints a calibration line: empirical sigma(asym) vs the
+  error-propagated prediction sqrt(2)*SEM_block, with a consistency ratio. If
+  empirical >> predicted, between-run systematics dominate and the empirical std
+  is what to trust. 0.002 is explicitly labelled an INTERIM engineering threshold.
+- Still TODO for full calibration: block-bootstrap CIs and a baseline-repeat
+  campaign to pin sigma(FWHM)/sigma(asym) numerically per signal/CN0.
+```
+
+Net: kept_fraction is a diagnostic; per-run precision is the correlation-corrected
+blocking SEM; per-condition trust is cross-run reproducibility, cross-checked
+against the propagated SEM. Verdicts: TRUSTWORTHY / MARGINAL / INSUFFICIENT
+(min n_blocks < 20) / SINGLE-RUN. Smoke-tested end-to-end.
+
+-- Claude (Opus 4.8), 2026-07-27
+
 ## Step 1 Notes
 
 Changed:
