@@ -110,13 +110,27 @@ def features(taps, mag, tap_std):
 FEATURE_KEYS = ["peak_chip", "fwhm_chips", "asym_max", "skew_chips", "noise_floor", "tap_std_mean"]
 
 
+def grade(kf, good_th, usable_th):
+    """Three-tier kept-fraction grade (Codex 2026-07-27): fits the experiment stage
+    better than binary pass/fail."""
+    if not np.isfinite(kf):
+        return "NA"
+    if kf >= good_th:
+        return "GOOD"
+    if kf >= usable_th:
+        return "USABLE"
+    return "REJECT"
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("csvs", nargs="+", help="reference_Rtau CSV files (check_dense_vs_prompt.py --ref-csv)")
     ap.add_argument("--labels", help="comma list, one per csv; default = each file's parent dir name")
     ap.add_argument("--chip-m", type=float, help="chip length in meters (L1 C/A=293.0, B1I=146.6, L5=29.3) to also print widths in meters")
     ap.add_argument("--min-kept-fraction", type=float, default=0.2,
-                    help="flag runs/conditions whose sustained-locked kept fraction is below this")
+                    help="REJECT below this kept fraction (also the USABLE/REJECT boundary)")
+    ap.add_argument("--good-fraction", type=float, default=0.5,
+                    help="GOOD at or above this kept fraction (USABLE/GOOD boundary)")
     ap.add_argument("--plot", help="overlay |R(tau)| of all runs to this PNG")
     args = ap.parse_args()
 
@@ -136,14 +150,14 @@ def main():
 
     # ---- per-run table ----
     print("=== per-run fingerprint features ===")
-    hdr = "label            peak_chip  fwhm_chips  asym_max  skew_chips  noise_floor  tap_std_mean  kept%  file"
+    hdr = "label            peak_chip  fwhm_chips  asym_max  skew_chips  noise_floor  tap_std_mean  kept%  grade    file"
     print(hdr); print("-" * len(hdr))
     for label, path, _taps, _mag, f, kf in runs:
         kfs = ("%5.1f" % (100 * kf)) if np.isfinite(kf) else "   NA"
-        flag = "  <LOW-KEPT>" if (np.isfinite(kf) and kf < args.min_kept_fraction) else ""
-        print("%-15s  %+8.4f  %10.4f  %8.4f  %+9.4f  %11.5f  %12.5f  %s  %s%s"
+        tier = grade(kf, args.good_fraction, args.min_kept_fraction)
+        print("%-15s  %+8.4f  %10.4f  %8.4f  %+9.4f  %11.5f  %12.5f  %s  %-7s  %s"
               % (label, f["peak_chip"], f["fwhm_chips"], f["asym_max"], f["skew_chips"],
-                 f["noise_floor"], f["tap_std_mean"], kfs, os.path.basename(path), flag))
+                 f["noise_floor"], f["tap_std_mean"], kfs, tier, os.path.basename(path)))
 
     # ---- per-group mean +/- std ----
     print("\n=== per-group baseline (mean +/- std over repeats) ===")
@@ -164,11 +178,11 @@ def main():
             print(line)
         valid_kf = [k for k in kfs if np.isfinite(k)]
         if valid_kf:
-            below = sum(1 for k in valid_kf if k < args.min_kept_fraction)
-            print("    kept_fraction  mean %.1f%%  min %.1f%%  (%d/%d below %.0f%%)%s"
-                  % (100 * np.mean(valid_kf), 100 * min(valid_kf), below, len(valid_kf),
-                     100 * args.min_kept_fraction,
-                     "  <-- UNDER-SAMPLED CONDITION, treat fingerprint as low-confidence" if below else ""))
+            tiers = [grade(k, args.good_fraction, args.min_kept_fraction) for k in valid_kf]
+            ng, nu, nr = tiers.count("GOOD"), tiers.count("USABLE"), tiers.count("REJECT")
+            print("    kept_fraction  mean %.1f%%  min %.1f%%   grades: GOOD=%d USABLE=%d REJECT=%d%s"
+                  % (100 * np.mean(valid_kf), 100 * min(valid_kf), ng, nu, nr,
+                     "  <-- has REJECT run(s), low-confidence" if nr else ""))
         if n >= 3:
             fwhm = np.array([fl["fwhm_chips"] for fl in flist])
             asym = np.array([fl["asym_max"] for fl in flist])
