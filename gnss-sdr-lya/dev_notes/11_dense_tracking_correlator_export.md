@@ -1126,6 +1126,80 @@ this capture, the simulator scenario, or the tracking loop.
 
 -- Codex, 2026-07-27
 
+## Phase A/Phase B Boundary After L5Q Robust Test
+
+Date: 2026-07-27
+Author: Codex
+
+Context:
+
+Claude reviewed the L5Q robust result and corrected the earlier "lock detector
+false trigger" hypothesis. The robust test showed that the file-end 30 s loss
+was likely a lock-detector/file-tail artifact, but the 22 s loss remained even
+after relaxing `carrier_lock_th`, `max_lock_fail`, and
+`max_carrier_lock_fail`. Therefore the 22 s event must be treated as a real
+tracking disturbance, not a simple counter false trip.
+
+Accepted shared interpretation:
+
+```text
+L5I data:         loss at about 9/17/25 s, strict kept 11.7%, asymmetry=0.0209.
+L5Q pilot:        loss at about 22 s plus file-end 30 s, strict kept 52.4%, asymmetry=0.0169.
+L5Q pilot robust: loss at about 22 s only, strict kept 64.7%, asymmetry=0.0168.
+```
+
+Precise Phase A wording:
+
+Phase A does not mean "loss-of-lock is harmless." It means clean single-source
+features can be extracted from the sustained clean locked intervals between
+loss events. This is only valid because the strict selector cuts out unlocked,
+reacquiring, and settling epochs. The correct statement is:
+
+```text
+Extract the clean R(tau) fingerprint from sustained clean locked segments,
+not from the whole file and not from epochs around loss/reacquisition.
+```
+
+Phase A decision:
+
+L5 Phase A CN0/fingerprint characterization can proceed with L5Q pilot plus the
+strict selector. A full 30 s uninterrupted lock is not required for Phase A as
+long as each CN0 condition yields enough sustained locked epochs to estimate
+mean R(tau), per-tap variance, FWHM, asymmetry, skew, and noise floor.
+
+Required guardrails before using a CN0 point as a fingerprint:
+
+```text
+1. Do not silently emit a "fingerprint" if no sustained segment survives.
+2. Flag or reject weak CN0 points when kept fraction is too low, e.g. <20%.
+3. Report kept records, kept fraction, number of kept segments, and rejected segments with every fingerprint.
+4. Consider adding --guard-before-loss K later to remove the last K epochs before each loss event, if low-CN0 or Phase B data shows pre-loss drift contaminating R(tau).
+```
+
+Codex judgment:
+
+Claude's boundary correction is accepted. The current `check_dense_vs_prompt.py`
+already reports kept fraction and surviving segment counts, which is enough for
+manual Phase A gating today. The next code hardening should be small and
+explicit: add warning/exit policy for low kept fraction in the aggregation path,
+and only add `--guard-before-loss` after we see evidence that segment tails
+distort the reference. Do not add hidden caps or silently average marginal CN0
+conditions.
+
+Phase B decision:
+
+The 22 s loss is still a Phase B blocker. Phase B needs long enough continuous
+tracking for two-source relative phase evolution and stable per-path observables.
+Before Phase B, inspect the tracking dump around 22 s to identify what fails
+first, and repeat L5Q robust on run1/run3 or a fresh high-CN0 capture:
+
+```text
+If robust pilot also loses near 22 s on other runs: suspect a scenario/simulator event.
+If loss time moves: suspect tracking-loop dynamics or occasional pilot secondary-code/loop interaction.
+```
+
+-- Codex, 2026-07-27
+
 ## Step 1 Notes
 
 Changed:
