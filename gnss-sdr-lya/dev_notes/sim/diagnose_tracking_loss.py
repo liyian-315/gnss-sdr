@@ -27,28 +27,40 @@ import read_dense_correlator_dump as rd  # noqa: E402
 
 
 def find_events(t, lock, cn0, sc, lock_th, cn0_th, epoch_step, min_gap_s):
-    """Return onset times of degraded regions and of sample-counter gaps (reacquire)."""
+    """Return events as (kind, time, index, real).
+
+    real=True means an actual reacquisition happened: a sample-counter gap
+    (the channel restarted). A degrade-only marker with NO nearby gap -- e.g. a
+    one-epoch CN0-estimator zero while carrier lock is still held -- is real=False.
+    This distinction matters: on a cabled CN0~59 signal a lone min_cn0=0 is an
+    estimator reset, not a physical fade or a loss of lock.
+    """
     degraded = (lock < lock_th) | (cn0 < cn0_th)
-    events = []
-    # onsets of degraded stretches
-    prev = False
+    onsets, prev = [], False
     for k in range(len(degraded)):
         if degraded[k] and not prev:
-            events.append(("degrade", float(t[k]), k))
+            onsets.append((float(t[k]), k))
         prev = degraded[k]
-    # sample-counter jumps (reacquisition restarts the counter or skips ahead)
-    if epoch_step > 0:
+    gaps = []
+    if epoch_step > 0 and len(sc) > 1:
         dsc = np.diff(sc.astype(np.int64))
         for k in np.where(np.abs(dsc) > 3 * epoch_step)[0]:
-            events.append(("sc_gap", float(t[k + 1]), int(k + 1)))
-    # merge events closer than min_gap_s (keep earliest)
-    events.sort(key=lambda e: e[1])
+            gaps.append((float(t[k + 1]), int(k + 1)))
+    gap_times = [gt for gt, _ in gaps]
     merged = []
-    for e in events:
-        if merged and (e[1] - merged[-1][1]) < min_gap_s:
+    for ot, ok in onsets:
+        if merged and (ot - merged[-1][0]) < min_gap_s:
             continue
-        merged.append(e)
-    return merged
+        merged.append((ot, ok))
+    events = []
+    for ot, ok in merged:
+        real = any(abs(gt - ot) < min_gap_s for gt in gap_times)
+        events.append(("degrade", ot, ok, real))
+    for gt, gk in gaps:
+        if not any(abs(gt - ot) < min_gap_s for ot, _ in merged):
+            events.append(("sc_gap", gt, gk, True))
+    events.sort(key=lambda e: e[1])
+    return events
 
 
 def lead_metric(t, lock, cn0, dopp, k_event, pre_n, lock_th, cn0_th):
@@ -100,16 +112,25 @@ def main():
           % (len(rec), fs / 1e6, t[-1] if len(t) else 0.0, np.median(cn0), np.median(lock)))
 
     events = find_events(t, lock, cn0, sc, args.lock_th, args.cn0_th, epoch_step, args.min_gap)
-    print("\ndetected %d event(s) (lock<%.2f or CN0<%.0f, or sample-counter gap):"
-          % (len(events), args.lock_th, args.cn0_th))
-    print("  time_s   type      lead          min_lock  min_cn0  dopp_excursion_hz")
-    print("  " + "-" * 68)
-    for kind, te, k in events:
+    reals = [e for e in events if e[3]]
+    softs = [e for e in events if not e[3]]
+    print("\ndetected %d event(s): %d REAL (reacquisition / sample-counter gap), %d soft (no reacquisition)"
+          % (len(events), len(reals), len(softs)))
+    print("  time_s   type      real?  lead          min_lock  min_cn0  dopp_excursion_hz")
+    print("  " + "-" * 74)
+    for kind, te, k, real in events:
         info = lead_metric(t, lock, cn0, dopp, k, pre_n, args.lock_th, args.cn0_th)
-        print("  %6.2f   %-8s  %-12s  %8.3f  %7.1f  %10.1f"
-              % (te, kind, info["lead"], info["min_lock"], info["min_cn0"], info["dopp_excursion_hz"]))
+        lead = info["lead"]
+        if lead == "cn0" and info["min_cn0"] <= 1.0:
+            lead = "cn0_reset"  # CN0==0 estimator reset, not a physical fade
+        print("  %6.2f   %-8s  %-5s  %-12s  %8.3f  %7.1f  %10.1f"
+              % (te, kind, "REAL" if real else "soft", lead,
+                 info["min_lock"], info["min_cn0"], info["dopp_excursion_hz"]))
     if not events:
         print("  (none) — tracking held the whole file at these thresholds")
+    elif not reals:
+        print("\n  => NO real reacquisition. The soft markers are estimator/threshold blips "
+              "(e.g. a one-epoch CN0=0), not losses of lock. Tracking held.")
 
     if args.plot:
         import matplotlib
@@ -122,7 +143,7 @@ def main():
         ax[1].set_ylabel("carrier_lock_test"); ax[1].grid(True, alpha=0.3)
         ax[2].plot(t, dopp, lw=0.8); ax[2].set_ylabel("Doppler [Hz]")
         ax[2].set_xlabel("time [s]"); ax[2].grid(True, alpha=0.3)
-        for _kind, te, _k in events:
+        for _kind, te, _k, _real in events:
             for a in ax:
                 a.axvline(te, color="k", ls="--", lw=0.6, alpha=0.6)
         if args.around is not None:

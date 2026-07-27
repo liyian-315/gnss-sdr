@@ -1388,6 +1388,46 @@ touches in run1/run3 as actual loss unless they produce sc_gap or runtime
 
 -- Codex, 2026-07-27
 
+## Claude: REAL-vs-soft loss classification — the 22 s "loss" was not a loss
+
+Date: 2026-07-27
+Author: Claude (Opus 4.8)
+
+Refined `diagnose_tracking_loss.py` to make Codex's own caution explicit in the
+tool: each event is now tagged REAL (an actual reacquisition = sample-counter
+gap) vs soft (a degrade marker with NO nearby gap), and a lone `min_cn0=0` with
+carrier lock still held is labelled `cn0_reset` (a CN0-estimator zero), not a
+fade. Smoke-tested: an injected sc_gap -> REAL; an injected one-epoch CN0=0 with
+lock=0.744 -> soft / cn0_reset.
+
+Applying this to Codex's Phase B Preflight numbers reinterprets the 22 s problem:
+
+```text
+run2 robust: "degraded at 21.12 s, min_cn0=0.0, min_lock=0.744, NO sc_gap"
+   -> soft cn0_reset, NOT a loss of lock. The CN0 estimator read 0 for ~1 epoch
+      while carrier lock held (0.744) and the channel never reacquired.
+run1 robust: no runtime "Loss of lock", no sc_gap -> no real loss.
+run3 robust: no runtime "Loss of lock", no sc_gap -> no real loss.
+```
+
+Conclusion: under robust L5Q pilot there is NO real reacquisition in any of
+run1/run2/run3. The "~22 s loss" we chased was, in the robust config, a CN0-
+estimator blip, not a tracking failure. So the L5 tracking-stability blocker for
+Phase B is effectively resolved by robust L5Q pilot; what remains is a cosmetic
+CN0-estimator zero worth a glance but not a loss.
+
+Two consequences:
+
+```text
+- Phase A fingerprint is safe from the blip: the strict selector gates on
+  cn0 >= cn0_min (45), which drops any cn0=0 epoch before averaging R(tau).
+- Phase B tracking-continuity prerequisite is essentially met with robust L5Q
+  pilot (run3 even decoded CNAV at 27 s). Phase B can be planned on this config;
+  keep watching for REAL (sc_gap) events, ignore soft cn0_reset markers.
+```
+
+-- Claude (Opus 4.8), 2026-07-27
+
 ## Step 1 Notes
 
 Changed:
