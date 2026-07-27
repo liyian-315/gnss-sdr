@@ -1049,6 +1049,83 @@ on a fresh high-CN0 capture and shows consistent kept-fraction improvement.
 
 -- Codex, 2026-07-27
 
+## Phase A Action (2b) Result - L5Q Pilot Robust Lock-Tolerance Test
+
+Date: 2026-07-27
+Author: Codex
+
+Test setup:
+
+```text
+Purpose: test Claude's hypothesis that the remaining L5Q loss-of-lock is mostly lock-detector false trigger.
+Raw data: /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_run2_shm/l5_phaseA_prn28_pwr50_20m_g40_30s_run2_shm_ishort.dat
+Output: /home/bupt/lya/gnss_data/phaseA_l5_prn28_pwr50_20m_run2_PILOT_ROBUST/
+Only intended change vs pilot run: --carrier-lock-th 0.55 --max-lock-fail 300 --max-carrier-lock-fail 20000
+```
+
+Command core:
+
+```text
+python3 dev_notes/sim/make_l5_dualpath_conf.py --source file --input "$RAW" --sample-type ishort --output /tmp/l5_pilot_robust.conf --prns 28 --rate 20000000 --scenario cable --track-pilot --carrier-lock-th 0.55 --max-lock-fail 300 --max-carrier-lock-fail 20000 --enable-dense-correlator --dense-taps=-1.5:0.1:1.5 --dense-decimation 1 --dense-dump-prefix "$OUT/l5_pilotrobust_dense_ch_"
+```
+
+Runtime result:
+
+```text
+Tracking mode: GPS L5Q signal started on channel 0.
+Loss-of-lock: 1 event, around 22 s.
+The previous pilot run's 30 s file-end loss/restart disappeared.
+No CNAV/DUALPATH_OBS observed in this pilot-only offline run.
+```
+
+Strict dense check without `--trk`:
+
+```text
+dense records: 29751
+lock gate (CN0>=45, lock>=0.60): 19683 / 29751
+locked segments: 4 total, 2 kept (>=2000 records)
+kept after settle=200, min-run=2000: 19257 records (64.7% of file)
+Criterion (3): skipped, as expected for pilot dense vs data prompt mismatch
+Criterion (4): peak at 0.000 chip, R(0)=1.000+0.000j, asymmetry=0.0168
+```
+
+Single-run aggregate features:
+
+```text
+peak_chip   = -0.0029 chip (-0.08 m)
+fwhm_chips  =  1.1294 chip (33.09 m)
+asym_max    =  0.0163
+skew_chips  =  0.0039 chip (0.11 m)
+noise_floor =  0.03965
+tap_std_mean=  0.01927
+```
+
+A/B/C comparison on the same run2 raw:
+
+```text
+L5I data:         loss at about 9/17/25 s, strict kept 3437 / 29495 (11.7%), asymmetry=0.0209.
+L5Q pilot:        loss at about 22 s plus file-end 30 s, strict kept 15505 / 29593 (52.4%), asymmetry=0.0169.
+L5Q pilot robust: loss at about 22 s only, strict kept 19257 / 29751 (64.7%), asymmetry=0.0168.
+```
+
+Codex judgment:
+
+Claude's refinement is accepted with the result above. For Phase A fingerprint
+extraction, we do not need perfect 30 s continuous lock. We need enough sustained
+clean locked epochs after strict selection, and the L5Q pilot robust run provides
+that: 64.7% kept, stable FWHM around 33.09 m, and low asymmetry around 0.016.
+Therefore Phase A CN0/fingerprint characterization can proceed with L5Q pilot
+and the strict selector.
+
+For Phase B continuous two-source tracking, the remaining 22 s loss still matters.
+The robust tolerance test improves the file-end behavior and kept fraction, but
+does not prove the remaining loss is only a lock-detector false trigger. The next
+Phase B-facing work should inspect loop/lock metrics around 22 s or repeat pilot
+robust on run1/run3/fresh high-CN0 data to see whether the 22 s event is tied to
+this capture, the simulator scenario, or the tracking loop.
+
+-- Codex, 2026-07-27
+
 ## Step 1 Notes
 
 Changed:
