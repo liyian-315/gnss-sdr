@@ -972,6 +972,83 @@ Two caveats baked into the tooling (do not misread them as regressions):
 
 -- Claude (Opus 4.8), 2026-07-26
 
+## Phase A Action (2) Result - L5Q Pilot Tracking A/B on Run2
+
+Date: 2026-07-27
+Author: Codex
+
+Test setup:
+
+```text
+Purpose: compare L5I data tracking vs L5Q pilot tracking without recapture.
+Raw data: /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_run2_shm/l5_phaseA_prn28_pwr50_20m_g40_30s_run2_shm_ishort.dat
+Pilot output: /home/bupt/lya/gnss_data/phaseA_l5_prn28_pwr50_20m_run2_PILOT/
+Only intended change: make_l5_dualpath_conf.py --track-pilot
+```
+
+Pilot run artifacts:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_pwr50_20m_run2_PILOT/run_pilot.log
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_pwr50_20m_run2_PILOT/l5_pilot_dense_ch_0.dat
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_pwr50_20m_run2_PILOT/l5_pilot_dense_ch_0.dat.json
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_pwr50_20m_run2_PILOT/l5_pilot_run2_Rtau.png
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_pwr50_20m_run2_PILOT/l5_pilot_run2_Rtau.png.csv
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_pwr50_20m_run2_PILOT/l5_pilot_run2_fp.png
+```
+
+Runtime result:
+
+```text
+Tracking mode: GPS L5Q signal started on channel 0.
+Loss-of-lock: 2 events, around 22 s and 30 s.
+Tracking restarts: 3 total starts.
+No CNAV/DUALPATH_OBS observed in this pilot-only offline run.
+```
+
+Strict dense check without `--trk`:
+
+```text
+dense records: 29593
+lock gate (CN0>=45, lock>=0.60): 15731 / 29593
+locked segments: 3 total, 1 kept (>=2000 records)
+kept after settle=200, min-run=2000: 15505 records (52.4% of file)
+Criterion (3): skipped, as expected for pilot dense vs data prompt mismatch
+Criterion (4): peak at 0.000 chip, R(0)=1.000+0.000j, asymmetry=0.0169
+```
+
+Single-run aggregate features:
+
+```text
+peak_chip   = -0.0028 chip (-0.08 m)
+fwhm_chips  =  1.1292 chip (33.09 m)
+asym_max    =  0.0163
+skew_chips  =  0.0039 chip (0.11 m)
+noise_floor =  0.03966
+tap_std_mean=  0.01926
+```
+
+A/B comparison against L5I data-tracking run2:
+
+```text
+L5I data run2:  loss-of-lock at about 9/17/25 s, strict kept 3437 / 29495 (11.7%), asymmetry=0.0209.
+L5Q pilot run2: loss-of-lock at about 22/30 s, strict kept 15505 / 29593 (52.4%), asymmetry=0.0169.
+```
+
+Codex judgment:
+
+This is a partial WIN, not a full WIN. `--track-pilot` clearly improves the
+usable locked fraction and delays/reduces loss-of-lock events on the same raw
+capture, so the L5I data component is part of the tracking churn. However, pilot
+tracking still loses lock twice in a 30 s file, so it does not fully cure the
+problem. The next decision should be conservative: use L5Q pilot as the better
+Phase A/B L5 tracking mode, but continue debugging the remaining periodic lock
+loss through loop parameters, lock-fail counters, or simulator periodic effects.
+Do not start the full CN0 sweep until pilot tracking is repeated on run1/run3 or
+on a fresh high-CN0 capture and shows consistent kept-fraction improvement.
+
+-- Codex, 2026-07-27
+
 ## Step 1 Notes
 
 Changed:
