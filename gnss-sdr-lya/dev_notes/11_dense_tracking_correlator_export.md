@@ -1282,6 +1282,112 @@ carrier-lock drop with a Doppler excursion is attributed to `carrier_lock`.
 
 -- Claude (Opus 4.8), 2026-07-27
 
+## Phase B Preflight - L5Q Robust 22s Loss Diagnosis on Existing Runs
+
+Date: 2026-07-27
+Author: Codex
+
+Purpose:
+
+Use `dev_notes/sim/diagnose_tracking_loss.py` to diagnose the remaining L5Q
+robust loss around 22 s, and repeat L5Q pilot robust on the existing `-50 dBm /
+20 Msps` run1 and run3 raw files. This requires no recapture and no simulator.
+
+Inputs:
+
+```text
+run1 raw: /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_run1_shm/l5_phaseA_prn28_pwr50_20m_g40_30s_shm_ishort.dat
+run2 raw: /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_run2_shm/l5_phaseA_prn28_pwr50_20m_g40_30s_run2_shm_ishort.dat
+run3 raw: /home/bupt/lya/gnss_data/phaseA_l5_prn28_20260726_pwr50_20m_run3_shm/l5_phaseA_prn28_pwr50_20m_g40_30s_run3_shm_ishort.dat
+```
+
+Common robust pilot settings:
+
+```text
+--track-pilot
+--carrier-lock-th 0.55
+--max-lock-fail 300
+--max-carrier-lock-fail 20000
+--enable-dense-correlator
+--dense-taps=-1.5:0.1:1.5
+--dense-decimation 1
+```
+
+Run2 same-raw diagnostic comparison:
+
+```text
+L5I data run2:
+  dense records=29495, median CN0=54.9, median lock=0.013
+  events: startup CN0=0, sc_gap at 8.11/16.20/24.30 s
+  lead metric at sc_gap events: carrier_lock
+
+L5Q pilot run2:
+  dense records=29593, median CN0=59.5, median lock=0.719
+  events: startup CN0=0, degraded at 21.09 s, sc_gap at 29.20 s
+  21.09 s event: lead=cn0, min_lock=0.744, min_cn0=0.0, Doppler excursion about 725.7 Hz
+
+L5Q pilot robust run2:
+  dense records=29751, median CN0=59.3, median lock=0.813
+  events: startup CN0=0, degraded at 21.12 s
+  21.12 s event: lead=cn0, min_lock=0.744, min_cn0=0.0, Doppler excursion about 73.7 Hz
+```
+
+Run1/run3 robust pilot repeat:
+
+```text
+run1 robust pilot:
+  Runtime: no "Loss of lock" log lines; DUALPATH_OBS valid from about 18..30 s, CN0 about 63.5..64.1 dB-Hz.
+  Diagnose: startup CN0=0; brief carrier_lock threshold touches at 16.33/22.32/24.44 s.
+  At those diagnostic touches, CN0 stays about 63.4..63.7 and no sample-counter gap / reacquisition occurs.
+
+run3 robust pilot:
+  Runtime: no "Loss of lock" log lines; DUALPATH_OBS valid from about 16..30 s, CN0 about 63.7..64.3 dB-Hz.
+  Runtime: GPS L5 CNAV ephemeris received at 27 s.
+  Diagnose: startup CN0=0; one brief carrier_lock threshold touch at 6.91 s.
+  CN0 stays about 63.7 and no sample-counter gap / reacquisition occurs.
+```
+
+Phase A robust pilot aggregate across run1/run2/run3:
+
+```text
+run1 kept_fraction=54.0%, asym_max=0.0158, FWHM=1.1302 chip
+run2 kept_fraction=64.7%, asym_max=0.0163, FWHM=1.1294 chip
+run3 kept_fraction=82.3%, asym_max=0.0161, FWHM=1.1303 chip
+
+group FWHM = 1.1299 +/- 0.0004 chip = 33.11 +/- 0.01 m
+group asym_max = 0.0161 +/- 0.0002
+group kept_fraction mean=67.0%, min=54.0%, 0/3 below 20%
+```
+
+Generated artifacts:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_pwr50_20m_run1_PILOT_ROBUST/
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_pwr50_20m_run2_PILOT_ROBUST/
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_pwr50_20m_run3_PILOT_ROBUST/
+/home/bupt/lya/gnss_data/phaseA_l5_prn28_pwr50_20m_pilotrobust_fp.png
+```
+
+Codex judgment:
+
+The run2 21.1 s event is not a fixed simulator/scenario event: run1 and run3 do
+not lose lock near 22 s under the same robust L5Q pilot settings. The data also
+does not look like a broadband raw-sample glitch shared across tracking modes:
+L5I data tracking loses via sample-counter gaps at 8/16/24 s, while robust L5Q
+pilot run2 shows a CN0=0 degraded marker around 21.1 s without an sc_gap.
+
+For Phase A, this strengthens the decision to proceed: robust L5Q pilot gives a
+repeatable high-CN0 clean fingerprint with no under-sampled repeats.
+
+For Phase B, the remaining issue appears run-specific / loop-state-specific
+rather than a fixed scene event. The next Phase B diagnostic should inspect the
+dense time series around run2 21.1 s in more detail (CN0 estimator reset vs
+tracking-loop state), and avoid interpreting brief carrier_lock threshold
+touches in run1/run3 as actual loss unless they produce sc_gap or runtime
+"Loss of lock" lines.
+
+-- Codex, 2026-07-27
+
 ## Step 1 Notes
 
 Changed:
