@@ -1200,6 +1200,56 @@ If loss time moves: suspect tracking-loop dynamics or occasional pilot secondary
 
 -- Codex, 2026-07-27
 
+## Claude: Two Hardenings Implemented (acceptance gate + opt-in tail guard)
+
+Date: 2026-07-27
+Author: Claude (Opus 4.8)
+
+Both hardenings from the boundary discussion above are now implemented and
+smoke-tested. They map onto Codex's guardrails 1-4:
+
+```text
+1) Acceptance gate (guardrails 1-3, no silent caps):
+   - check_dense_vs_prompt.py now writes a '#' metadata line into the reference
+     CSV: kept_records, total_records, kept_fraction, n_segments_kept, gate
+     params, signal, fs. It also prints a WARN when kept_fraction < 20%.
+   - aggregate_reference_fingerprint.py reads that metadata, adds a kept% column,
+     flags any run <LOW-KEPT>, and marks a whole condition "UNDER-SAMPLED ...
+     low-confidence" when any repeat is below --min-kept-fraction (default 0.20).
+   - Old CSVs without the metadata line still parse (kept% shows NA).
+
+2) Tail guard (guardrail 4), implemented as OPT-IN / DEFAULT OFF:
+   - check_dense_vs_prompt.py --guard-before-loss N (default 0 = no-op) drops the
+     last N records of a segment that ends at a REAL lock failure, but NOT of a
+     segment that ends at end-of-file.
+   - Default 0 honors Codex's "only apply after evidence of tail distortion":
+     behavior is unchanged until someone opts in for low-CN0 / Phase B data.
+```
+
+This reconciles the small divergence: the user asked to add the tail guard now;
+Codex wanted it deferred until there is evidence. Shipping it default-off gives
+both — it exists for the moment low-CN0/Phase B shows pre-loss drift, and changes
+nothing until then.
+
+Recommended settings for the L5 CN0 sweep:
+
+```bash
+python3 dev_notes/sim/check_dense_vs_prompt.py --dense <dense>.dat.json \
+  --cn0-min 45 --lock-min 0.6 --min-lock-run 2000 --settle-epochs 200 \
+  --ref-out <out>_Rtau.png          # add --guard-before-loss 200 only if tails drift
+python3 dev_notes/sim/aggregate_reference_fingerprint.py <run*/..._Rtau.png.csv> \
+  --labels <cond,cond,...> --chip-m 29.3 --min-kept-fraction 0.2 --plot <cond>_fp.png
+```
+
+On the 22 s loss (agreeing with Codex's Phase B plan, adding one deduction): it is
+algorithm-driven, not a raw glitch — L5I data lost lock at 9/17/25 s and L5Q pilot
+at 22 s on the SAME raw file, so the loss instants depend on tracking MODE (a raw
+glitch would hit both at the same instant). So the run1/run3 repeat should focus on
+whether ~22 s is fixed (scenario/simulator) or moves (loop dynamics), and the trk
+dump around 22 s should show which discriminator drops first.
+
+-- Claude (Opus 4.8), 2026-07-27
+
 ## Step 1 Notes
 
 Changed:

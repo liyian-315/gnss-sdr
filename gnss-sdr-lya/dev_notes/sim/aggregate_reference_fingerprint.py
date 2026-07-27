@@ -29,18 +29,37 @@ Example (three L5 -50 repeats, chip=29.3 m):
 """
 
 import argparse
+import io
 import os
 
 import numpy as np
 
 
+def load_meta(path):
+    """Parse leading '#' metadata line(s) written by check_dense_vs_prompt.py."""
+    meta = {}
+    with open(path) as fh:
+        for line in fh:
+            s = line.strip()
+            if not s.startswith("#"):
+                break
+            for tok in s[1:].split():
+                if "=" in tok:
+                    k, v = tok.split("=", 1)
+                    meta[k] = v
+    return meta
+
+
 def load_csv(path):
-    d = np.genfromtxt(path, delimiter=",", names=True)
+    # strip '#' metadata lines ourselves so names=True reads the real header
+    with open(path) as fh:
+        body = "".join(ln for ln in fh if not ln.lstrip().startswith("#"))
+    d = np.genfromtxt(io.StringIO(body), delimiter=",", names=True)
     taps = np.atleast_1d(d["tap_chips"]).astype(float)
     mag = np.atleast_1d(d["mag_mean"]).astype(float)
     tap_std = np.atleast_1d(d["mag_std"]).astype(float) if "mag_std" in d.dtype.names else np.full_like(mag, np.nan)
     order = np.argsort(taps)
-    return taps[order], mag[order], tap_std[order]
+    return taps[order], mag[order], tap_std[order], load_meta(path)
 
 
 def _half_cross(taps, mag, i, direction, level):
@@ -96,6 +115,8 @@ def main():
     ap.add_argument("csvs", nargs="+", help="reference_Rtau CSV files (check_dense_vs_prompt.py --ref-csv)")
     ap.add_argument("--labels", help="comma list, one per csv; default = each file's parent dir name")
     ap.add_argument("--chip-m", type=float, help="chip length in meters (L1 C/A=293.0, B1I=146.6, L5=29.3) to also print widths in meters")
+    ap.add_argument("--min-kept-fraction", type=float, default=0.2,
+                    help="flag runs/conditions whose sustained-locked kept fraction is below this")
     ap.add_argument("--plot", help="overlay |R(tau)| of all runs to this PNG")
     args = ap.parse_args()
 
@@ -108,25 +129,30 @@ def main():
 
     runs = []
     for path, label in zip(args.csvs, labels):
-        taps, mag, tap_std = load_csv(path)
+        taps, mag, tap_std, meta = load_csv(path)
         feat = features(taps, mag, tap_std)
-        runs.append((label, path, taps, mag, feat))
+        kept_frac = float(meta["kept_fraction"]) if "kept_fraction" in meta else float("nan")
+        runs.append((label, path, taps, mag, feat, kept_frac))
 
     # ---- per-run table ----
     print("=== per-run fingerprint features ===")
-    hdr = "label            peak_chip  fwhm_chips  asym_max  skew_chips  noise_floor  tap_std_mean  file"
+    hdr = "label            peak_chip  fwhm_chips  asym_max  skew_chips  noise_floor  tap_std_mean  kept%  file"
     print(hdr); print("-" * len(hdr))
-    for label, path, _taps, _mag, f in runs:
-        print("%-15s  %+8.4f  %10.4f  %8.4f  %+9.4f  %11.5f  %12.5f  %s"
+    for label, path, _taps, _mag, f, kf in runs:
+        kfs = ("%5.1f" % (100 * kf)) if np.isfinite(kf) else "   NA"
+        flag = "  <LOW-KEPT>" if (np.isfinite(kf) and kf < args.min_kept_fraction) else ""
+        print("%-15s  %+8.4f  %10.4f  %8.4f  %+9.4f  %11.5f  %12.5f  %s  %s%s"
               % (label, f["peak_chip"], f["fwhm_chips"], f["asym_max"], f["skew_chips"],
-                 f["noise_floor"], f["tap_std_mean"], os.path.basename(path)))
+                 f["noise_floor"], f["tap_std_mean"], kfs, os.path.basename(path), flag))
 
     # ---- per-group mean +/- std ----
     print("\n=== per-group baseline (mean +/- std over repeats) ===")
     groups = {}
-    for label, _p, _t, _m, f in runs:
-        groups.setdefault(label, []).append(f)
-    for label, flist in groups.items():
+    for label, _p, _t, _m, f, kf in runs:
+        groups.setdefault(label, []).append((f, kf))
+    for label, items in groups.items():
+        flist = [it[0] for it in items]
+        kfs = [it[1] for it in items]
         n = len(flist)
         print("[%s] n=%d" % (label, n))
         for key in FEATURE_KEYS:
@@ -136,6 +162,13 @@ def main():
             if args.chip_m and key in ("peak_chip", "fwhm_chips", "skew_chips"):
                 line += "   (%.2f +/- %.2f m)" % (mean * args.chip_m, std * args.chip_m)
             print(line)
+        valid_kf = [k for k in kfs if np.isfinite(k)]
+        if valid_kf:
+            below = sum(1 for k in valid_kf if k < args.min_kept_fraction)
+            print("    kept_fraction  mean %.1f%%  min %.1f%%  (%d/%d below %.0f%%)%s"
+                  % (100 * np.mean(valid_kf), 100 * min(valid_kf), below, len(valid_kf),
+                     100 * args.min_kept_fraction,
+                     "  <-- UNDER-SAMPLED CONDITION, treat fingerprint as low-confidence" if below else ""))
         if n >= 3:
             fwhm = np.array([fl["fwhm_chips"] for fl in flist])
             asym = np.array([fl["asym_max"] for fl in flist])
@@ -151,7 +184,7 @@ def main():
         colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
         color_of, seen = {}, set()
         fig, ax = plt.subplots(figsize=(10, 6))
-        for label, _p, taps, mag, _f in runs:
+        for label, _p, taps, mag, _f, _kf in runs:
             color_of.setdefault(label, colors[len(color_of) % len(colors)])
             ax.plot(taps, mag, lw=1.0, alpha=0.7, color=color_of[label],
                     label=None if label in seen else label)

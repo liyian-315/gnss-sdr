@@ -74,13 +74,19 @@ def zero_tap_index(taps):
     return idx
 
 
-def select_locked(dense, cn0_min, lock_min, skip, min_run, settle):
+def select_locked(dense, cn0_min, lock_min, skip, min_run, settle, guard_before_loss=0):
     """Keep only records inside SUSTAINED locked runs, excluding settling/transients.
 
     Returns (mask, n_segments_total, n_segments_kept). A run that fails the CN0 or
     carrier-lock gate breaks the segment, so a capture that reacquires several
     times (e.g. an unstable L5 run) contributes only its stable stretches, and the
     caller can see how much was dropped instead of silently averaging transients.
+
+    guard_before_loss drops the last N records of a kept segment ONLY when that
+    segment ends at a real lock failure (base[j] is False), not at end-of-file
+    (j == len). This removes epochs that may be drifting toward an imminent loss
+    (and could bias R(tau)) without penalizing a segment that simply ran off the
+    end of the capture.
     """
     base = ((dense["cn0_snv_db_hz"] >= cn0_min) & (dense["carrier_lock_test"] >= lock_min)).copy()
     if skip > 0:
@@ -99,8 +105,9 @@ def select_locked(dense, cn0_min, lock_min, skip, min_run, settle):
         if (j - i) >= min_run:
             n_kept += 1
             start = i + settle
-            if start < j:
-                keep[start:j] = True
+            end = j - guard_before_loss if (guard_before_loss > 0 and j < n) else j
+            if start < end:
+                keep[start:end] = True
         i = j
     return keep, n_seg, n_kept
 
@@ -118,6 +125,9 @@ def main():
                     help="keep only contiguous locked runs of >=N dense records (reject reacquisition transients)")
     ap.add_argument("--settle-epochs", type=int, default=200,
                     help="drop first N records of EACH kept locked run (loop settling)")
+    ap.add_argument("--guard-before-loss", type=int, default=0,
+                    help="drop last N records of each segment that ends at a REAL lock failure "
+                         "(not end-of-file); guards against pre-loss degraded epochs biasing R(tau)")
     ap.add_argument("--ref-out", help="PNG path for the averaged reference R(tau)")
     ap.add_argument("--ref-csv", help="CSV path for the coherent reference R(tau) (default: <ref-out>.csv)")
     args = ap.parse_args()
@@ -136,17 +146,21 @@ def main():
         print("trk records:   %d" % len(trk))
 
     # --- sustained-lock selection on dense records ---
-    keep, n_seg, n_kept = select_locked(dense, args.cn0_min, args.lock_min,
-                                        args.skip_epochs, args.min_lock_run, args.settle_epochs)
+    keep, n_seg, n_kept = select_locked(dense, args.cn0_min, args.lock_min, args.skip_epochs,
+                                        args.min_lock_run, args.settle_epochs, args.guard_before_loss)
     dense_ok = dense[keep]
+    kept_frac = len(dense_ok) / max(1, len(dense))
     gated = int(((dense["cn0_snv_db_hz"] >= args.cn0_min) & (dense["carrier_lock_test"] >= args.lock_min)).sum())
     print("lock gate (CN0>=%.0f, lock>=%.2f): %d/%d records; locked segments: %d total, %d kept (>=%d rec)"
           % (args.cn0_min, args.lock_min, gated, len(dense), n_seg, n_kept, args.min_lock_run))
-    print("kept after settle=%d, min-run=%d: %d records (%.1f%% of file)"
-          % (args.settle_epochs, args.min_lock_run, len(dense_ok), 100.0 * len(dense_ok) / max(1, len(dense))))
+    print("kept after settle=%d, min-run=%d, guard-before-loss=%d: %d records (%.1f%% of file)"
+          % (args.settle_epochs, args.min_lock_run, args.guard_before_loss, len(dense_ok), 100.0 * kept_frac))
     if n_seg > n_kept:
         print("  note: %d short/transient segment(s) rejected — reacquisition churn, not averaged"
               % (n_seg - n_kept))
+    if kept_frac < 0.2:
+        print("  WARN: kept_fraction %.1f%% < 20%% — this condition is under-sampled; treat the "
+              "fingerprint as low-confidence" % (100.0 * kept_frac))
     if len(dense_ok) == 0:
         raise SystemExit("no sustained-locked records survived; lower --min-lock-run or check tracking stability")
 
@@ -203,7 +217,16 @@ def main():
     if ref_csv:
         hdr = "tap_chips,coherent_re,coherent_im,mag_mean,mag_std"
         data = np.column_stack([taps, coherent.real, coherent.imag, mag_mean, mag_std])
-        np.savetxt(ref_csv, data, delimiter=",", header=hdr, comments="")
+        with open(ref_csv, "w") as fh:
+            # '#' metadata line (aggregator reads it; np.genfromtxt skips it)
+            fh.write("# kept_records=%d total_records=%d kept_fraction=%.4f n_segments_kept=%d "
+                     "cn0_min=%.1f lock_min=%.2f min_lock_run=%d settle=%d guard_before_loss=%d "
+                     "signal=%s fs_hz=%s\n"
+                     % (len(dense_ok), len(dense), kept_frac, n_kept,
+                        args.cn0_min, args.lock_min, args.min_lock_run, args.settle_epochs,
+                        args.guard_before_loss, meta.get("signal", "?"), meta.get("sampling_frequency_hz", "?")))
+            fh.write(hdr + "\n")
+            np.savetxt(fh, data, delimiter=",")
         print("reference R(tau) CSV -> %s" % ref_csv)
 
     if args.ref_out:
