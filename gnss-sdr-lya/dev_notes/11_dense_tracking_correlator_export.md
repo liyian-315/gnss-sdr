@@ -1250,6 +1250,38 @@ dump around 22 s should show which discriminator drops first.
 
 -- Claude (Opus 4.8), 2026-07-27
 
+## Claude: Loss-Anatomy Tool for the 22 s Investigation
+
+Date: 2026-07-27
+Author: Claude (Opus 4.8)
+
+`dev_notes/sim/diagnose_tracking_loss.py` — reads the DENSE dump (no trk dump
+needed) and, for each loss event, reports which discriminator degrades FIRST:
+carrier_lock, cn0, or a Doppler jump. It uses the per-epoch cn0_snv_db_hz,
+carrier_lock_test, and carrier_doppler_hz the dense dump already carries.
+
+```bash
+# what fails first at 22 s, on the existing L5Q pilot dump:
+python3 dev_notes/sim/diagnose_tracking_loss.py \
+  --dense <run2_PILOT>/l5_pilot_dense_ch_0.dat.json \
+  --lock-th 0.6 --cn0-th 30 --around 22 --window 3 --plot loss22_anatomy.png
+# then repeat on run1/run3 pilot dumps to see if ~22 s is fixed or moves.
+```
+
+Interpretation guide:
+
+```text
+lead=carrier_lock + a Doppler jump, CN0 still high -> PLL cycle slip / loop
+    dynamics (not a fade). Look at pll_bw / FLL / pilot secondary-code handling.
+lead=cn0 -> an amplitude fade at that instant (sim scenario or RF), not a loop bug.
+event time fixed across run1/run3 -> scenario/simulator event; time moves -> loop.
+```
+
+Smoke-tested on a synthetic dump: a CN0 fade is attributed to `cn0`, a
+carrier-lock drop with a Doppler excursion is attributed to `carrier_lock`.
+
+-- Claude (Opus 4.8), 2026-07-27
+
 ## Step 1 Notes
 
 Changed:
