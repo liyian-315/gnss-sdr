@@ -158,9 +158,9 @@ def main():
     if n_seg > n_kept:
         print("  note: %d short/transient segment(s) rejected — reacquisition churn, not averaged"
               % (n_seg - n_kept))
-    tier = "GOOD" if kept_frac >= 0.5 else ("USABLE" if kept_frac >= 0.2 else "REJECT")
-    print("  fingerprint grade: %s  (kept %.1f%%; GOOD>=50%% USABLE>=20%% REJECT<20%%)"
-          % (tier, 100.0 * kept_frac))
+    if kept_frac < 0.2:
+        print("  note: kept_fraction %.1f%% is low (tracking churn) — a diagnostic only; "
+              "R(tau) quality is set by N_kept + worst-tap SEM (Criterion 4 below)" % (100.0 * kept_frac))
     if len(dense_ok) == 0:
         raise SystemExit("no sustained-locked records survived; lower --min-lock-run or check tracking stability")
 
@@ -212,6 +212,9 @@ def main():
     # symmetry: compare +/- tau magnitude
     asym = float(np.max(np.abs(np.abs(coherent) - np.abs(coherent)[::-1])))
     print("max |R(+tau)|-|R(-tau)| asymmetry = %.4f (small=symmetric, clean single path)" % asym)
+    max_sem = float(np.max(mag_std) / np.sqrt(len(iq))) if len(iq) else float("nan")
+    print("precision: N_kept=%d  worst-tap SEM=%.5f  (fingerprint noise ~ 1/sqrt(N); "
+          "kept_fraction is only a churn diagnostic, not the quality gate)" % (len(iq), max_sem))
 
     ref_csv = args.ref_csv or (args.ref_out + ".csv" if args.ref_out else None)
     if ref_csv:

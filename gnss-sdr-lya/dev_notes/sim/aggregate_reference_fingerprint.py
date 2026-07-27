@@ -110,16 +110,20 @@ def features(taps, mag, tap_std):
 FEATURE_KEYS = ["peak_chip", "fwhm_chips", "asym_max", "skew_chips", "noise_floor", "tap_std_mean"]
 
 
-def grade(kf, good_th, usable_th):
-    """Three-tier kept-fraction grade (Codex 2026-07-27): fits the experiment stage
-    better than binary pass/fail."""
-    if not np.isfinite(kf):
-        return "NA"
-    if kf >= good_th:
-        return "GOOD"
-    if kf >= usable_th:
-        return "USABLE"
-    return "REJECT"
+def max_tap_sem(tap_std, n_kept):
+    """Worst-tap standard error of the averaged |R(tau)|: max_tap(tap_std)/sqrt(N).
+
+    This is the principled precision of the fingerprint -- how well-determined each
+    averaged tap is -- and it depends on the ABSOLUTE epoch count, not the kept
+    fraction. (Averaging noise falls as 1/sqrt(N); even a low-kept-fraction run has
+    thousands of clean epochs in a 30 s decim=1 capture.)
+    """
+    if not (np.isfinite(n_kept) and n_kept > 0):
+        return float("nan")
+    finite = tap_std[np.isfinite(tap_std)]
+    if not len(finite):
+        return float("nan")
+    return float(np.max(finite) / np.sqrt(n_kept))
 
 
 def main():
@@ -127,10 +131,18 @@ def main():
     ap.add_argument("csvs", nargs="+", help="reference_Rtau CSV files (check_dense_vs_prompt.py --ref-csv)")
     ap.add_argument("--labels", help="comma list, one per csv; default = each file's parent dir name")
     ap.add_argument("--chip-m", type=float, help="chip length in meters (L1 C/A=293.0, B1I=146.6, L5=29.3) to also print widths in meters")
-    ap.add_argument("--min-kept-fraction", type=float, default=0.2,
-                    help="REJECT below this kept fraction (also the USABLE/REJECT boundary)")
-    ap.add_argument("--good-fraction", type=float, default=0.5,
-                    help="GOOD at or above this kept fraction (USABLE/GOOD boundary)")
+    ap.add_argument("--min-epochs", type=int, default=2000,
+                    help="measurability floor on ABSOLUTE kept epochs. Naive SEM=tap_std/sqrt(N) "
+                         "assumes independent epochs, but tracking epochs are correlated over the loop "
+                         "memory (~tens of ms), so effective N << raw N; ~2000 raw (~2 s at decim=1) "
+                         "keeps enough effectively-independent samples. Not a kept-fraction gate.")
+    ap.add_argument("--sem-target", type=float, default=0.002,
+                    help="precision target: worst-tap SEM of |R(tau)| should be <= this "
+                         "(default 0.002 ~= 1/8 of the ~0.016 clean asymmetry)")
+    ap.add_argument("--fwhm-cv-max", type=float, default=0.02,
+                    help="reproducibility: max cross-run FWHM coefficient of variation to call a condition reproducible")
+    ap.add_argument("--asym-std-max", type=float, default=0.003,
+                    help="reproducibility: max cross-run std of asym_max to call a condition reproducible")
     ap.add_argument("--plot", help="overlay |R(tau)| of all runs to this PNG")
     args = ap.parse_args()
 
@@ -146,27 +158,33 @@ def main():
         taps, mag, tap_std, meta = load_csv(path)
         feat = features(taps, mag, tap_std)
         kept_frac = float(meta["kept_fraction"]) if "kept_fraction" in meta else float("nan")
-        runs.append((label, path, taps, mag, feat, kept_frac))
+        n_kept = int(meta["kept_records"]) if "kept_records" in meta else (
+            int(round(kept_frac * int(meta["total_records"]))) if ("kept_fraction" in meta and "total_records" in meta) else -1)
+        sem = max_tap_sem(tap_std, n_kept)
+        runs.append((label, path, taps, mag, feat, kept_frac, n_kept, sem))
 
-    # ---- per-run table ----
+    # ---- per-run table (precision = SEM; kept% is diagnostic only) ----
     print("=== per-run fingerprint features ===")
-    hdr = "label            peak_chip  fwhm_chips  asym_max  skew_chips  noise_floor  tap_std_mean  kept%  grade    file"
+    hdr = "label            peak_chip  fwhm_chips  asym_max   N_kept  max_SEM   kept%(diag)  file"
     print(hdr); print("-" * len(hdr))
-    for label, path, _taps, _mag, f, kf in runs:
-        kfs = ("%5.1f" % (100 * kf)) if np.isfinite(kf) else "   NA"
-        tier = grade(kf, args.good_fraction, args.min_kept_fraction)
-        print("%-15s  %+8.4f  %10.4f  %8.4f  %+9.4f  %11.5f  %12.5f  %s  %-7s  %s"
-              % (label, f["peak_chip"], f["fwhm_chips"], f["asym_max"], f["skew_chips"],
-                 f["noise_floor"], f["tap_std_mean"], kfs, tier, os.path.basename(path)))
+    for label, path, _taps, _mag, f, kf, nk, sem in runs:
+        kfs = ("%4.0f" % (100 * kf)) if np.isfinite(kf) else "  NA"
+        nks = ("%7d" % nk) if nk >= 0 else "     NA"
+        sems = ("%.5f" % sem) if np.isfinite(sem) else "   NA"
+        under = "  <under-sampled>" if (nk >= 0 and nk < args.min_epochs) else ""
+        print("%-15s  %+8.4f  %10.4f  %8.4f  %s  %s      %s%%   %s%s"
+              % (label, f["peak_chip"], f["fwhm_chips"], f["asym_max"], nks, sems, kfs,
+                 os.path.basename(path), under))
 
-    # ---- per-group mean +/- std ----
+    # ---- per-group: means, precision, reproducibility, verdict ----
     print("\n=== per-group baseline (mean +/- std over repeats) ===")
     groups = {}
-    for label, _p, _t, _m, f, kf in runs:
-        groups.setdefault(label, []).append((f, kf))
+    for r in runs:
+        groups.setdefault(r[0], []).append(r)
     for label, items in groups.items():
-        flist = [it[0] for it in items]
-        kfs = [it[1] for it in items]
+        flist = [r[4] for r in items]
+        nks = [r[6] for r in items]
+        sems = [r[7] for r in items]
         n = len(flist)
         print("[%s] n=%d" % (label, n))
         for key in FEATURE_KEYS:
@@ -176,20 +194,50 @@ def main():
             if args.chip_m and key in ("peak_chip", "fwhm_chips", "skew_chips"):
                 line += "   (%.2f +/- %.2f m)" % (mean * args.chip_m, std * args.chip_m)
             print(line)
-        valid_kf = [k for k in kfs if np.isfinite(k)]
+
+        # measurability + precision
+        min_nk = min([x for x in nks if x >= 0], default=-1)
+        worst_sem = np.nanmax(sems) if any(np.isfinite(s) for s in sems) else float("nan")
+        measurable = (min_nk < 0) or (min_nk >= args.min_epochs)   # unknown N -> don't fail on it
+        precise = np.isfinite(worst_sem) and worst_sem <= args.sem_target
+        print("    precision:     min N_kept=%s   worst max-SEM=%s (target %.4f)"
+              % (("unknown" if min_nk < 0 else str(min_nk)),
+                 ("%.5f" % worst_sem if np.isfinite(worst_sem) else "NA"), args.sem_target))
+
+        # reproducibility across repeats
+        fwhm = np.array([fl["fwhm_chips"] for fl in flist], dtype=float)
+        asym = np.array([fl["asym_max"] for fl in flist], dtype=float)
+        peak = np.array([fl["peak_chip"] for fl in flist], dtype=float)
+        cv = float(np.nanstd(fwhm) / np.nanmean(fwhm)) if np.nanmean(fwhm) else float("nan")
+        asym_std = float(np.nanstd(asym))
+        reproducible = (n >= 2) and np.isfinite(cv) and (cv <= args.fwhm_cv_max) and (asym_std <= args.asym_std_max)
+        if n >= 2:
+            print("    reproducibility: FWHM CV=%.2f%%  asym std=%.4f  peak std=%.4f chip  (n=%d)"
+                  % (100 * cv, asym_std, float(np.nanstd(peak)), n))
+        else:
+            print("    reproducibility: n=1 (need repeats to assess)")
+
+        # verdict
+        if not measurable:
+            verdict = "INSUFFICIENT (min N_kept %d < %d -> R(tau) not well-determined)" % (min_nk, args.min_epochs)
+        elif n < 2:
+            verdict = "SINGLE-RUN (precision %s; repeat >=3x for a trusted baseline)" % ("OK" if precise else "weak")
+        elif precise and reproducible:
+            verdict = "TRUSTWORTHY (precise + reproducible)"
+        else:
+            reasons = []
+            if not precise:
+                reasons.append("SEM %.5f > target %.4f" % (worst_sem, args.sem_target))
+            if not reproducible:
+                reasons.append("not reproducible (FWHM CV %.2f%% / asym std %.4f)" % (100 * cv, asym_std))
+            verdict = "MARGINAL (" + "; ".join(reasons) + ")"
+        print("    VERDICT: %s" % verdict)
+
+        # kept fraction kept only as a tracking-health diagnostic
+        valid_kf = [r[5] for r in items if np.isfinite(r[5])]
         if valid_kf:
-            tiers = [grade(k, args.good_fraction, args.min_kept_fraction) for k in valid_kf]
-            ng, nu, nr = tiers.count("GOOD"), tiers.count("USABLE"), tiers.count("REJECT")
-            print("    kept_fraction  mean %.1f%%  min %.1f%%   grades: GOOD=%d USABLE=%d REJECT=%d%s"
-                  % (100 * np.mean(valid_kf), 100 * min(valid_kf), ng, nu, nr,
-                     "  <-- has REJECT run(s), low-confidence" if nr else ""))
-        if n >= 3:
-            fwhm = np.array([fl["fwhm_chips"] for fl in flist])
-            asym = np.array([fl["asym_max"] for fl in flist])
-            cv = np.nanstd(fwhm) / np.nanmean(fwhm) if np.nanmean(fwhm) else float("nan")
-            print("    stability: FWHM CV=%.1f%%  asym range=[%.4f, %.4f]%s"
-                  % (100 * cv, np.nanmin(asym), np.nanmax(asym),
-                     "  <-- OUTLIER RUN, do not average blindly" if np.nanmax(asym) > 3 * np.nanmin(asym) + 0.01 else ""))
+            print("    diag: kept_fraction mean %.0f%% min %.0f%% (tracking-churn indicator, not a quality gate)"
+                  % (100 * np.mean(valid_kf), 100 * min(valid_kf)))
 
     if args.plot:
         import matplotlib
@@ -198,7 +246,8 @@ def main():
         colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
         color_of, seen = {}, set()
         fig, ax = plt.subplots(figsize=(10, 6))
-        for label, _p, taps, mag, _f, _kf in runs:
+        for r in runs:
+            label, taps, mag = r[0], r[2], r[3]
             color_of.setdefault(label, colors[len(color_of) % len(colors)])
             ax.plot(taps, mag, lw=1.0, alpha=0.7, color=color_of[label],
                     label=None if label in seen else label)

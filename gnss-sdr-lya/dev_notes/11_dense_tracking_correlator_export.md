@@ -1428,6 +1428,47 @@ Two consequences:
 
 -- Claude (Opus 4.8), 2026-07-27
 
+## Claude: Replaced kept-fraction tiers with SEM + reproducibility
+
+Date: 2026-07-27
+Author: Claude (Opus 4.8)
+
+The user flagged the GOOD/USABLE/REJECT-by-kept-fraction grading as arbitrary.
+Agreed: kept_fraction is the wrong quality axis and 50/20 were ungrounded round
+numbers. The fingerprint is an average of the kept epochs; its trust depends on
+absolute epoch count, per-tap dispersion, and cross-run reproducibility -- NOT on
+what fraction was discarded (a 30 s decim=1 capture keeps thousands of clean
+epochs even at 12%).
+
+The grading is now principled:
+
+```text
+per-run precision   worst-tap SEM = max_tap(mag_std)/sqrt(N_kept)   (target 0.002
+                    ~= 1/8 of the ~0.016 clean asymmetry). Fingerprint noise ~1/sqrt(N).
+measurability floor  N_kept >= --min-epochs (default 2000). Justified, not
+                    arbitrary: naive SEM assumes independent epochs, but tracking
+                    epochs are correlated over the loop memory (~tens of ms), so
+                    effective N << raw N; ~2 s of epochs keeps enough independent
+                    samples.
+cross-run trust      reproducibility of the scalar features over repeats: FWHM CV
+                    (<= --fwhm-cv-max 2%) and asym std (<= --asym-std-max 0.003).
+verdict              TRUSTWORTHY (precise + reproducible) | MARGINAL (says why) |
+                    INSUFFICIENT (N_kept below floor) | SINGLE-RUN (need repeats).
+kept_fraction        kept ONLY as a tracking-churn diagnostic, never a gate.
+```
+
+check_dense_vs_prompt.py now prints per-run `N_kept + worst-tap SEM` (Criterion 4)
+instead of a fraction tier; aggregate_reference_fingerprint.py prints the group
+precision / reproducibility / verdict. Smoke-tested: a many-epoch consistent group
+-> TRUSTWORTHY; an 800-epoch group -> INSUFFICIENT (driven by N_kept, not fraction).
+
+Note on the real numbers: robust L5Q pilot run1/2/3 had worst-tap SEM well under
+0.002 (thousands of epochs) and FWHM CV ~0.04%, so under this criterion that
+condition is TRUSTWORTHY -- the earlier fraction "REJECT" of run2 was a false
+alarm from the wrong metric.
+
+-- Claude (Opus 4.8), 2026-07-27
+
 ## Step 1 Notes
 
 Changed:
