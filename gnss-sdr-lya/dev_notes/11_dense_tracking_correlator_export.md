@@ -2041,6 +2041,109 @@ uniform, but the current four tiers are already TRUSTWORTHY.
 
 -- Codex, 2026-07-28
 
+## Phase B B-Only Baseline - PRN23 Delay 60m 30s x3
+
+Date: 2026-07-28
+
+Author: Codex
+
+User configured B-only:
+
+```text
+A simulator off
+B simulator on
+PRN=23
+B L5 output label=-56
+B pseudorange compensation=+60 m
+single-satellite amplitude=64
+B210 RX2
+```
+
+Configuration used for processing:
+
+```text
+L5Q pilot
+robust lock counters enabled:
+  carrier_lock_th=0.55
+  max_lock_fail=300
+  max_carrier_lock_fail=20000
+sample rate=20 Msps
+sample type=sc16 / ishort
+dense taps=-4:0.1:4 chips
+dense decimation=1
+```
+
+Raw captures:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/bonly_prn23_l5m56_delay60m_run1_raw_30s_0728/raw_bonly_prn23_run1_20m_30s_ishort.dat
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/bonly_prn23_l5m56_delay60m_run2_raw_30s_0728/raw_bonly_prn23_run2_20m_30s_ishort.dat
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/bonly_prn23_l5m56_delay60m_run3_raw_30s_0728/raw_bonly_prn23_run3_20m_30s_ishort.dat
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/bonly_prn23_l5m56_delay60m_run4_raw_30s_0728/raw_bonly_prn23_run4_20m_30s_ishort.dat
+```
+
+All raw recordings had:
+
+```text
+record_overflow=0
+```
+
+Strict extraction summary:
+
+```text
+run  kept records  kept fraction  n_blocks  SEM_block_worst  asym(check)  status
+1    7394          24.9%          1848      0.00058          0.0227       usable
+2    0             0.0%           -         -                -            rejected; no sustained segment >=2000
+3    25331         84.8%          6332      0.00031          0.0235       usable
+4    3374          11.3%          843       0.00083          0.0233       usable retry
+```
+
+Run2 was not used for aggregate statistics because no sustained locked segment
+survived the strict selector.
+
+Aggregate command:
+
+```bash
+python3 /tmp/aggregate_reference_fingerprint_coherent.py /home/bupt/lya/gnss_data/phaseB_l5_baseline/bonly_prn23_l5m56_delay60m_run1_30s_0728/bonly_reference_Rtau.png.csv /home/bupt/lya/gnss_data/phaseB_l5_baseline/bonly_prn23_l5m56_delay60m_run3_30s_0728/bonly_reference_Rtau.png.csv /home/bupt/lya/gnss_data/phaseB_l5_baseline/bonly_prn23_l5m56_delay60m_run4_30s_0728/bonly_reference_Rtau.png.csv --labels prn23_bonly,prn23_bonly,prn23_bonly --chip-m 29.3 --shape-from coherent --plot /home/bupt/lya/gnss_data/phaseB_l5_baseline/prn23_bonly_delay60m_baseline_30s_x3_coherent.png
+```
+
+Aggregate result:
+
+```text
+VERDICT: TRUSTWORTHY (reproducible across runs) [precision: OK]
+peak_chip=-0.0041 +/- 0.0002 chips (-0.12 +/- 0.01 m)
+FWHM=1.1151 +/- 0.0001 chips (32.67 +/- 0.00 m)
+asym_max=0.0232 +/- 0.0003
+noise_floor=0.0132 +/- 0.0000
+tap_std_mean=0.0349 +/- 0.0001
+min n_blocks=843
+worst SEM_block=0.00083
+FWHM CV=0.01%
+kept_fraction mean=40%, min=11%
+```
+
+Saved aggregate outputs:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/prn23_bonly_delay60m_baseline_30s_x3_coherent.log
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/prn23_bonly_delay60m_baseline_30s_x3_coherent.png
+```
+
+Judgment:
+
+PRN23 now has both formal same-PRN baselines:
+
+```text
+A-only:  PRN23, delay=0,    TRUSTWORTHY, FWHM=32.48 m, asym=0.0263
+B-only:  PRN23, delay=60 m, TRUSTWORTHY, FWHM=32.67 m, asym=0.0232
+```
+
+B-only run2 was unstable and excluded, but run1/run3/run4 form a reproducible
+three-run baseline. The next capture should be the actual A+B PRN23 composite at
+`delay_m=60`, `power_ratio_db=-6`, with the same robust-lock and dense settings.
+
+-- Codex, 2026-07-28
+
 ## Discussion - Phase B Next Capture After PRN23 Baseline
 
 Date: 2026-07-28
