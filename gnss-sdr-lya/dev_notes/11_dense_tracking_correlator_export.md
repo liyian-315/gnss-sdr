@@ -1845,6 +1845,112 @@ Use the existing tracking dump style for the main binary stream. JSON is reserve
 
 -- Codex, 2026-07-24
 
+## Phase B A+B Composite - PRN23 60m -6dB 30s x3
+
+Date: 2026-07-28
+
+Author: Codex
+
+User configured the first formal PRN23 two-source composite:
+
+```text
+A simulator: on, GPS L5 PRN23, single-satellite amplitude=64, L5 output=-50 dBm, delay compensation=0 m
+B simulator: on, GPS L5 PRN23, single-satellite amplitude=64, L5 output=-56 dBm, delay compensation=+60 m
+Combiner: A/B combined into B210 RX2
+Clocking: independent simulator clocks, no shared 10 MHz reference
+```
+
+Capture / tracking settings kept aligned with the Phase B SOP:
+
+```text
+GPS L5Q pilot
+20 Msps
+sc16 / ishort raw
+B210 RX2
+gain=40
+dense taps=-4:0.1:4 chips
+dense decimation=1
+robust L5Q lock counters enabled
+```
+
+NUC output directories:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn23_delay60m_ratio_m6db_run1_30s_0728
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn23_delay60m_ratio_m6db_run2_30s_0728
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn23_delay60m_ratio_m6db_run3_30s_0728
+```
+
+Recording result:
+
+```text
+run1 raw: 2.4 GB, record_overflow=0
+run2 raw: 2.4 GB, record_overflow=0
+run3 raw: 2.4 GB, record_overflow=0
+```
+
+Dense dump validation:
+
+```text
+run1 records=29751, tap_count=81, tap span=-4..+4 chips
+run2 records=29771, tap_count=81, tap span=-4..+4 chips
+run3 records=29744, tap_count=81, tap span=-4..+4 chips
+```
+
+Because the two simulators do not share a 10 MHz reference, the composite is not
+valid for whole-record coherent averaging. I used the same-PRN A-only PRN23
+kernel from:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn23_l5m50_amp64_run3_30s_0728/aonly_reference_Rtau.png.csv
+```
+
+and ran the independent-clock windowed fitter:
+
+```text
+python3 dev_notes/sim/fit_windowed_twosource.py --dense <run>/l5_phaseB_dense_ch_0.dat.json --kernel <PRN23_Aonly_kernel.csv> --chip-m 29.3 --delay-m 60 --ratio-db -6 --cn0-min 0 --lock-min -1 --min-lock-run 1000 --settle-epochs 200 --max-rot-deg 30 --plot <run>/windowed_fit_prn23_delay60m_ratio_m6db_runN.png
+```
+
+Windowed fit results:
+
+```text
+run1: kept 29551 / 29751 records (99.3%), detected 99 / 99 windows
+      recovered delay median=52.7 m, robust-std=0.4 m
+      recovered ratio median=-5.29 dB, robust-std=0.17 dB
+      relative phase span=358 deg
+
+run2: kept 29571 / 29771 records (99.3%), detected 18 / 21 windows
+      recovered delay median=52.9 m, robust-std=0.7 m
+      recovered ratio median=-7.03 dB, robust-std=1.65 dB
+      relative phase span=333 deg
+
+run3: kept 29544 / 29744 records (99.3%), detected 739 / 2462 windows
+      recovered delay median=52.7 m, robust-std=0.4 m
+      recovered ratio median=-5.35 dB, robust-std=0.33 dB
+      relative phase span=353 deg
+```
+
+Codex judgment:
+
+This is a successful first Phase B two-source composite detection. The repeated
+runs show a stable second-source delay around 52.7-52.9 m and amplitude ratio
+near the intended -6 dB. The wide phase span confirms the independent-clock
+condition and supports the short-window analysis route.
+
+The current unresolved issue is the systematic offset against the simulator
+setting: injected compensation was +60 m, but the recovered delay is about
+52.8 m, an error of roughly -7.2 m. This should be treated as a calibration /
+ground-truth question before expanding the full Phase B grid. Plausible causes
+include simulator delay semantics, combiner/cable path offsets, same-PRN kernel
+choice, and fitter grid/model bias. The next best check is to repeat with one
+additional easier delay point, preferably +90 m or +100 m at the same -6 dB
+ratio, while keeping the same PRN23 A-only/B-only baselines.
+
+Do not collect the entire Phase B grid until this fixed-delay bias is understood
+or explicitly accepted as a calibration offset.
+
+-- Codex, 2026-07-28
+
 ## Phase A CN0 Prescan Plan
 
 Date: 2026-07-28
