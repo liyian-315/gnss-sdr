@@ -2041,6 +2041,98 @@ uniform, but the current four tiers are already TRUSTWORTHY.
 
 -- Codex, 2026-07-28
 
+## Phase B A-Only Baseline Repeat - PRN23 30s x3
+
+Date: 2026-07-28
+
+Author: Codex
+
+User correctly pointed out that a formal same-PRN baseline should follow the
+same repeat discipline as the Phase A library: `>=3` captures, each `>=30 s`,
+then aggregate for reproducibility. The earlier PRN23 run1 was only a candidate,
+not a formal baseline tier by itself.
+
+Added two more PRN23 A-only captures under the same condition:
+
+```text
+B simulator off
+A simulator on
+PRN=23
+single-satellite amplitude=64
+L5 output label=-50
+B210 gain=40 dB
+sample rate=20 Msps
+sample type=sc16 / ishort
+dense taps=-4:0.1:4 chips
+dense decimation=1
+```
+
+New raw captures:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn23_l5m50_amp64_run2_raw_30s_0728/raw_aonly_prn23_run2_20m_30s_ishort.dat
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn23_l5m50_amp64_run3_raw_30s_0728/raw_aonly_prn23_run3_20m_30s_ishort.dat
+```
+
+Both recorded with:
+
+```text
+record_overflow=0
+```
+
+Per-run strict extraction:
+
+```text
+run  kept records  kept fraction  n_segments_kept  n_blocks  SEM_block_worst  asym(check)  tracking note
+1    12374         41.8%          1                100       0.00209          0.0258       earlier candidate run
+2    20120         67.6%          2                4024      0.00048          0.0276       loss/reacq near 22 s, then stable
+3    23770         79.5%          1                5942      0.00034          0.0254       stable DUALPATH_OBS, CN0 ~=53
+```
+
+Aggregate command:
+
+```bash
+python3 /tmp/aggregate_reference_fingerprint_coherent.py /home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn23_l5m50_amp64_run1_30s_0728/aonly_reference_Rtau.png.csv /home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn23_l5m50_amp64_run2_30s_0728/aonly_reference_Rtau.png.csv /home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn23_l5m50_amp64_run3_30s_0728/aonly_reference_Rtau.png.csv --labels prn23,prn23,prn23 --chip-m 29.3 --shape-from coherent --plot /home/bupt/lya/gnss_data/phaseB_l5_baseline/prn23_aonly_baseline_30s_x3_coherent.png
+```
+
+Aggregate result:
+
+```text
+VERDICT: TRUSTWORTHY (reproducible across runs) [precision: SEM above interim target]
+peak_chip=-0.0058 +/- 0.0017 chips (-0.17 +/- 0.05 m)
+FWHM=1.1084 +/- 0.0020 chips (32.48 +/- 0.06 m)
+asym_max=0.0263 +/- 0.0010
+noise_floor=0.0129 +/- 0.0006
+tap_std_mean=0.0455 +/- 0.0059
+min n_blocks=100
+worst SEM_block=0.00209
+FWHM CV=0.18%
+kept_fraction mean=63%, min=42%
+```
+
+Saved aggregate outputs:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/prn23_aonly_baseline_30s_x3_coherent.log
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/prn23_aonly_baseline_30s_x3_coherent.png
+```
+
+Judgment:
+
+PRN23 now satisfies the formal baseline repeat requirement (`30 s x3`) and passes
+TRUSTWORTHY by cross-run reproducibility. Precision is weaker than ideal because
+run1 has only `n_blocks=100`, so if PRN23 becomes the main Phase B PRN, prefer
+the aggregate kernel but keep the precision warning visible. If time/storage
+allows, a future run4 could replace run1 and likely improve the precision tag.
+
+Operational correction:
+
+For any PRN selected for Phase B fitting, the formal same-PRN A-only baseline
+should be collected as `30 s x3`, not just a single 30 s capture, unless the
+capture is explicitly labeled as a quick candidate/sanity baseline.
+
+-- Codex, 2026-07-28
+
 ## Phase B A-Only Baseline Capture - PRN10 and PRN23
 
 Date: 2026-07-28
