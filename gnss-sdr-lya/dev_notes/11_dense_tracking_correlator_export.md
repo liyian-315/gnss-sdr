@@ -1965,6 +1965,122 @@ connectivity recovers.
 
 -- Codex, 2026-07-28
 
+## Phase B Algorithm Choice - Probe-Band Joint Modulation vs Alternating Fit
+
+Date: 2026-07-28
+Author: Codex
+
+Question:
+
+After the first drift-modulated full-segment fitter, two possible next steps
+were discussed:
+
+```text
+A. Replace the single probe tap with a delayed-tap-band joint modulation estimate.
+B. Use an alternating fitter:
+   1. estimate the static path0 component,
+   2. estimate path1 modulation from the residual delayed-tap band,
+   3. refit c0/c1/delta over the full segment,
+   4. iterate with reliability gates.
+```
+
+Codex judgment:
+
+For the current project stage, choose B first.
+
+Reason:
+
+The real data shows that path1 is often weak or merged into the path0 main-lobe
+tail. A direct joint probe-band estimate has too many degrees of freedom before
+path0 is removed, so it can easily absorb static main-lobe residuals, noise, or
+tracking-shape mismatch and falsely create a modulation sequence. The alternating
+approach is more controllable:
+
+- Step 1 explicitly removes the static kernel-shaped path0.
+- Step 2 estimates modulation only from residual energy in the delayed band.
+- Step 3 tests whether the recovered modulation really reduces residuals across
+  all taps and epochs.
+- Each iteration can carry gates: residual drop, recovered amplitude, phase
+  coherence, delay stability, and no-silent-fail verdict.
+
+This matches the current engineering need: not just maximizing detections, but
+reliably reporting when 30 m / sub-chip separation is not yet supported.
+
+Implementation recommendation:
+
+Build the next prototype as `fit_iterative_drift_twosource.py` or extend the
+current drift-modulated fitter with `--modulation-source residual-band`.
+Start with a small delayed band around each candidate delta, estimate the
+complex residual phasor by projecting the residual onto the shifted kernel, then
+refit the full model. Keep the current single-probe mode as a baseline and
+compare on PRN28 +60 m run1/run2/run3/run4 and PRN28 +30 m run1/run2/run3.
+
+Do not start with a fully free per-epoch/per-band joint model. That is a useful
+research direction later, but it needs stronger regularization and clearer
+failure gates than we currently have.
+
+-- Codex, 2026-07-28
+
+## Phase B Alternating Residual-Band Fitter Prototype
+
+Date: 2026-07-28
+Author: Codex
+
+Implemented:
+
+- `fit_drift_modulated_twosource.py --modulation-source residual-band`.
+- Alternating loop:
+  1. fit the static path0 kernel,
+  2. subtract path0,
+  3. estimate a per-epoch path1 modulation sequence from a delayed tap band,
+  4. refit `c0/c1/delta` over the full dense segment,
+  5. repeat for `--iterations`.
+- Added `--min-delay-chips` to stop the grid from silently choosing a
+  near-zero separation when the residual has a strong path0-tail artifact.
+- Added `--mod-score-min`, a data-derived phase-step consistency gate. The
+  residual-band modulation must be consistent with the measured relative drift;
+  this avoids treating static kernel mismatch as an independent second source.
+- Added validation gates when `--delay-m` / `--ratio-db` are provided. A fit can
+  no longer print `RELIABLE` if it is far away from the injected ground truth.
+
+Local synthetic smoke test:
+
+- Sinusoid baseline and residual-band alternating mode both pass:
+  - 60 m slow drift,
+  - 60 m fast drift,
+  - 30 m near-resolution,
+  - 0.5 chip equal-power destructive phase.
+
+NUC replay, PRN28 +60 m positive-control data, using PRN28 A-only run4 kernel:
+
+```text
+run1: residual-band recovered 53.6 m, ratio -6.29 dB, RELIABLE
+run2: residual-band recovered 53.3 m, ratio -4.97 dB, RELIABLE
+run3: residual-band failed; selected 14.7 m or 35.2 m depending on dmin, UNRELIABLE
+run4: residual-band failed; selected 83.5 m with weak -26.6 dB source, UNRELIABLE
+```
+
+NUC replay, PRN28 +30 m data:
+
+```text
+run1: failed, 86.4 m / weak source, UNRELIABLE
+run2: failed or marginal, 22.0 m / weak source, UNRELIABLE
+run3: failed, 8.8 m, UNRELIABLE
+```
+
+Codex judgment:
+
+The alternating residual-band prototype is useful and should stay as a tested
+research mode, but it does not yet solve the hard Phase B problem. It improves
+the controlled/synthetic cases and reproduces the known +60 m slow-drift
+positive controls, while the real fast-drift and +30 m near-resolution captures
+still need a stronger model-order decision. The next algorithm step should not
+be more threshold tuning; it should add a delay-consistency statistic across
+time/frequency, or a regularized joint fit that explicitly separates static
+path0-tail energy from drifting path1 energy.
+
+-- Codex, 2026-07-28
+
 ## Phase B PRN28 A+B Composite - Delay 60m Positive Control
 
 Date: 2026-07-28

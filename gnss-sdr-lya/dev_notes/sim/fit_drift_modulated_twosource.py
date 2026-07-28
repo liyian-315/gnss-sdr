@@ -30,7 +30,8 @@ Examples:
     --dense <phaseB>/l5_phaseB_dense_ch_0.dat.json \
     --kernel <same-prn-aonly>/aonly_reference_Rtau.png.csv \
     --chip-m 29.3 --delay-m 60 --ratio-db -6 --carrier-hz 1176.45e6 \
-    --max-delay-chips 4.0 --plot <phaseB>/drift_mod_fit.png
+    --min-delay-chips 0.5 --max-delay-chips 4.0 \
+    --modulation-source residual-band --plot <phaseB>/drift_mod_fit.png
 """
 
 import argparse
@@ -209,13 +210,13 @@ def _fit_grid_one_tau0(taps, data, times, ktaps, K, tau0, deltas, drift_values,
                 c = np.linalg.lstsq(gram, b, rcond=None)[0]
             resid2 = max(0.0, y2 - float(np.vdot(c, b).real))
             item = (float(tau0), float(delta), complex(c[0]), complex(c[1]),
-                    float(np.sqrt(resid2)), gram, label)
+                    float(np.sqrt(resid2)), gram, label, mod)
             if best is None or item[4] < best[4]:
                 best = item
     return best
 
 
-def fit_drift_modulated(taps, Y, ktaps, K, drift_hz, dmax, tau0_values,
+def fit_drift_modulated(taps, Y, ktaps, K, drift_hz, dmin, dmax, tau0_values,
                         coarse=0.02, fine=0.005, drift_search_hz=0.0,
                         drift_step_hz=0.05, modulation_vectors=None):
     times = Y["times"] if isinstance(Y, dict) else None
@@ -232,7 +233,7 @@ def fit_drift_modulated(taps, Y, ktaps, K, drift_hz, dmax, tau0_values,
     else:
         drift_values = np.array([drift_hz], dtype=float)
     best = None
-    deltas = np.arange(coarse, dmax + 1e-9, coarse)
+    deltas = np.arange(max(dmin, coarse), dmax + 1e-9, coarse)
     for tau0 in tau0_values:
         item = _fit_grid_one_tau0(taps, data, times, ktaps, K, float(tau0), deltas,
                                   drift_values, modulation_vectors)
@@ -250,7 +251,7 @@ def fit_drift_modulated(taps, Y, ktaps, K, drift_hz, dmax, tau0_values,
         fine_drift_values = np.arange(fb - fine_span, fb + fine_span + 0.5 * fine_step, fine_step)
     else:
         fine_drift_values = np.array([fb], dtype=float)
-    fine_deltas = np.arange(max(fine, db - coarse), min(dmax, db + coarse) + 1e-9, fine)
+    fine_deltas = np.arange(max(dmin, fine, db - coarse), min(dmax, db + coarse) + 1e-9, fine)
     for tau0 in t0_fine:
         item = _fit_grid_one_tau0(taps, data, times, ktaps, K, float(tau0), fine_deltas,
                                   fine_drift_values, fine_modulation_vectors)
@@ -259,8 +260,138 @@ def fit_drift_modulated(taps, Y, ktaps, K, drift_hz, dmax, tau0_values,
     return best, one
 
 
+def modulation_step_score(times, mod, expected_drift_hz):
+    if times is None or len(mod) < 2:
+        return 0.0
+    dt = np.diff(times)
+    steps = mod[1:] * np.conj(mod[:-1])
+    ref = np.exp(1j * 2.0 * np.pi * expected_drift_hz * dt)
+    return float(np.abs(np.mean(steps * np.conj(ref))))
+
+
+def residual_band_modulation(taps, data, times, ktaps, K, tau0, c0, delta,
+                             expected_drift_hz=0.0,
+                             band_half_chip=0.6, band_min_frac=0.15):
+    """Estimate path1's per-epoch unit phasor from residual energy near delta.
+
+    The static path0 contribution is removed first. The residual is projected
+    onto a shifted kernel over a small delayed-tap band, so one noisy tap cannot
+    dominate the modulation estimate.
+    """
+    k0 = ftp.kern_at(ktaps, K, taps - tau0)
+    k1 = ftp.kern_at(ktaps, K, taps - tau0 - delta)
+    resid = data - c0 * k0[None, :]
+    support = np.abs(k1) >= band_min_frac * max(float(np.max(np.abs(k1))), 1e-12)
+    band = np.abs(taps - (tau0 + delta)) <= band_half_chip
+    mask = support & band
+    if int(mask.sum()) < 3:
+        mask = support
+    if int(mask.sum()) < 3:
+        mask = band
+    if int(mask.sum()) < 1:
+        mask = np.ones_like(taps, dtype=bool)
+    kb = k1[mask]
+    denom = float(np.vdot(kb, kb).real)
+    if denom <= 0.0:
+        alpha = np.ones(data.shape[0], dtype=np.complex128)
+    else:
+        alpha = (resid[:, mask] @ np.conj(kb)) / denom
+    mag = np.abs(alpha)
+    ok = mag > np.percentile(mag, 10.0)
+    if int(ok.sum()):
+        raw_unit = np.ones_like(alpha, dtype=np.complex128)
+        raw_unit[ok] = alpha[ok] / mag[ok]
+        raw_coherence = float(np.abs(np.mean(raw_unit[ok])))
+    else:
+        raw_coherence = 0.0
+    # If the residual phasor is already almost static, keep the DC component.
+    # Removing the mean would erase a shared-clock or very slow-drift second
+    # source. For rotating independent-clock captures, remove static leakage
+    # from path0/kernel mismatch before taking the phase sequence.
+    if raw_coherence < 0.6:
+        alpha = alpha - np.mean(alpha)
+        mag = np.abs(alpha)
+        ok = mag > np.percentile(mag, 10.0)
+    mod = np.ones_like(alpha, dtype=np.complex128)
+    mod[ok] = alpha[ok] / mag[ok]
+    coherence = float(np.abs(np.mean(mod[ok]))) if int(ok.sum()) else 0.0
+    step_score = modulation_step_score(times, mod, expected_drift_hz)
+    return mod, int(mask.sum()), int(ok.sum()), coherence, step_score
+
+
+def fit_residual_band_iterative(taps, Y, ktaps, K, dmin, dmax, tau0_values,
+                                coarse=0.02, fine=0.005, iterations=3,
+                                expected_drift_hz=0.0, mod_score_min=0.20,
+                                band_half_chip=0.6, band_min_frac=0.15,
+                                chip_m=29.3):
+    """Alternating fit:
+    static path0 -> residual-band modulation -> full-segment c0/c1/delta fit.
+    """
+    data = Y["data"] if isinstance(Y, dict) else Y
+    times = Y["times"] if isinstance(Y, dict) else None
+    if times is None:
+        raise ValueError("fit_residual_band_iterative needs times")
+    one = fit_one_static(taps, data, ktaps, K, tau0_values)
+    tau0_current, c0_current = one[0], one[1]
+    best = None
+    best_meta = None
+
+    for it in range(max(1, int(iterations))):
+        deltas = np.arange(max(dmin, coarse), dmax + 1e-9, coarse)
+        iter_best = None
+        iter_meta = None
+        fallback_best = None
+        fallback_meta = None
+        for tau0 in tau0_values:
+            for delta in deltas:
+                mod, n_band, n_phase, coh, step_score = residual_band_modulation(
+                    taps, data, times, ktaps, K, float(tau0), c0_current, float(delta),
+                    expected_drift_hz,
+                    band_half_chip, band_min_frac
+                )
+                c, resid, gram = normal_eq_for_delta(taps, data, mod, ktaps, K, float(tau0), float(delta))
+                item = (float(tau0), float(delta), complex(c[0]), complex(c[1]),
+                        float(resid), gram, "residual-band iter%d" % (it + 1), mod)
+                meta = (n_band, n_phase, coh, step_score)
+                if fallback_best is None or item[4] < fallback_best[4]:
+                    fallback_best, fallback_meta = item, meta
+                if step_score < mod_score_min:
+                    continue
+                if iter_best is None or item[4] < iter_best[4]:
+                    iter_best = item
+                    iter_meta = meta
+        if iter_best is None:
+            iter_best, iter_meta = fallback_best, fallback_meta
+        # Fine pass around the current iteration best.
+        t0b, db = iter_best[0], iter_best[1]
+        t0_fine = [t0b] if len(tau0_values) == 1 else np.arange(t0b - coarse, t0b + coarse + 1e-9, fine)
+        fine_deltas = np.arange(max(dmin, fine, db - coarse), min(dmax, db + coarse) + 1e-9, fine)
+        for tau0 in t0_fine:
+            for delta in fine_deltas:
+                mod, n_band, n_phase, coh, step_score = residual_band_modulation(
+                    taps, data, times, ktaps, K, float(tau0), c0_current, float(delta),
+                    expected_drift_hz,
+                    band_half_chip, band_min_frac
+                )
+                c, resid, gram = normal_eq_for_delta(taps, data, mod, ktaps, K, float(tau0), float(delta))
+                item = (float(tau0), float(delta), complex(c[0]), complex(c[1]),
+                        float(resid), gram, "residual-band iter%d" % (it + 1), mod)
+                if step_score >= mod_score_min and item[4] < iter_best[4]:
+                    iter_best = item
+                    iter_meta = (n_band, n_phase, coh, step_score)
+        best, best_meta = iter_best, iter_meta
+        tau0_current, c0_current = best[0], best[2]
+        print("iteration %d: delta %.3f chip (%.1f m), amp %+.2f dB, resid %.4f, "
+              "band_taps=%d phase_samples=%d mod_dc=%.3f mod_score=%.3f"
+              % (it + 1, best[1], best[1] * chip_m,
+                 20.0 * np.log10(abs(best[3]) / abs(best[2])) if abs(best[2]) > 0 else float("nan"),
+                 best[4] / max(float(np.linalg.norm(data)), 1e-12),
+                 best_meta[0], best_meta[1], best_meta[2], best_meta[3]))
+    return best, one
+
+
 def summarize_fit(best, one, Y, chip_m, delay_m, ratio_db):
-    tau0, delta, c0, c1, resid2, gram, fit_drift_hz = best
+    tau0, delta, c0, c1, resid2, gram, fit_drift_hz, fit_mod = best
     tau1 = tau0 + delta
     ny = float(np.linalg.norm(Y))
     resid2_rel = resid2 / ny if ny else float("nan")
@@ -288,15 +419,25 @@ def summarize_fit(best, one, Y, chip_m, delay_m, ratio_db):
         reasons.append("delta below search floor")
     if cond > 1e5:
         reasons.append("ill-conditioned gram %.1g" % cond)
+    delay_error_m = None
+    ratio_error_db = None
+    if delay_m is not None:
+        delay_error_m = delta * chip_m - delay_m
+        if abs(delay_error_m) > max(8.0, 0.25 * abs(delay_m)):
+            reasons.append("validation delay error %.1f m" % delay_error_m)
+    if ratio_db is not None:
+        ratio_error_db = amp_ratio_db - ratio_db
+        if abs(ratio_error_db) > 6.0:
+            reasons.append("validation ratio error %.1f dB" % ratio_error_db)
     reliable = not reasons
     print("VERDICT: %s%s" % ("RELIABLE" if reliable else "UNRELIABLE / uncertain",
                              "" if reliable else " -- " + "; ".join(reasons)))
     if delay_m is not None:
         print("delay: injected %.1f m  recovered %.1f m  error %+.1f m"
-              % (delay_m, delta * chip_m, delta * chip_m - delay_m))
+              % (delay_m, delta * chip_m, delay_error_m))
     if ratio_db is not None:
         print("ratio: injected %+.1f dB  recovered %+.2f dB  error %+.2f dB"
-              % (ratio_db, amp_ratio_db, amp_ratio_db - ratio_db))
+              % (ratio_db, amp_ratio_db, ratio_error_db))
     return {
         "delta_m": delta * chip_m,
         "amp_ratio_db": amp_ratio_db,
@@ -308,6 +449,7 @@ def summarize_fit(best, one, Y, chip_m, delay_m, ratio_db):
         "c1": c1,
         "phase_deg": phase_deg,
         "fit_drift_hz": fit_drift_hz,
+        "mod": fit_mod,
     }
 
 
@@ -338,9 +480,17 @@ def self_test(chip_m):
     for i, (name, dchip, rdb, fhz, phi) in enumerate(cases, start=1):
         print("\n==== %s ====" % name)
         Y = synthetic_case(taps, K, chip_m, dchip, rdb, fhz, phi, seed=i)
+        print("[sinusoid modulation]")
         best, one = fit_drift_modulated(
-            taps, Y, taps, K, fhz, dmax=max(4.0, dchip + 1.0),
+            taps, Y, taps, K, fhz, dmin=0.05, dmax=max(4.0, dchip + 1.0),
             tau0_values=[0.0], coarse=0.02, fine=0.005
+        )
+        summarize_fit(best, one, Y["data"], chip_m, dchip * chip_m, rdb)
+        print("[residual-band alternating modulation]")
+        best, one = fit_residual_band_iterative(
+            taps, Y, taps, K, dmin=0.05, dmax=max(4.0, dchip + 1.0),
+            tau0_values=[0.0], coarse=0.02, fine=0.005,
+            iterations=3, expected_drift_hz=fhz, chip_m=chip_m
         )
         summarize_fit(best, one, Y["data"], chip_m, dchip * chip_m, rdb)
 
@@ -377,6 +527,8 @@ def main():
                     help="search +/- this many Hz around the measured/overridden drift")
     ap.add_argument("--drift-step-hz", type=float, default=0.05,
                     help="coarse drift search step in Hz; fine pass uses step/10")
+    ap.add_argument("--min-delay-chips", type=float, default=0.10,
+                    help="minimum positive path separation searched, in chips")
     ap.add_argument("--max-delay-chips", type=float, default=None)
     ap.add_argument("--tau0-grid", default="0",
                     help="0 to fix tau0 at prompt, or start:step:stop for diagnostics")
@@ -384,9 +536,19 @@ def main():
                     help="common-mode reference before fitting: phase keeps prompt magnitude; "
                          "tap0 matches the windowed fitter but biases merged amplitudes; "
                          "none uses raw dense taps")
-    ap.add_argument("--modulation-source", choices=("sinusoid", "probe"), default="sinusoid",
+    ap.add_argument("--modulation-source", choices=("sinusoid", "probe", "residual-band"),
+                    default="sinusoid",
                     help="sinusoid uses exp(j*2*pi*f*t); probe uses the measured unit phasor "
-                         "at --probe-chip/default delay tap, useful when real drift is not linear")
+                         "at --probe-chip/default delay tap; residual-band alternates static "
+                         "path0 subtraction, delayed-band modulation estimation, and full fit")
+    ap.add_argument("--iterations", type=int, default=3,
+                    help="iterations for --modulation-source residual-band")
+    ap.add_argument("--mod-score-min", type=float, default=0.20,
+                    help="minimum residual-band phase-step consistency with measured drift")
+    ap.add_argument("--band-half-chip", type=float, default=0.6,
+                    help="half-width of residual delayed tap band, in chips")
+    ap.add_argument("--band-min-frac", type=float, default=0.15,
+                    help="also require shifted-kernel magnitude >= this fraction of its peak inside the band")
     ap.add_argument("--coarse-chip", type=float, default=0.02)
     ap.add_argument("--fine-chip", type=float, default=0.005)
     ap.add_argument("--self-test", action="store_true")
@@ -432,19 +594,39 @@ def main():
     dmax = args.max_delay_chips
     if dmax is None:
         dmax = max(2.5, 1.3 * abs(args.delay_m) / args.chip_m) if args.delay_m else 2.5
+    dmin = max(0.0, float(args.min_delay_chips))
+    if dmin >= dmax:
+        raise SystemExit("--min-delay-chips must be smaller than --max-delay-chips")
     tau0_values = make_tau0_values(args.tau0_grid)
     print("kernel: %s" % os.path.basename(args.kernel))
-    print("search: tau0_values=%d  dmax=%.2f chip (%.1f m)  coarse=%.3f fine=%.3f"
-          % (len(tau0_values), dmax, dmax * args.chip_m, args.coarse_chip, args.fine_chip))
+    print("search: tau0_values=%d  dmin=%.2f chip (%.1f m)  dmax=%.2f chip (%.1f m)  "
+          "coarse=%.3f fine=%.3f"
+          % (len(tau0_values), dmin, dmin * args.chip_m,
+             dmax, dmax * args.chip_m, args.coarse_chip, args.fine_chip))
 
     Y = {"data": iq_ref, "times": times}
-    best, one = fit_drift_modulated(
-        taps, Y, ktaps, K, drift_hz, dmax, tau0_values,
-        coarse=args.coarse_chip, fine=args.fine_chip,
-        drift_search_hz=args.drift_search_hz,
-        drift_step_hz=args.drift_step_hz,
-        modulation_vectors=modulation_vectors
-    )
+    if args.modulation_source == "residual-band":
+        print("modulation source: residual-band alternating fit "
+              "(iterations=%d, band_half=%.2f chip, band_min_frac=%.2f, mod_score_min=%.2f)"
+              % (args.iterations, args.band_half_chip, args.band_min_frac, args.mod_score_min))
+        best, one = fit_residual_band_iterative(
+            taps, Y, ktaps, K, dmin, dmax, tau0_values,
+            coarse=args.coarse_chip, fine=args.fine_chip,
+            iterations=args.iterations,
+            expected_drift_hz=drift_hz,
+            mod_score_min=args.mod_score_min,
+            band_half_chip=args.band_half_chip,
+            band_min_frac=args.band_min_frac,
+            chip_m=args.chip_m
+        )
+    else:
+        best, one = fit_drift_modulated(
+            taps, Y, ktaps, K, drift_hz, dmin, dmax, tau0_values,
+            coarse=args.coarse_chip, fine=args.fine_chip,
+            drift_search_hz=args.drift_search_hz,
+            drift_step_hz=args.drift_step_hz,
+            modulation_vectors=modulation_vectors
+        )
     s = summarize_fit(best, one, iq_ref, args.chip_m, args.delay_m, args.ratio_db)
 
     if args.plot:
@@ -455,7 +637,9 @@ def main():
         k0 = ftp.kern_at(ktaps, K, taps - s["tau0"])
         k1 = ftp.kern_at(ktaps, K, taps - s["tau1"])
         # Magnitude average of the fitted model under the measured drift.
-        mod = np.exp(1j * 2.0 * np.pi * drift_hz * times)
+        mod = s.get("mod")
+        if mod is None:
+            mod = np.exp(1j * 2.0 * np.pi * drift_hz * times)
         model = s["c0"] * k0[None, :] + s["c1"] * mod[:, None] * k1[None, :]
         model_mag = (np.abs(model) / np.maximum(np.abs(model[:, zt]), 1e-12)[:, None]).mean(axis=0)
         fig, ax = plt.subplots(figsize=(10, 6))
