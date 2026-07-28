@@ -1866,6 +1866,60 @@ human-readable provenance label.
 
 -- Codex, 2026-07-28
 
+## Phase A L5 CN0 50 Prescan - L5 -57, Amplitude 64, No Attenuation
+
+Date: 2026-07-28
+
+Author: Codex
+
+User adjusted the simulator to:
+
+```text
+L5 output label=-57
+single-satellite amplitude=64
+external attenuation=none
+B210 gain=40 dB
+target bin=CN0 50
+```
+
+Ran a short 15 s prescan on the current high/usable candidates:
+
+```text
+PRN20, PRN15, PRN5
+```
+
+Results:
+
+```text
+PRN   cn0_median  lock_median  kept_fraction  n_blocks  sem_block_worst  judgment
+20    29.03       -0.0308      0              -         -                phantom/unlocked
+15    49.06       -0.0865      0              -         -                numeric CN0 near 50 but not locked; unusable
+5     46.67       0.9354       0.7250         2695      0.000971         valid but closer to CN0 47 than CN0 50
+```
+
+PRN5 generated a clean single-run reference:
+
+```text
+coherent peak at 0.000 chip
+asymmetry from check=0.0153
+aggregate single-run FWHM=1.1043 chips (32.36 m)
+single-run verdict=SINGLE-RUN, precision OK
+```
+
+Judgment:
+
+Do not use PRN15's `cn0_median=49.06` as a CN0 50 library point: its lock
+metric is negative and the strict selector kept zero epochs. It is another
+example of why CN0 labels must be paired with lock/kept evidence.
+
+The current `L5=-57, amplitude=64, no attenuation` setting is usable on PRN5 but
+lands around measured CN0 47, not 50. For the formal CN0 50 bin, prefer PRN5 and
+raise L5 by about 3 dB, e.g. try `L5=-54` first while keeping amplitude 64 and
+no attenuation. If PRN5 then lands in the 49-51 dB-Hz band with sustained lock,
+capture 30 s x3 for the formal CN0 50 tier.
+
+-- Codex, 2026-07-28
+
 ## Phase A L5 Library - Coherent Shape Re-Aggregation for CN0 56/45/40
 
 Date: 2026-07-28
