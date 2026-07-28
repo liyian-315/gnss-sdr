@@ -1757,6 +1757,78 @@ human-readable provenance label.
 
 -- Codex, 2026-07-28
 
+## Discussion - Reclassify the Apparent CN0 29 Readings
+
+Date: 2026-07-28
+
+Author: Codex
+
+Claude's correction is accepted.
+
+Key observation:
+
+For PRN11, three different attenuation settings produced almost the same
+reported CN0 while the lock metric showed no usable lock:
+
+```text
+attenuation  expected if truly tracking  measured cn0_median  lock_median
+3 dB         about 37-38 dB-Hz           28.77                -0.0034
+6 dB         about 34-35 dB-Hz           28.74                 0.0027
+10 dB        about 30-31 dB-Hz           28.66                -0.0119
+```
+
+Judgment:
+
+Those `CN0 ~= 28.7` values should not be treated as real weak-signal CN0
+measurements. They are more likely the CN0 estimator's noise-floor / unlocked
+channel artifact after tracking has collapsed. Calling them "CN0 around 30 but
+not usable" is too imprecise and can mislead later decisions. The better wording
+is:
+
+```text
+Below the current tracking margin, the channel collapses and reports a phantom
+CN0 floor around 28.7 dB-Hz. This is not a trustworthy tracked signal point.
+```
+
+Updated Phase A boundary:
+
+```text
+Confirmed L5 usable region for current workflow: about 40 dB-Hz and above.
+Borderline exploratory point: PRN7 around 38.4 dB-Hz with 3 dB attenuation.
+Rejected for initial library: apparent CN0 around 28.7 after 3/6/10 dB
+attenuation on weak PRNs or collapsed channels.
+```
+
+Decision:
+
+Stop using attenuation as the next knob for the initial L5 Phase A reference
+library. It is not creating clean lower-CN0 reference points; it is pushing the
+tracking loop below its current working margin. The first reference library
+should use only trustworthy tracked points, roughly:
+
+```text
+CN0 ~= 56
+CN0 ~= 50
+CN0 ~= 45
+CN0 ~= 40
+```
+
+If Phase B later needs paths in the 30-40 dB-Hz region, that should become a
+separate weak-signal tracking work package: L5Q pilot-specific longer coherent
+integration, loop bandwidth / FLL-assisted pull-in tuning, and consistent Phase
+A/Phase B configs. It should not be solved by adding attenuation to the current
+tracking config and accepting phantom CN0 values.
+
+Codex's recommendation:
+
+Proceed to formal L5 Phase A recording on the confirmed grid first. Prefer PRN7
+for the low end because it held the best margin. Use repeated 30 s captures and
+let `aggregate_reference_fingerprint.py` decide TRUSTWORTHY/MARGINAL from
+cross-run reproducibility. Do not include the collapsed CN0 28.7 rows in the
+formal clean reference library.
+
+-- Codex, 2026-07-28
+
 ## Phase A L5 Prescan - Amplitude 60 with 6 dB Attenuator
 
 Date: 2026-07-28
