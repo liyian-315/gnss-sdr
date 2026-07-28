@@ -107,7 +107,7 @@ CONF="/tmp/l5_prescan_${TAG}.conf"
 rm -f "$TMP" "$RAW" \
   "$OUT/record.log" "$OUT/run_gnss_sdr.log" "$OUT/summary.txt" \
   "$OUT/l5_prescan_dense_ch_0.dat" "$OUT/l5_prescan_dense_ch_0.dat.json" \
-  "$OUT/l5_prescan_Rtau.png" "$OUT/l5_prescan_Rtau.png.csv" "$OUT/l5_prescan_fp.png"
+  "$OUT/l5_prescan_reference_Rtau.png" "$OUT/l5_prescan_reference_Rtau.png.csv" "$OUT/l5_prescan_fp.png"
 
 {
   echo "tag=$TAG"
@@ -224,7 +224,7 @@ python3 dev_notes/sim/check_dense_vs_prompt.py \
   --cn0-min 45 --lock-min 0.6 \
   --min-lock-run "$MIN_LOCK_RUN" --settle-epochs "$SETTLE_EPOCHS" \
   --guard-before-loss "$GUARD_BEFORE_LOSS" \
-  --ref-out "$OUT/l5_prescan_Rtau.png" 2>&1 | tee "$OUT/check_dense.log" || true
+  --ref-out "$OUT/l5_prescan_reference_Rtau.png" 2>&1 | tee "$OUT/check_dense.log" || true
 
 echo "[5/5] Summarizing measured CN0 and fingerprint quality"
 python3 - "$OUT" <<'PY' | tee -a "$OUT/summary.txt"
@@ -256,7 +256,7 @@ if len(lock):
 else:
     print("lock_median=nan")
 
-csv = os.path.join(out, "l5_prescan_Rtau.png.csv")
+csv = os.path.join(out, "l5_prescan_reference_Rtau.png.csv")
 if os.path.exists(csv):
     meta_line = ""
     with open(csv, "r", encoding="utf-8") as fh:
@@ -267,10 +267,10 @@ if os.path.exists(csv):
         print("rtau_meta=%s" % meta_line)
 PY
 
-if [[ -f "$OUT/l5_prescan_Rtau.png.csv" ]]; then
+if [[ -f "$OUT/l5_prescan_reference_Rtau.png.csv" ]]; then
   python3 dev_notes/sim/aggregate_reference_fingerprint.py \
-    "$OUT/l5_prescan_Rtau.png.csv" \
-    --labels "$TAG" --chip-m 29.3 --min-kept-fraction 0.2 \
+    "$OUT/l5_prescan_reference_Rtau.png.csv" \
+    --labels "$TAG" --chip-m 29.3 \
     --plot "$OUT/l5_prescan_fp.png" 2>&1 | tee "$OUT/aggregate.log"
 else
   echo "aggregate_skipped=1" | tee -a "$OUT/summary.txt"
