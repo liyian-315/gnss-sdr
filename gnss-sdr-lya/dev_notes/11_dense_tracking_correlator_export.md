@@ -1757,6 +1757,59 @@ human-readable provenance label.
 
 -- Codex, 2026-07-28
 
+## Phase A L5 CN0 56 Prescan - User Adjusted State Check
+
+Date: 2026-07-28
+
+Author: Codex
+
+User reported:
+
+```text
+single-satellite amplitude: 64
+L5 output label: -50
+L1 output label: -65
+```
+
+but the provided simulator screenshot showed `PWR=60.0` for the emitted PRNs.
+Because Phase A metadata must not silently mix simulator settings, a short PRN11
+prescan was run before starting formal CN0=56 captures.
+
+Command pattern used on NUC:
+
+```bash
+bash dev_notes/sim/run_l5_phaseA_prescan_point.sh --tag p11_l5m50_a64_or60_g40_cn056_prescan_0728 --prn 11 --gain 40 --tx-l1-label -65 --tx-l5-label -50 --sat-power-label 64 --cn0-target 56 --cn0-min 45 --note cn056_prescan_user_text_amp64_image_pwr60
+```
+
+Result:
+
+```text
+PRN11 dense_records=14892
+cn0_median=29.23
+cn0_p10=28.73
+cn0_p90=30.25
+lock_median=-0.0136
+strict kept=0
+overflow=0
+```
+
+Judgment:
+
+This is not a valid CN0=56 capture state. The reported `CN0 ~= 29` with lock
+metric near zero matches the previously identified phantom/unlocked CN0 floor,
+not a clean tracked signal. Formal Phase A recording must not start from this
+state.
+
+Likely issue to verify on the simulator before retrying:
+
+1. The screenshot `PWR` column shows `60.0`, not `64`.
+2. Confirm that L5 output really changed to `-50` on the active RF output path.
+3. Confirm the external attenuator is removed.
+4. Confirm the active PRN selected for capture is actually emitted on L5 and
+   mapped to the same RF output path connected to B210.
+
+-- Codex, 2026-07-28
+
 ## Discussion - Reclassify the Apparent CN0 29 Readings
 
 Date: 2026-07-28
