@@ -1703,6 +1703,118 @@ asym std 0.00015 -> VERDICT TRUSTWORTHY (first accepted tier).
 
 -- Claude (Opus 4.8), 2026-07-28
 
+## Claude: two-path fitter built + validated (the core algorithm)
+
+Date: 2026-07-28
+Author: Claude (Opus 4.8)
+
+`dev_notes/sim/fit_two_path.py` fits an observed complex R(tau) as two shifted
+copies of the measured single-source kernel:
+
+```text
+Y(tau) = c0*K(tau-tau0) + c1*K(tau-tau1)      c0,c1 complex
+```
+
+Variable projection: nonlinear search only over (tau0,tau1); c0/c1 are linear
+least squares. Outputs delta (chips+m), amplitude ratio (dB), relative phase, fit
+residual, and a 1-path-vs-2-path residual drop as the second-path DETECTION
+signal. Kernel = a Phase A TRUSTWORTHY reference CSV; observed = the two-source
+composite CSV analysed the same way.
+
+Self-test (synthetic kernel, noise sigma=0.002 ~ measured SEM, L5 chip 29.3 m):
+
+```text
+- delta >= 0.3 chip (8.8 m): delay, amp ratio (0..-10 dB), and phase (0/90/180 deg)
+  all recovered essentially exactly.
+- delta = 0.2 chip (5.9 m): fine at 0/90 deg, FAILS at 180 deg (destructive) ->
+  recovered 1.2 m. This is the physical wall: sub-0.3-chip + opposite phase is
+  ill-conditioned from one antenna. Honest floor, matches doc 09.
+- single-source input: 2-path residual barely beats 1-path (drop 0.02-0.06) ->
+  correctly NOT detected. Good specificity (no hallucinated second path).
+```
+
+Caveat: the self-test uses the same kernel for synthesis and fit. Real data adds
+kernel mismatch + independent noise, so the real resolution floor will be a bit
+worse than 0.3 chip; Phase B measures it.
+
+-- Claude (Opus 4.8), 2026-07-28
+
+## SOP: Phase B two-source collection (for Codex)
+
+Author: Claude (Opus 4.8). Date: 2026-07-28. Status: authoritative direction.
+
+Goal: capture two SAME-PRN L5 sources with KNOWN delay + power ratio (an indoor
+DAS analogue), export the composite dense R(tau), fit with fit_two_path.py, and
+compare recovered (delta, ratio, phase) to ground truth -- validating the pipeline
+on real hardware and mapping the REAL resolution floor.
+
+Hardware:
+
+```text
+- Two simulators, SAME PRN (use a good tracker: PRN11/15/7), SAME L5 band.
+- Combine with the 2-way splitter REVERSED as a combiner (simA + simB -> RX);
+  ~3-4 dB insertion loss.
+- simA = path0 (direct). simB = path1 with delay offset (delay_m) and power
+  offset (power_ratio_db). Keep the working single-source RF settings so each
+  path lands in a known CN0 bin.
+```
+
+CRITICAL - clock/phase:
+
+```text
+- If the two sims can SHARE a 10 MHz reference: relative phase phi is stable ->
+  one whole-capture coherent R(tau) -> one fit. SIMPLEST, do this if possible.
+- If independent clocks: phi DRIFTS across the capture (clock offset -> phi cycles
+  in tens of ms). Then the composite shape changes over time and you must NOT
+  coherent-average the whole 30 s (the second path would smear/cancel). Analyse in
+  SHORT windows (~10-50 ms, phi ~constant) and fit each. This needs a windowed
+  variant of check (emit R(tau) per window); flag if you hit this and we build it.
+  Upside: phi-diversity across windows actually aids separation.
+```
+
+Config (MUST match Phase A so the kernel is valid):
+
+```text
+- L5Q pilot robust, 20 Msps, sc16, /dev/shm, 30 s, decim=1.
+- Dense taps WIDENED to fit the second path: window >= ~2x max delay in chips.
+  merged/sub-chip (<30 m): keep -1.5:0.1:1.5. up to ~100 m (3.4 chip): -4:0.1:4.
+```
+
+Per capture, ALWAYS in this order:
+
+```text
+1. single-source baseline of THAT PRN at THAT CN0 (simB OFF): this is the kernel +
+   per-PRN asym baseline for the fit. Do NOT reuse a different PRN's kernel.
+2. two-source composite (simB ON with delay_m / power_ratio_db).
+3. write condition.json: phase=B, prn, cn0_target, delay_m, power_ratio_db, run.
+```
+
+Grid (start easy -> push to the wall):
+
+```text
+CN0:          start 57 (isolate delay/power from noise), then 52, 43, 40.
+delay_m:      6, 9, 15, 22, 29, 44, 60, 90   (0.2..3 chip; the fit floor is ~0.3
+              chip = 8.8 m, so 6/9 m is where it should start to break -- map it).
+power_ratio:  0 (equal = DAS-realistic AND hardest, main/2nd can swap), -3, -6, -10 dB.
+repeats:      >=3 per condition (same as Phase A), aggregate for reproducibility.
+```
+
+Analyse:
+
+```bash
+python3 dev_notes/sim/check_dense_vs_prompt.py --dense <composite>/<dense>.dat.json \
+  --cn0-min 40 --min-lock-run 2000 --settle-epochs 200 --ref-out <composite>/comp_Rtau.png
+python3 dev_notes/sim/fit_two_path.py \
+  --kernel <same_PRN_single_source>/ref_Rtau.png.csv \
+  --observed <composite>/comp_Rtau.png.csv --chip-m 29.3 --plot <composite>/fit.png
+```
+
+Success per condition: recovered delta within ~0.2 chip (6 m) of injected for
+delta >= ~0.3 chip; recovered amp ratio within ~1 dB; second source DETECTED
+(residual drop). Record where recovery breaks -> that is the real resolution floor.
+
+-- Claude (Opus 4.8), 2026-07-28
+
 ## Step 1 Notes
 
 Changed:
