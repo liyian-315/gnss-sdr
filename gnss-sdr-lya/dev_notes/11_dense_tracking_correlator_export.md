@@ -2041,6 +2041,132 @@ uniform, but the current four tiers are already TRUSTWORTHY.
 
 -- Codex, 2026-07-28
 
+## Phase B First Two-Source Composite Capture - PRN15, 60 m, -6 dB
+
+Date: 2026-07-28
+
+Author: Codex
+
+User configured two simulators through a reversed splitter into B210 RX2:
+
+```text
+Simulator A / primary:
+  GPS L5 active, PRN list visible in UI
+  single-satellite amplitude=64
+  L5 output label=-50
+  pseudorange compensation=0 m
+
+Simulator B / second source:
+  GPS L5 active, same visible PRN list
+  single-satellite amplitude=64
+  L5 output label=-56
+  pseudorange compensation=+60 m
+
+Clocking:
+  no shared 10 MHz reference; simulators are independent-clock sources
+
+RF chain:
+  A/B combined by reversed splitter
+  combiner output connected to B210 RX2
+  B210 gain=40 dB
+  sample rate=20 Msps
+  sample type=sc16 / ishort
+```
+
+Important acquisition note:
+
+I initially attempted PRN11 because it is a strong Phase A reference PRN, but the
+user screenshots for the active Phase B simulator state did not include PRN11.
+That offline pass produced no tracking and a zero-length dense binary. The raw
+recording itself was still valid and contained the currently active PRNs, so I
+reprocessed the same raw as PRN15.
+
+Raw composite recording:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/l5_prn11_delay60m_ratio_m6db_run1_30s_0728/raw_prn11_20m_30s_ishort.dat
+size=2.3 GB
+record_overflow=0
+```
+
+Successful PRN15 Phase B processing directory:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/l5_prn15_delay60m_ratio_m6db_run1_30s_0728
+```
+
+`raw_prn15_20m_30s_ishort.dat` in that directory is a symlink to the original
+raw capture above, avoiding a second 2.3 GB copy.
+
+Condition metadata:
+
+```text
+phase=B
+band=L5
+PRN=15
+delay_m=60
+power_ratio_db=-6
+run=1
+clock_mode=independent
+dense taps=-4:0.1:4 chips
+dense decimation=1
+```
+
+Offline GNSS-SDR config was generated with:
+
+```bash
+python3 dev_notes/sim/make_l5_dualpath_conf.py --source file --input <raw> --sample-type ishort --output <conf> --rate 20000000 --prns 15 --single-path --track-pilot --scenario cable --blocking true --enable-dense-correlator --dense-taps=-4:0.1:4 --dense-decimation 1 --dense-dump-prefix <out>/l5_phaseB_dense_ch_
+```
+
+Tracking result:
+
+```text
+Tracking of GPS L5Q signal started on channel 0 for satellite GPS PRN 15
+GPS L5Q secondary code locked in channel 0
+No loss-of-lock reported during the 30 s offline pass
+DUALPATH_OBS CN0 ~=52.5-53.5 dB-Hz
+```
+
+Dense dump validation:
+
+```text
+dense binary: /home/bupt/lya/gnss_data/phaseB_l5_twosource/l5_prn15_delay60m_ratio_m6db_run1_30s_0728/l5_phaseB_dense_ch_0.dat
+dense json:   /home/bupt/lya/gnss_data/phaseB_l5_twosource/l5_prn15_delay60m_ratio_m6db_run1_30s_0728/l5_phaseB_dense_ch_0.dat.json
+records=29909
+record_size=724 bytes
+tap_count=81
+tap span=-4.000 .. +4.000 chips
+signal=GPS L5
+channel=0
+decimation=1
+fs=20 MHz
+last-epoch plot=/home/bupt/lya/gnss_data/phaseB_l5_twosource/l5_prn15_delay60m_ratio_m6db_run1_30s_0728/dense_epoch_last.png
+```
+
+Judgment:
+
+This is the first successful Phase B two-source composite dense capture. Because
+the two simulators do not share a 10 MHz reference, do not interpret a 30 s
+coherent average as a valid two-source profile: the relative phase can drift and
+average out the delayed component. The data should be analyzed with short
+windows (roughly 10-50 ms) before calling `fit_two_path.py`. The capture itself
+is valid and wide enough for the requested 60 m delay because the dense tap span
+was widened to `-4:0.1:4` chips.
+
+Next analysis task:
+
+Add or use a windowed dense-profile exporter:
+
+```text
+input: l5_phaseB_dense_ch_0.dat.json
+window length: start with 20 ms and 50 ms
+output: one coherent R(tau) CSV per window, or selected high-SNR windows
+then: fit_two_path.py --kernel <PRN15 single-source kernel> --observed <window CSV>
+truth: delay_m=60, power_ratio_db=-6
+```
+
+-- Codex, 2026-07-28
+
 ## Discussion - Phase A L5 Canonical Library Interpretation
 
 Date: 2026-07-28
