@@ -23,6 +23,9 @@ Options:
   --tx-l1-label TEXT      Optional simulator L1 output label, e.g. -65.
   --tx-l5-label TEXT      Optional simulator L5 output label, e.g. -50.
   --sat-power-label TEXT  Optional simulator per-satellite amplitude label, e.g. 64.
+  --cn0-target N          Optional intended CN0 bin label. Leave blank for prescan.
+  --run N                 Optional repeat index. Default: 1.
+  --note TEXT             Optional condition note.
   --prn N                 GPS L5 PRN. Default: 28.
   --secs N                Record seconds. Default: 15.
   --rate N                Sample rate. Default: 20000000.
@@ -41,6 +44,9 @@ SIM_POWER_LABEL=""
 TX_L1_LABEL=""
 TX_L5_LABEL=""
 SAT_POWER_LABEL=""
+CN0_TARGET=""
+RUN_INDEX="1"
+NOTE="prescan"
 PRN="28"
 SECS="15"
 RATE="20000000"
@@ -60,6 +66,9 @@ while [[ $# -gt 0 ]]; do
     --tx-l1-label) TX_L1_LABEL="$2"; shift 2 ;;
     --tx-l5-label) TX_L5_LABEL="$2"; shift 2 ;;
     --sat-power-label) SAT_POWER_LABEL="$2"; shift 2 ;;
+    --cn0-target) CN0_TARGET="$2"; shift 2 ;;
+    --run) RUN_INDEX="$2"; shift 2 ;;
+    --note) NOTE="$2"; shift 2 ;;
     --prn) PRN="$2"; shift 2 ;;
     --secs) SECS="$2"; shift 2 ;;
     --rate) RATE="$2"; shift 2 ;;
@@ -105,6 +114,8 @@ rm -f "$TMP" "$RAW" \
   echo "tx_l1_label=$TX_L1_LABEL"
   echo "tx_l5_label=$TX_L5_LABEL"
   echo "sat_power_label=$SAT_POWER_LABEL"
+  echo "cn0_target=$CN0_TARGET"
+  echo "run=$RUN_INDEX"
   echo "prn=$PRN"
   echo "secs=$SECS"
   echo "rate=$RATE"
@@ -114,6 +125,41 @@ rm -f "$TMP" "$RAW" \
   echo "device_args=$DEVICE_ARGS"
   echo "out=$OUT"
 } > "$OUT/summary.txt"
+
+python3 - "$OUT/condition.json" "$PRN" "$CN0_TARGET" "$SIM_POWER_LABEL" "$TX_L1_LABEL" "$TX_L5_LABEL" "$SAT_POWER_LABEL" "$RUN_INDEX" "$NOTE" <<'PY'
+import json
+import sys
+
+out, prn, cn0_target, sim_power, tx_l1, tx_l5, sat_power, run, note = sys.argv[1:]
+
+def maybe_number(value):
+    if value == "":
+        return None
+    try:
+        f = float(value)
+    except ValueError:
+        return value
+    return int(f) if f.is_integer() else f
+
+condition = {
+    "phase": "A",
+    "band": "L5",
+    "prn": maybe_number(prn),
+    "cn0_target": maybe_number(cn0_target),
+    "sim_power_dbm": maybe_number(tx_l5 or sim_power),
+    "delay_m": 0,
+    "power_ratio_db": None,
+    "run": maybe_number(run),
+    "config": "L5Q pilot robust dense prescan",
+    "note": note,
+    "tx_l1_label": maybe_number(tx_l1),
+    "tx_l5_label": maybe_number(tx_l5),
+    "sat_power_label": maybe_number(sat_power),
+}
+with open(out, "w", encoding="utf-8") as fh:
+    json.dump(condition, fh, indent=2, sort_keys=True)
+    fh.write("\n")
+PY
 
 echo "[1/5] Recording short L5 prescan sample -> $RAW"
 NSAMPS="$(python3 - <<PY

@@ -1745,6 +1745,13 @@ metadata labels for this:
 bash dev_notes/sim/run_l5_phaseA_prescan_point.sh --tag l5_prn12_l5m50_amp64_g40_20260728 --prn 12 --gain 40 --tx-l1-label -65 --tx-l5-label -50 --sat-power-label 64
 ```
 
+The helper also writes `condition.json` in each capture directory so Claude's
+`build_fingerprint_dataset.py` can index the capture tree. During prescan,
+`cn0_target` may be empty because the measured CN0 bin is the output of the
+prescan, not the input assumption. For formal Phase A grid captures, set
+`--cn0-target` and `--run` explicitly after the prescan has established the RF
+settings for that measured bin.
+
 Keep grouping/selection by measured CN0 bins after the run. The tag is only a
 human-readable provenance label.
 
