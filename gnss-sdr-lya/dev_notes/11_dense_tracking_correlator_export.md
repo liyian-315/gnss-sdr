@@ -2154,6 +2154,79 @@ needed to validate 0.5 chip outside simulation.
 
 -- Codex, 2026-07-28
 
+## Phase B Synthetic 0.5-Chip Benchmark
+
+Date: 2026-07-28
+Author: Codex
+
+Purpose:
+
+Before collecting new RF data for the 0.5-chip target, formalize a synthetic
+benchmark that proves the current algorithm can separate the hardest intended
+case under controlled truth:
+
+```text
+delta = 0.5 chip ~= 14.65 m for L5
+power ratio = 0 dB / -3 dB / -6 dB
+relative phase = 0 / 90 / 180 deg
+fast independent-clock drift = +/-250 Hz
+extra noisy equal-power cases
+```
+
+Implemented:
+
+- `dev_notes/sim/run_synthetic_phaseb_benchmark.py`
+- Output CSV:
+  `dev_notes/sim/synthetic_phaseb_0p5_benchmark.csv`
+- Optional `--kernel <PhaseA CSV>` lets the same synthetic injection use a real
+  Phase A L5 reference kernel instead of the built-in synthetic L5-like kernel.
+- The script exits non-zero if any hard case fails, so it can be used as a
+  regression gate before touching real captures.
+
+Acceptance gates:
+
+```text
+delay error <= 0.06 chip
+ratio error <= 2.0 dB
+residual drop >= 0.15
+fitter verdict == RELIABLE
+```
+
+Results:
+
+```text
+Local synthetic L5-like kernel:
+  hard cases: 22 pass / 22 total
+
+NUC with PRN23 Phase A kernel:
+  /home/bupt/lya/gnss_data/phaseB_l5_twosource/synthetic_phaseb_0p5_prn23_kernel_benchmark.csv
+  hard cases: 22 pass / 22 total
+
+NUC with PRN28 Phase A kernel:
+  /home/bupt/lya/gnss_data/phaseB_l5_twosource/synthetic_phaseb_0p5_prn28_kernel_benchmark.csv
+  hard cases: 22 pass / 22 total
+```
+
+Important interpretation:
+
+This proves the residual-band alternating fitter can solve 0.5 chip under a
+clean two-source model, including equal-power destructive-phase fast-drift
+cases. It does **not** prove that an arbitrary real capture can be separated at
+0.5 chip. The PRN28 real 30 m failure remains a capture/model-order evidence
+problem, not a kernel-resolution impossibility. Therefore the next real-data
+step should be designed around evidence quality and rejection gates, not just
+smaller commanded delay.
+
+Next real-capture design decision:
+
+Only after this synthetic gate stays green should we collect a real 0.5-chip
+case. The first RF 0.5-chip test should use the PRN/condition that already passed
+30 m (currently PRN23-style behavior), keep the same A/B-chain calibration
+measurement, and include a same-session 30 m positive control so that a 0.5-chip
+failure can be separated from capture quality problems.
+
+-- Codex, 2026-07-28
+
 ## Phase B PRN28 A+B Composite - Delay 60m Positive Control
 
 Date: 2026-07-28
