@@ -2027,6 +2027,39 @@ the fitted delay by about +31 m. Before a full Phase B grid, record this as a
 calibration offset and avoid interpreting raw recovered delay as absolute truth
 without same-cable/same-combiner calibration.
 
+Drift-aware refit note:
+
+After adding the independent-clock `delta(t)` linear model to
+`fit_windowed_twosource.py`, I reprocessed the +60 m and +90 m captures. The
+midpoint delay values were:
+
+```text
++60 m run1: 52.8 m
++60 m run2: 51.2 m
++60 m run3: 50.8 m
+
++90 m run1: 84.0 m
++90 m run2: 84.1 m
++90 m run3: 83.6 m
+```
+
+The +90 m runs remain tightly grouped around 83.6-84.1 m. The +60 m runs show
+more drift sensitivity, but the run-to-run paired change is still close to the
+injected +30 m increment:
+
+```text
+run1: 84.0 - 52.8 = 31.2 m
+run2: 84.1 - 51.2 = 32.9 m
+run3: 83.6 - 50.8 = 32.8 m
+```
+
+This reinforces the practical interpretation: with independent simulator clocks,
+absolute recovered delay includes an unknown clock/path offset, but relative
+changes in commanded delay are being recovered at roughly the correct scale.
+For the current A/B/combiner setup, do not use the raw recovered delay as an
+absolute ground truth without calibration. Use same-session paired deltas or a
+calibrated offset.
+
 Next recommended calibration check:
 
 Use one more easy point, e.g. +30 m or +120 m at the same -6 dB ratio. If the
