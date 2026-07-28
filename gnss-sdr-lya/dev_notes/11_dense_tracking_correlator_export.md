@@ -1757,6 +1757,62 @@ human-readable provenance label.
 
 -- Codex, 2026-07-28
 
+## Phase A L5 CN0 56 Prescan - Amplitude 64 Retry
+
+Date: 2026-07-28
+
+Author: Codex
+
+User corrected the simulator single-satellite amplitude to `64` and requested
+another capture under:
+
+```text
+L1 output label: -65
+L5 output label: -50
+single-satellite amplitude: 64
+B210 gain: 40 dB
+external attenuation: none
+PRN: 11
+```
+
+Command pattern used on NUC:
+
+```bash
+bash dev_notes/sim/run_l5_phaseA_prescan_point.sh --tag p11_l5m50_a64_g40_cn056_prescan_retry_0728 --prn 11 --gain 40 --tx-l1-label -65 --tx-l5-label -50 --sat-power-label 64 --cn0-target 56 --cn0-min 45 --note cn056_prescan_retry_amp64
+```
+
+Result:
+
+```text
+dense_records=14870
+cn0_median=56.87
+cn0_p10=56.33
+cn0_p90=57.16
+lock_median=0.9579
+kept_records=14574
+kept_fraction=0.9801
+n_blocks=9
+sem_block_worst=0.010016
+FWHM=32.05 m
+verdict=INSUFFICIENT
+overflow=0
+```
+
+Judgment:
+
+The RF/simulator setting is now correct for the intended `CN0 ~= 56` point:
+measured CN0 is high and lock is healthy. The previous failed CN0=56 prescan was
+therefore caused by the actual simulator state mismatch, not by the receiver.
+
+However, this 15 s prescan should not be treated as a formal reference-library
+run because the blocking estimator reports only `n_blocks=9` and
+`sem_block_worst=0.010016`. The likely practical remedy is longer/repeated
+formal captures (30 s first; extend if the same low n_blocks repeats). The point
+is suitable to proceed to formal 30 s CN0=56 repeats, but this prescan itself is
+not a TRUSTWORTHY fingerprint.
+
+-- Codex, 2026-07-28
+
 ## Phase A L5 CN0 56 Prescan - User Adjusted State Check
 
 Date: 2026-07-28
