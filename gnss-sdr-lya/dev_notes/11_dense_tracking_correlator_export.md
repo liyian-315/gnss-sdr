@@ -2069,6 +2069,97 @@ then revisit the fitter model or simulator delay semantics.
 
 -- Codex, 2026-07-28
 
+## Phase B A+B Composite - PRN23 30m -6dB Near-Resolution Check
+
+Date: 2026-07-28
+
+Author: Codex
+
+User changed the B simulator delay compensation from +90 m to +30 m. Other
+conditions were kept the same:
+
+```text
+A simulator: on, GPS L5 PRN23, single-satellite amplitude=64, L5 output=-50 dBm, delay compensation=0 m
+B simulator: on, GPS L5 PRN23, single-satellite amplitude=64, L5 output=-56 dBm, delay compensation=+30 m
+Combiner: A/B combined into B210 RX2
+Clocking: independent simulator clocks, no shared 10 MHz reference
+Tracking: L5Q pilot robust, 20 Msps, ishort, B210 RX2 gain=40
+Dense taps: -4:0.1:4 chips, decimation=1
+```
+
+NUC output directories:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn23_delay30m_ratio_m6db_run1_30s_0728
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn23_delay30m_ratio_m6db_run2_30s_0728
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn23_delay30m_ratio_m6db_run3_30s_0728
+```
+
+Capture quality:
+
+```text
+run1: record_overflow=0, dense_records=29906, loss_count=0, DUALPATH_OBS=14
+run2: record_overflow=0, dense_records=29878, loss_count=0, DUALPATH_OBS=14
+run3: record_overflow=0, dense_records=29896, loss_count=0, DUALPATH_OBS=18
+```
+
+This is a near-resolution test. For L5, 30 m is about 1.02 chips and is close to
+the measured single-source FWHM (~32 m), so the two sources are expected to fuse
+into one broadened/asymmetric main lobe more often than the +60 m and +90 m
+cases.
+
+Windowed fit results with the standard probe (`delay_m / chip_m`, about 1 chip):
+
+```text
+run1: mag_mean secondary peak=0.80 chip / 23.4 m
+      detected 18 / 21 windows
+      recovered midpoint delay=23.6 m, median ratio=-6.03 dB
+
+run2: mag_mean secondary peak=0.90 chip / 26.4 m
+      auto drift estimate collapsed to one whole-record window
+      recovered delay=14.4 m, ratio=+8.23 dB
+      judgment: not reliable under the standard auto-window choice
+
+run3: mag_mean secondary peak=0.90 chip / 26.4 m
+      detected 19 / 20 windows
+      recovered midpoint delay=24.6 m, median ratio=-8.46 dB
+```
+
+Extra probe sensitivity check for run2:
+
+```text
+probe=0.7 chip: detected 4 / 5 windows, recovered midpoint=22.2 m, ratio=-6.96 dB
+probe=0.8 chip: detected 2 / 4 windows, recovered midpoint=24.5 m, ratio=-11.72 dB
+probe=1.2 chip: detected 8 / 9 windows, recovered midpoint=25.1 m, ratio=-11.17 dB
+```
+
+Codex judgment:
+
+The +30 m case is detectable, but it is no longer as stable as +60 m and +90 m.
+Runs 1 and 3 recover a second source around 23-25 m, which matches the previously
+observed fixed calibration offset scale:
+
+```text
+Injected +30 m -> recovered about 24 m, error about -6 m
+Injected +60 m -> recovered about 51-53 m, error about -7 to -9 m
+Injected +90 m -> recovered about 84 m, error about -6 m
+```
+
+So the current method can separate roughly 1-chip L5 two-source cases under this
+high-CN0, -6 dB, PRN23 condition, but +30 m should be marked as a lower-confidence
+near-boundary point. At this spacing, model/probe/window choices and phase state
+matter more, and amplitude ratio is less stable than at +60/+90 m.
+
+Practical implication:
+
+For Phase B grid expansion, use +60 m and +90 m as stable positive controls, and
+use +30 m as the first near-resolution stress point. Do not yet claim sub-chip
+separation from this data. The next meaningful stress points are +22 m and +15 m
+only after the window selection/fitter robustness is improved and benchmarked
+against +30 m.
+
+-- Codex, 2026-07-28
+
 ## Phase A CN0 Prescan Plan
 
 Date: 2026-07-28
