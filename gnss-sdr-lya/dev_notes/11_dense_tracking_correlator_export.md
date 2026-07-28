@@ -1757,6 +1757,66 @@ human-readable provenance label.
 
 -- Codex, 2026-07-28
 
+## Phase A L5 Prescan - Amplitude 60 with 3 dB Attenuator
+
+Date: 2026-07-28
+
+Author: Codex
+
+User kept:
+
+```text
+L1 output label: -70
+L5 output label: -70
+single-satellite amplitude: 60
+B210 gain: 40 dB
+```
+
+and added a 3 dB external attenuator.
+
+Purpose:
+
+Check whether a mild external attenuation after the amplitude-60/no-attenuator
+case can produce a usable `CN0 ~= 35-38 dB-Hz` L5 Phase A point.
+
+Command pattern used on NUC:
+
+```bash
+bash dev_notes/sim/run_l5_phaseA_prescan_point.sh --tag p7_l5m70_a60_g40_att3_0728 --prn 7 --gain 40 --tx-l1-label -70 --tx-l5-label -70 --sat-power-label 60 --cn0-target 35 --cn0-min 25 --note slope_check_l1_-70_l5_-70_amp60_att3db
+bash dev_notes/sim/run_l5_phaseA_prescan_point.sh --tag p11_l5m70_a60_g40_att3_0728 --prn 11 --gain 40 --tx-l1-label -70 --tx-l5-label -70 --sat-power-label 60 --cn0-target 35 --cn0-min 25 --note slope_check_l1_-70_l5_-70_amp60_att3db
+```
+
+Results:
+
+```text
+PRN  cn0_median  lock_median  kept_fraction  n_blocks  sem_block_worst  asym     FWHM_m   overflow
+7    38.43       0.794        0.7170         2309      0.002844         0.02841  38.09    0
+11   28.77       -0.0034      0              -         -                -        -        0
+```
+
+Judgment:
+
+The 3 dB attenuator produces a usable-ish low-CN0 point for PRN7
+(`CN0 ~= 38.4`, kept 71.7%, n_blocks 2309), but its SEM is above the current
+interim target (`0.002844 > 0.0020`) and the FWHM is wider than the higher-CN0
+runs. It should be treated as a prescan point, not a trusted reference without
+longer/repeated captures.
+
+PRN11 under the same attenuator did not form a strict usable segment and landed
+around `CN0 ~= 28.8`, similar to the 10 dB attenuator failure mode. This confirms
+that low-CN0 behavior is PRN/link-condition dependent in the current setup. Do
+not assume a single external attenuation value maps every PRN to the same usable
+CN0 bin.
+
+Practical implication:
+
+For a formal L5 Phase A grid, PRN7 with amplitude 60 + 3 dB attenuation is a
+candidate for exploring the `CN0 ~= 38` region. If the target is a robust
+`CN0 ~= 35` reference, the next test should likely be longer (30-60 s) and/or
+use PRN7 first; PRN11 is not a good low-CN0 candidate under this attenuator.
+
+-- Codex, 2026-07-28
+
 ## Phase A L5 Prescan - Amplitude 60, No External Attenuator
 
 Date: 2026-07-28
