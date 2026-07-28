@@ -59,17 +59,24 @@ def zero_tap_index(taps):
     return idx
 
 
-def phase_reference_iq(iq, zt):
-    """Remove common prompt phase but keep the original prompt magnitude."""
+def phase_reference_iq(iq, zt, mode):
+    """Apply the requested common-mode reference."""
     tap0 = iq[:, zt]
     good = np.abs(tap0) > 0.0
     iq = iq[good]
     tap0 = tap0[good]
-    phasor = np.exp(-1j * np.angle(tap0))
-    return iq * phasor[:, None], good
+    if mode == "phase":
+        phasor = np.exp(-1j * np.angle(tap0))
+        return iq * phasor[:, None], good
+    if mode == "tap0":
+        return iq / tap0[:, None], good
+    if mode == "none":
+        return iq, good
+    raise ValueError("unknown phase reference mode: %s" % mode)
 
 
-def load_dense_selected(path, cn0_min, lock_min, skip_epochs, min_lock_run, settle_epochs):
+def load_dense_selected(path, cn0_min, lock_min, skip_epochs, min_lock_run, settle_epochs,
+                        phase_reference):
     _, dense_bin, meta = rd.load_metadata(path)
     dense = rd.read_records(dense_bin, meta)
     taps = np.asarray(meta["taps_chips"], dtype=np.float64)
@@ -82,13 +89,13 @@ def load_dense_selected(path, cn0_min, lock_min, skip_epochs, min_lock_run, sett
     fs = float(meta.get("sampling_frequency_hz", 20e6))
     zt = zero_tap_index(taps)
     iq = selected["tap_iq"].astype(np.complex128)
-    iq_ref, good = phase_reference_iq(iq, zt)
+    iq_ref, good = phase_reference_iq(iq, zt, phase_reference)
     selected = selected[good]
     times = selected["sample_counter"].astype(np.float64) / fs
     times = times - times[0]
-    print("dense records: %d  kept: %d (%.1f%%)  segments kept %d/%d  taps: %d  fs: %.1f MHz"
+    print("dense records: %d  kept: %d (%.1f%%)  segments kept %d/%d  taps: %d  fs: %.1f MHz  ref=%s"
           % (len(dense), len(selected), 100.0 * len(selected) / max(1, len(dense)),
-             n_kept, n_seg, len(taps), fs / 1e6))
+             n_kept, n_seg, len(taps), fs / 1e6, phase_reference))
     return taps, iq_ref, times, meta
 
 
@@ -358,6 +365,10 @@ def main():
     ap.add_argument("--max-delay-chips", type=float, default=None)
     ap.add_argument("--tau0-grid", default="0",
                     help="0 to fix tau0 at prompt, or start:step:stop for diagnostics")
+    ap.add_argument("--phase-reference", choices=("phase", "tap0", "none"), default="phase",
+                    help="common-mode reference before fitting: phase keeps prompt magnitude; "
+                         "tap0 matches the windowed fitter but biases merged amplitudes; "
+                         "none uses raw dense taps")
     ap.add_argument("--coarse-chip", type=float, default=0.02)
     ap.add_argument("--fine-chip", type=float, default=0.005)
     ap.add_argument("--self-test", action="store_true")
@@ -371,7 +382,8 @@ def main():
         raise SystemExit("need --dense and --kernel, or use --self-test")
 
     taps, iq_ref, times, meta = load_dense_selected(
-        args.dense, args.cn0_min, args.lock_min, args.skip_epochs, args.min_lock_run, args.settle_epochs
+        args.dense, args.cn0_min, args.lock_min, args.skip_epochs,
+        args.min_lock_run, args.settle_epochs, args.phase_reference
     )
     ktaps, K = ftp.load_reference_csv(args.kernel)
     zt = zero_tap_index(taps)
