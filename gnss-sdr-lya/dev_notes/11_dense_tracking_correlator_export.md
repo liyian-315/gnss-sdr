@@ -2041,6 +2041,97 @@ uniform, but the current four tiers are already TRUSTWORTHY.
 
 -- Codex, 2026-07-28
 
+## Phase B A-Only Baseline Capture - PRN10 and PRN23
+
+Date: 2026-07-28
+
+Author: Codex
+
+User configured A-only state:
+
+```text
+B simulator off
+A simulator on
+active candidate PRNs: 10 and 23
+single-satellite amplitude=64
+L5 output label=-50
+B210 RX2
+```
+
+One shared raw capture was recorded and then processed separately for PRN10 and
+PRN23:
+
+```text
+raw directory: /home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn10_23_l5m50_amp64_30s_0728
+raw file: raw_aonly_prn10_23_20m_30s_ishort.dat
+raw size: 2.3 GB
+record_overflow=0
+sample rate=20 Msps
+sample type=sc16 / ishort
+```
+
+Per-PRN processing directories:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn10_l5m50_amp64_run1_30s_0728
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn23_l5m50_amp64_run1_30s_0728
+```
+
+Both were processed with:
+
+```text
+L5Q pilot robust
+dense taps=-4:0.1:4 chips
+dense decimation=1
+```
+
+Tracking notes:
+
+```text
+PRN10: tracking started, loss/reacquisition around 9 s and 17 s, secondary code
+       locked around 20 s, DUALPATH_OBS appeared near the end with CN0 ~=54 dB-Hz.
+PRN23: tracking started, loss/reacquisition around 9 s and 17 s, no DUALPATH_OBS
+       in the 30 s log, but dense dump was produced.
+```
+
+Dense dump validation:
+
+```text
+PRN10: records=29597, tap_count=81, tap span=-4..+4 chips
+PRN23: records=29608, tap_count=81, tap span=-4..+4 chips
+```
+
+Strict baseline extraction:
+
+```text
+PRN   kept records  kept fraction  n_segments_kept  n_blocks  SEM_block_worst  asym(check)
+10    11331         38.3%          1                2832      0.00041          0.0321
+23    12374         41.8%          1                100       0.00209          0.0258
+```
+
+Generated single-source baseline files:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn10_l5m50_amp64_run1_30s_0728/aonly_reference_Rtau.png.csv
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn10_l5m50_amp64_run1_30s_0728/aonly_reference_Rtau.png
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn23_l5m50_amp64_run1_30s_0728/aonly_reference_Rtau.png.csv
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn23_l5m50_amp64_run1_30s_0728/aonly_reference_Rtau.png
+```
+
+Judgment:
+
+PRN10 is the better Phase B candidate from this A-only capture. It has a clean
+post-reacquisition baseline segment with many independent blocks and good SEM.
+PRN23 can produce a reference profile, but its effective independent sample count
+is much lower (`n_blocks=100`) and SEM is above the Phase A interim target; use it
+only if PRN10 becomes unavailable or if a repeat PRN23 baseline improves.
+
+Because both PRNs show early loss/reacquisition at roughly 9 s and 17 s, the
+baseline profiles are usable only after strict sustained-lock selection. Do not
+use full-record averaging for these A-only baselines.
+
+-- Codex, 2026-07-28
+
 ## Discussion - Phase B Batch Capture Strategy
 
 Date: 2026-07-28
