@@ -1698,6 +1698,58 @@ attenuation or lower B210 gain to move out of the high-SNR plateau.
 
 -- Codex, 2026-07-28
 
+## Phase A CN0 Prescan Labeling Correction
+
+Date: 2026-07-28
+
+Author: Codex
+
+User correction accepted:
+
+`L5=-50`, `L1=-65`, and single-satellite power amplitude `64` are simulator
+output settings, not CN0 labels. In a cabled or very clean setup, measured CN0
+may stay on a plateau or change nonlinearly as simulator power changes because
+receiver gain, ADC filling, quantization noise, attenuation, and tracking mode
+also affect the GNSS-SDR CN0 estimate.
+
+Therefore Phase A prescan must record both sides:
+
+1. Transmit/RF setup metadata:
+   PRN, simulator L1 output label, simulator L5 output label, per-satellite
+   amplitude, external attenuation if any, B210 gain, antenna port, sample rate,
+   sample type, and tracking mode.
+2. Measured receiver labels:
+   median/p10/p90 CN0, lock metric distribution, kept records, kept fraction,
+   longest sustained locked segment, FWHM, asymmetry, and output paths.
+
+Judgment:
+
+The CN0 grid must be built from measured receiver CN0, not from simulator power
+labels. Simulator labels are still essential because the prescan's purpose is to
+discover which transmitter/attenuator/B210-gain settings produce each measured
+CN0 bin. A useful dataset row is therefore "tx setting -> measured CN0 -> usable
+fingerprint quality", not just "CN0" and not just "simulator dBm".
+
+For the current stated simulator setup:
+
+```text
+L1 output label: -65
+L5 output label: -50
+single-satellite amplitude: 64
+```
+
+the prescan should be tagged explicitly with those fields. The helper now accepts
+metadata labels for this:
+
+```bash
+bash dev_notes/sim/run_l5_phaseA_prescan_point.sh --tag l5_prn12_l5m50_amp64_g40_20260728 --prn 12 --gain 40 --tx-l1-label -65 --tx-l5-label -50 --sat-power-label 64
+```
+
+Keep grouping/selection by measured CN0 bins after the run. The tag is only a
+human-readable provenance label.
+
+-- Codex, 2026-07-28
+
 ## Phase A CN0 Prescan - Active PRN Scan on Current Multi-Satellite Signal
 
 Date: 2026-07-28

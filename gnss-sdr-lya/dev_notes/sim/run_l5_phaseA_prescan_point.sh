@@ -19,7 +19,10 @@ Example:
 
 Options:
   --tag NAME              Required output tag.
-  --sim-power-label TEXT  Optional label for the simulator output setting.
+  --sim-power-label TEXT  Optional legacy label for the simulator output setting.
+  --tx-l1-label TEXT      Optional simulator L1 output label, e.g. -65.
+  --tx-l5-label TEXT      Optional simulator L5 output label, e.g. -50.
+  --sat-power-label TEXT  Optional simulator per-satellite amplitude label, e.g. 64.
   --prn N                 GPS L5 PRN. Default: 28.
   --secs N                Record seconds. Default: 15.
   --rate N                Sample rate. Default: 20000000.
@@ -35,6 +38,9 @@ EOF
 
 TAG=""
 SIM_POWER_LABEL=""
+TX_L1_LABEL=""
+TX_L5_LABEL=""
+SAT_POWER_LABEL=""
 PRN="28"
 SECS="15"
 RATE="20000000"
@@ -51,6 +57,9 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --tag) TAG="$2"; shift 2 ;;
     --sim-power-label) SIM_POWER_LABEL="$2"; shift 2 ;;
+    --tx-l1-label) TX_L1_LABEL="$2"; shift 2 ;;
+    --tx-l5-label) TX_L5_LABEL="$2"; shift 2 ;;
+    --sat-power-label) SAT_POWER_LABEL="$2"; shift 2 ;;
     --prn) PRN="$2"; shift 2 ;;
     --secs) SECS="$2"; shift 2 ;;
     --rate) RATE="$2"; shift 2 ;;
@@ -93,6 +102,9 @@ rm -f "$TMP" "$RAW" \
   echo "tag=$TAG"
   echo "date_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo "sim_power_label=$SIM_POWER_LABEL"
+  echo "tx_l1_label=$TX_L1_LABEL"
+  echo "tx_l5_label=$TX_L5_LABEL"
+  echo "sat_power_label=$SAT_POWER_LABEL"
   echo "prn=$PRN"
   echo "secs=$SECS"
   echo "rate=$RATE"
