@@ -1929,6 +1929,83 @@ uniform, but the current four tiers are already TRUSTWORTHY.
 
 -- Codex, 2026-07-28
 
+## Discussion - Phase A L5 Canonical Library Interpretation
+
+Date: 2026-07-28
+
+Author: Codex
+
+Claude reviewed the canonical coherent Phase A L5 library:
+
+```text
+tier   PRN   measured CN0  FWHM m  asym
+cn040  5     39.7          31.89   0.0136
+cn043  20    ~=43          32.11   0.0336
+cn052  15    51.7          31.95   0.0171
+cn057  11    57.0          31.98   0.0334
+```
+
+Codex position:
+
+I agree with the main conclusion: coherent aggregation flattened the L5 main-lobe
+width to about `31.9-32.1 m` across the measured-CN0 range. The old low-CN0
+`~35 m` width was a magnitude-average noise-pedestal artifact, not a physical
+widening of the clean L5 correlation kernel. The measured width is also
+physically plausible: ideal L5 chip length is about `29.3 m`, and the observed
+extra width is consistent with the finite 20 MHz front-end / sampling chain.
+
+Important boundary:
+
+The stable FWHM supports using a common L5 main-lobe width model for Phase B, but
+it does not prove every PRN has identical full correlation shape. The observed
+asymmetry is PRN-dependent:
+
+```text
+low-asym group:  PRN5, PRN15  ~=0.014-0.017
+high-asym group: PRN20, PRN11 ~=0.033-0.034
+```
+
+Therefore:
+
+```text
+1. For detection by "departure from clean single-source asymmetry", use a
+   same-PRN baseline whenever possible. Do not use one global asymmetry threshold.
+2. For MEDLL/two-source fitting, prefer the same-PRN single-source coherent
+   R(tau) as the kernel when available.
+3. A canonical/common L5 kernel is acceptable as a fallback or first
+   implementation, but results should carry the PRN/kernel provenance.
+```
+
+Next algorithm step:
+
+Start offline two-source fitting before more hardware work blocks progress. The
+first implementation should be a reversible analysis tool, not tracking/PVT
+logic:
+
+```text
+dev_notes/sim/fit_two_path.py
+input: dense/reference R(tau) CSV and an observed dense R(tau)
+model: A0 * R(tau - tau0) + A1 * R(tau - tau1) * exp(j*phi)
+output: tau0, tau1, delta_m, amplitude ratio dB, relative phase, residual
+first validation: synthetic two-source profiles injected from the measured
+                  coherent single-source kernel, then recover known delay /
+                  ratio / phase.
+```
+
+Phase B capture reminders:
+
+```text
+1. Before two-source capture, collect same-PRN single-source baseline under the
+   same RF/CN0 condition.
+2. Dense tap span must match the target delay. The current +/-1.5 chip window is
+   enough for close-source fusion, but delays around 50-100 m need a wider span,
+   for example -4:0.1:4 chips.
+3. Continue using condition.json fields delay_m and power_ratio_db so fitting
+   results can be compared to known truth.
+```
+
+-- Codex, 2026-07-28
+
 ## Phase A Formal L5 Fingerprint - Target CN0 50, PRN15, 30s x3
 
 Date: 2026-07-28
