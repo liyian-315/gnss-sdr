@@ -2160,6 +2160,115 @@ against +30 m.
 
 -- Codex, 2026-07-28
 
+## Phase B Drift-Aware Refit - PRN23 30/60/90m Calibration Line
+
+Date: 2026-07-28
+
+Author: Codex
+
+User requested a no-new-capture refit of the existing PRN23 +30/+60/+90 m
+Phase B composite captures using the drift-aware windowed fitter. Goal:
+
+```text
+1. Extract each run's recovered midpoint delay and carrier<->code drift ratio.
+2. Fit recovered-vs-injected to estimate scale and fixed calibration offset.
+```
+
+Input data:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn23_delay30m_ratio_m6db_run{1,2,3}_30s_0728
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn23_delay60m_ratio_m6db_run{1,2,3}_30s_0728
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn23_delay90m_ratio_m6db_run{1,2,3}_30s_0728
+```
+
+Same-PRN kernel:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn23_l5m50_amp64_run3_30s_0728/aonly_reference_Rtau.png.csv
+```
+
+Per-run summary CSV:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn23_delay30_60_90_driftaware_summary.csv
+```
+
+Per-run refit table:
+
+```text
+inj_m  run  midpoint_m  carrier_code_ratio  detected_windows  amp_ratio_db  quality
+30     1    23.6        4.47                18/21             -6.03         OK
+30     2    14.4        NA                  1/1               +8.23         reject: too_few_windows,bad_amp_ratio
+30     3    24.6        14.52               19/20             -8.46         OK
+
+60     1    52.8        0.62                99/99             -5.29         OK
+60     2    51.2        7.73                18/21             -7.03         OK
+60     3    50.8        0.01                739/2462          -5.35         weak: low_detect_fraction
+
+90     1    84.0        1.59                22/23             -5.58         OK
+90     2    84.1        0.18                38/38             -6.04         OK
+90     3    83.6        5.45                8/10              -10.91        OK but amp weak
+```
+
+Calibration fit using all condition medians:
+
+```text
+condition medians:
+30 m -> 23.6 m
+60 m -> 51.2 m
+90 m -> 84.0 m
+
+recovered = 1.0067 * injected - 7.467 m
+residuals = [0.867, -1.733, 0.867] m
+```
+
+Calibration fit using primary-quality condition medians
+(rejecting the obvious +30 m run2 failure and the weak +60 m run3 from the
+primary calibration pool):
+
+```text
+condition medians:
+30 m -> 24.1 m
+60 m -> 52.0 m
+90 m -> 84.0 m
+
+recovered = 0.9983 * injected - 6.533 m
+residuals = [0.683, -1.367, 0.683] m
+```
+
+Codex judgment:
+
+The recovered-vs-injected calibration is strong: slope is approximately 1.0 and
+the intercept is approximately -6.5 to -7.5 m. This supports the earlier
+interpretation that the dominant absolute-delay discrepancy is a fixed
+experiment calibration offset for this A/B/combiner/session, not a scale error
+in the fitter.
+
+However, the per-run `carrier<->code ratio` values are mixed and should not be
+overstated. Only some runs are near ratio~1. Several runs have poor ratio values
+because drift estimation becomes unreliable when the probe tap is weak, the
+relative phase is almost static over 30 s, or the near-resolution +30 m case
+collapses into too few useful windows. Therefore, the current evidence does not
+prove that every run's offset is purely clock-induced. The safer statement is:
+
+```text
+Scale is validated by the 30/60/90 m calibration line.
+Absolute offset is real for this setup and should be calibrated out.
+Carrier<->code ratio is a useful diagnostic, but not yet a hard acceptance gate.
+```
+
+Operational calibration for this session:
+
+```text
+true_delay_m ~= recovered_midpoint_m + 6.5 m
+```
+
+Use that only for this PRN23, A/B/combiner, independent-clock session until a
+new baseline calibration is made.
+
+-- Codex, 2026-07-28
+
 ## Phase A CN0 Prescan Plan
 
 Date: 2026-07-28
