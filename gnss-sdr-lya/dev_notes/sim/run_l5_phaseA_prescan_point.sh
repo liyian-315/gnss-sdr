@@ -24,6 +24,8 @@ Options:
   --tx-l5-label TEXT      Optional simulator L5 output label, e.g. -50.
   --sat-power-label TEXT  Optional simulator per-satellite amplitude label, e.g. 64.
   --cn0-target N          Optional intended CN0 bin label. Leave blank for prescan.
+  --cn0-min N             Sustained-lock selector CN0 floor. Default: 45.
+  --lock-min N            Sustained-lock selector carrier lock floor. Default: 0.6.
   --run N                 Optional repeat index. Default: 1.
   --note TEXT             Optional condition note.
   --prn N                 GPS L5 PRN. Default: 28.
@@ -45,6 +47,8 @@ TX_L1_LABEL=""
 TX_L5_LABEL=""
 SAT_POWER_LABEL=""
 CN0_TARGET=""
+CN0_MIN="45"
+LOCK_MIN="0.6"
 RUN_INDEX="1"
 NOTE="prescan"
 PRN="28"
@@ -67,6 +71,8 @@ while [[ $# -gt 0 ]]; do
     --tx-l5-label) TX_L5_LABEL="$2"; shift 2 ;;
     --sat-power-label) SAT_POWER_LABEL="$2"; shift 2 ;;
     --cn0-target) CN0_TARGET="$2"; shift 2 ;;
+    --cn0-min) CN0_MIN="$2"; shift 2 ;;
+    --lock-min) LOCK_MIN="$2"; shift 2 ;;
     --run) RUN_INDEX="$2"; shift 2 ;;
     --note) NOTE="$2"; shift 2 ;;
     --prn) PRN="$2"; shift 2 ;;
@@ -117,6 +123,8 @@ rm -f "$TMP" "$RAW" \
   echo "tx_l5_label=$TX_L5_LABEL"
   echo "sat_power_label=$SAT_POWER_LABEL"
   echo "cn0_target=$CN0_TARGET"
+  echo "cn0_min=$CN0_MIN"
+  echo "lock_min=$LOCK_MIN"
   echo "run=$RUN_INDEX"
   echo "prn=$PRN"
   echo "secs=$SECS"
@@ -221,7 +229,7 @@ grep -n "DUALPATH_OBS" "$OUT/run_gnss_sdr.log" | tee "$OUT/obs_lines.txt" || tru
 echo "[4/5] Checking dense R(tau) with sustained-lock selector"
 python3 dev_notes/sim/check_dense_vs_prompt.py \
   --dense "$OUT/l5_prescan_dense_ch_0.dat.json" \
-  --cn0-min 45 --lock-min 0.6 \
+  --cn0-min "$CN0_MIN" --lock-min "$LOCK_MIN" \
   --min-lock-run "$MIN_LOCK_RUN" --settle-epochs "$SETTLE_EPOCHS" \
   --guard-before-loss "$GUARD_BEFORE_LOSS" \
   --ref-out "$OUT/l5_prescan_reference_Rtau.png" 2>&1 | tee "$OUT/check_dense.log" || true
