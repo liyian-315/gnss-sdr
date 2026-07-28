@@ -2156,6 +2156,34 @@ experiment we WANT enough clock drift, and a capture whose phase does not sweep 
 enough is genuinely under-determined (no tuning fixes it: capture longer, or prefer a
 higher-drift run).
 
+### Smoke-test result (synthetic) + the merged-amplitude caveat
+
+Validated the three changes on physically-consistent synthetic captures (matched
+kernel, injected clock drift so both carrier phase and code delay drift together):
+
+```text
+separated 60 m, full sweep: coverage 12/12, cross-check ratio 1.00 (meaningful),
+    VERDICT RELIABLE, delay + ratio (-6 dB) recovered correctly.
+merged 0.5 chip (14.7 m), slow drift: coverage 1/12 -> VERDICT UNRELIABLE
+    (insufficient phase diversity) -- the gate correctly refuses to report.
+merged 0.5 chip, FULL sweep: DELAY recovered correctly (drift-tracked midpoint 17 m),
+    but AMPLITUDE ratio came out -12 dB for an injected -6 dB.
+```
+
+Caveat found, now flagged in the tool: in the merged regime the per-epoch tap0
+normalization mixes path1 into the reference (`tap0 = path0 + path1*K(delta)`, with
+`K(0.5 chip) ~= 0.7`), which BIASES the amplitude ratio even at full phase coverage.
+The DELAY stays correct. So for the minimum target (0.5 chip, delay RMSE) the windowed
+method works; the merged-regime amplitude is NOT yet trustworthy. The verdict now prints
+"RELIABLE delay ... amplitude BIASED in merged regime" instead of a false clean RELIABLE.
+
+Next algorithm step (separate, focused -- do NOT rush into this change): in the merged
+regime, replace the per-epoch tap0 division with a per-window estimate that does not use
+a contaminated path0 reference -- e.g. coherent-average the carrier-wiped taps per window
+(path0's residual phase is ~constant within a ~30 ms window) and let the two-path fit
+recover complex c0/c1 directly, after verifying intra-window residual phase is small.
+Validate on synthetic + the real 14.7 m capture before trusting any merged amplitude.
+
 -- Claude (Opus 4.8), 2026-07-28
 
 ## Phase B A+B Composite - PRN23 30m -6dB Near-Resolution Check
@@ -2440,6 +2468,97 @@ Recommended next step:
 
 Collect PRN28 B-only for the intended delay point, then PRN28 A+B. Keep all
 settings identical to this A-only baseline so the kernel remains comparable.
+
+-- Codex, 2026-07-28
+
+## Phase B PRN28 B-Only Baseline - Delay 30m 30s x3
+
+Date: 2026-07-28
+
+Author: Codex
+
+User configured PRN28 B-only. I assumed the B simulator kept the current Phase B
+delay setting of +30 m and L5 output -56 dBm:
+
+```text
+A simulator: off
+B simulator: on, GPS L5 PRN28, single-satellite amplitude=64, L5 output=-56 dBm, delay compensation=+30 m
+Combiner / B210 RX2 chain unchanged
+```
+
+Capture / processing settings:
+
+```text
+GPS L5Q pilot
+20 Msps
+sc16 / ishort raw
+B210 RX2
+gain=40
+dense taps=-4:0.1:4 chips
+dense decimation=1
+robust L5Q lock counters enabled
+strict reference selection: cn0>=45, lock>=0.6, min-lock-run=2000, settle=200
+```
+
+NUC output directories:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/bonly_prn28_l5m56_delay30m_run1_30s_0728
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/bonly_prn28_l5m56_delay30m_run2_30s_0728
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/bonly_prn28_l5m56_delay30m_run3_30s_0728
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/bonly_prn28_l5m56_delay30m_run4_30s_0728
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/bonly_prn28_l5m56_delay30m_run5_30s_0728
+```
+
+Run quality:
+
+```text
+run1: record_overflow=0, loss_count=1, kept=3929 records (13.2%), asym=0.0264, SEM_block=0.00105
+run2: record_overflow=0, loss_count=1, kept=24206 records (81.5%), asym=0.0277, SEM_block=0.00041
+run3: record_overflow=0, loss_count=1, kept=0 records, rejected (no sustained lock segment)
+run4: record_overflow=0, loss_count=1, kept=22311 records (75.0%), asym=0.0276, SEM_block=0.00406, rejected from formal baseline because n_blocks=16 / SEM too high
+run5: record_overflow=0, loss_count=1, kept=2644 records (8.9%), asym=0.0282, SEM_block=0.00118
+```
+
+Formal PRN28 B-only aggregate used run1/run2/run5:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/prn28_bonly_delay30m_baseline_30s_x3_coherent.log
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/prn28_bonly_delay30m_baseline_30s_x3_coherent.png
+```
+
+Aggregate result:
+
+```text
+VERDICT: TRUSTWORTHY (reproducible across runs) [precision: OK]
+FWHM = 1.0997 chips = 32.22 m, std=0.02 m
+asym_max = 0.0275 +/- 0.0008
+peak_chip = -0.0045 chip
+min n_blocks = 661
+worst SEM_block = 0.00118
+kept_fraction mean=35%, min=9% (tracking churn indicator, not a quality gate)
+```
+
+Codex judgment:
+
+PRN28 now has a valid B-only same-source baseline for the +30 m delay condition.
+The B-only shape is reproducible, with FWHM close to the PRN28 A-only baseline
+and a slightly lower asymmetry:
+
+```text
+PRN28 A-only: FWHM=31.97 m, asym=0.0312
+PRN28 B-only: FWHM=32.22 m, asym=0.0275
+```
+
+The recurring single loss/reacquisition near 22 s remains visible, but strict
+selection leaves enough clean epochs for a trustworthy baseline. Run3 and run4
+should not be used in formal baseline calculations.
+
+Recommended next step:
+
+Collect PRN28 A+B at the same +30 m / -6 dB condition, then use the PRN28 A-only
+kernel for windowed two-source fitting. Because +30 m is a near-resolution point,
+expect lower confidence than +60/+90 m and check window/probe sensitivity.
 
 -- Codex, 2026-07-28
 
