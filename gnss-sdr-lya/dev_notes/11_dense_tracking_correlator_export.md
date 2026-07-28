@@ -1951,6 +1951,91 @@ or explicitly accepted as a calibration offset.
 
 -- Codex, 2026-07-28
 
+## Phase B A+B Composite - PRN23 90m -6dB Calibration Check
+
+Date: 2026-07-28
+
+Author: Codex
+
+User changed the B simulator delay compensation from +60 m to +90 m. Other
+conditions were kept the same as the PRN23 +60 m run:
+
+```text
+A simulator: on, GPS L5 PRN23, single-satellite amplitude=64, L5 output=-50 dBm, delay compensation=0 m
+B simulator: on, GPS L5 PRN23, single-satellite amplitude=64, L5 output=-56 dBm, delay compensation=+90 m
+Combiner: A/B combined into B210 RX2
+Clocking: independent simulator clocks, no shared 10 MHz reference
+Tracking: L5Q pilot robust, 20 Msps, ishort, B210 RX2 gain=40
+Dense taps: -4:0.1:4 chips, decimation=1
+```
+
+NUC output directories:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn23_delay90m_ratio_m6db_run1_30s_0728
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn23_delay90m_ratio_m6db_run2_30s_0728
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn23_delay90m_ratio_m6db_run3_30s_0728
+```
+
+Capture quality:
+
+```text
+run1: record_overflow=0, dense_records=29799, loss_count=1, DUALPATH_OBS=0
+run2: record_overflow=0, dense_records=29906, loss_count=0, DUALPATH_OBS=12, CNAV received with CN0=56 dB-Hz
+run3: record_overflow=0, dense_records=29909, loss_count=0, DUALPATH_OBS=17, CNAV received with CN0=56 dB-Hz
+```
+
+Windowed fitter command pattern:
+
+```text
+python3 dev_notes/sim/fit_windowed_twosource.py --dense <run>/l5_phaseB_dense_ch_0.dat.json --kernel <PRN23_Aonly_kernel.csv> --chip-m 29.3 --delay-m 90 --ratio-db -6 --cn0-min 0 --lock-min -1 --min-lock-run 1000 --settle-epochs 200 --max-rot-deg 30 --max-delay-chips 4.0 --plot <run>/windowed_fit_prn23_delay90m_ratio_m6db_runN.png
+```
+
+Windowed fit results:
+
+```text
+run1: kept 29599 / 29799 records (99.3%), detected 22 / 23 windows
+      recovered delay median=83.9 m, robust-std=0.7 m
+      recovered ratio median=-5.58 dB, robust-std=0.74 dB
+      relative phase span=347 deg
+
+run2: kept 29706 / 29906 records (99.3%), detected 38 / 38 windows
+      recovered delay median=84.1 m, robust-std=0.4 m
+      recovered ratio median=-6.04 dB, robust-std=1.48 dB
+      relative phase span=340 deg
+
+run3: kept 29709 / 29909 records (99.3%), detected 8 / 10 windows
+      recovered delay median=83.4 m, robust-std=0.2 m
+      recovered ratio median=-10.91 dB, robust-std=4.46 dB
+      relative phase span=300 deg
+```
+
+Codex judgment:
+
+The +90 m check strongly suggests the previous +60 m discrepancy is mostly a
+fixed calibration / path offset, not a proportional scale error. Comparison:
+
+```text
+Injected +60 m -> recovered about 52.8 m, error about -7.2 m
+Injected +90 m -> recovered about 83.8 m, error about -6.2 m
+Delta between recovered medians: about 31.0 m for a 30 m injected change
+```
+
+That incremental agreement is the important point. The absolute recovered delay
+is shifted by roughly 6-7 m, but changing the simulator delay by +30 m changes
+the fitted delay by about +31 m. Before a full Phase B grid, record this as a
+calibration offset and avoid interpreting raw recovered delay as absolute truth
+without same-cable/same-combiner calibration.
+
+Next recommended calibration check:
+
+Use one more easy point, e.g. +30 m or +120 m at the same -6 dB ratio. If the
+same approximately -6 to -7 m offset remains, subtract it as an experiment
+calibration term for this A/B/combiner setup. If the offset changes with delay,
+then revisit the fitter model or simulator delay semantics.
+
+-- Codex, 2026-07-28
+
 ## Phase A CN0 Prescan Plan
 
 Date: 2026-07-28
