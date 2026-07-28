@@ -1757,6 +1757,64 @@ human-readable provenance label.
 
 -- Codex, 2026-07-28
 
+## Phase A L5 Prescan - Amplitude 60 with 6 dB Attenuator
+
+Date: 2026-07-28
+
+Author: Codex
+
+User kept:
+
+```text
+L1 output label: -70
+L5 output label: -70
+single-satellite amplitude: 60
+B210 gain: 40 dB
+```
+
+and changed the external attenuation to 6 dB.
+
+Purpose:
+
+Check whether 6 dB attenuation can produce a usable lower-CN0 point between the
+previous 3 dB case and the failed 10 dB case.
+
+Command pattern used on NUC:
+
+```bash
+bash dev_notes/sim/run_l5_phaseA_prescan_point.sh --tag p7_l5m70_a60_g40_att6_0728 --prn 7 --gain 40 --tx-l1-label -70 --tx-l5-label -70 --sat-power-label 60 --cn0-target 35 --cn0-min 20 --note slope_check_l1_-70_l5_-70_amp60_att6db
+bash dev_notes/sim/run_l5_phaseA_prescan_point.sh --tag p11_l5m70_a60_g40_att6_0728 --prn 11 --gain 40 --tx-l1-label -70 --tx-l5-label -70 --sat-power-label 60 --cn0-target 35 --cn0-min 20 --note slope_check_l1_-70_l5_-70_amp60_att6db
+```
+
+Results:
+
+```text
+PRN  result
+7    no tracking / no dense records; overflow=0
+11   dense records=14862, cn0_median=28.74, cn0_p10=24.47, cn0_p90=33.39,
+     lock_median=0.0027, strict kept=0, overflow=0
+```
+
+Judgment:
+
+The 6 dB attenuator again pushes the current L5 setup into the `CN0 ~= 29`
+region, where the present 15 s L5Q pilot robust dense-fingerprint workflow does
+not produce a strict usable clean reference. PRN7 failed to produce dense records
+and PRN11 had no sustained segment passing the lock criterion.
+
+This reinforces the current Phase A boundary:
+
+```text
+usable low point so far: PRN7, amplitude 60, no attenuator, CN0 ~= 40
+borderline exploratory point: PRN7, amplitude 60, 3 dB attenuator, CN0 ~= 38
+not currently usable: 6 dB or 10 dB attenuation, CN0 ~= 29
+```
+
+Do not include the 6 dB attenuator result in the clean reference library. It is
+a low-CN0 tracking/floor diagnostic.
+
+-- Codex, 2026-07-28
+
 ## Phase A L5 Prescan - Amplitude 60 with 3 dB Attenuator
 
 Date: 2026-07-28
