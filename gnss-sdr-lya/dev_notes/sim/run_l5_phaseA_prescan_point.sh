@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ -z "${UHD_IMAGES_DIR:-}" && -d /usr/local/share/uhd/images ]]; then
+  export UHD_IMAGES_DIR=/usr/local/share/uhd/images
+fi
+
 usage() {
   cat <<'EOF'
 Run one short GPS L5 Phase A prescan point on B210.
