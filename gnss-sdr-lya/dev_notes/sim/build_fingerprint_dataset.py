@@ -82,8 +82,8 @@ def main():
         meta = agg.load_meta(p)
         cond = load_condition(p)
         try:
-            taps, mag, tap_std, _ = agg.load_csv(p)
-            feat = agg.features(taps, mag, tap_std)
+            taps, mag_mean, coh, tap_std, _ = agg.load_csv(p)
+            feat = agg.features(taps, coh, tap_std)   # coherent |R| shape (no low-CN0 pedestal)
         except Exception as e:
             print("warn: cannot parse %s: %s" % (p, e))
             feat = {k: "" for k in FEAT_KEYS}

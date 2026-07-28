@@ -55,11 +55,19 @@ def load_csv(path):
     with open(path) as fh:
         body = "".join(ln for ln in fh if not ln.lstrip().startswith("#"))
     d = np.genfromtxt(io.StringIO(body), delimiter=",", names=True)
+    names = d.dtype.names
     taps = np.atleast_1d(d["tap_chips"]).astype(float)
-    mag = np.atleast_1d(d["mag_mean"]).astype(float)
-    tap_std = np.atleast_1d(d["mag_std"]).astype(float) if "mag_std" in d.dtype.names else np.full_like(mag, np.nan)
+    mag_mean = np.atleast_1d(d["mag_mean"]).astype(float)
+    # coherent |R|: noise averages toward zero, so it has no magnitude pedestal
+    # (|mag_mean| is positively biased by noise -> widens FWHM at low CN0).
+    if "coherent_re" in names and "coherent_im" in names:
+        coh = np.hypot(np.atleast_1d(d["coherent_re"]).astype(float),
+                       np.atleast_1d(d["coherent_im"]).astype(float))
+    else:
+        coh = mag_mean.copy()
+    tap_std = np.atleast_1d(d["mag_std"]).astype(float) if "mag_std" in names else np.full_like(mag_mean, np.nan)
     order = np.argsort(taps)
-    return taps[order], mag[order], tap_std[order], load_meta(path)
+    return taps[order], mag_mean[order], coh[order], tap_std[order], load_meta(path)
 
 
 def _half_cross(taps, mag, i, direction, level):
@@ -131,6 +139,9 @@ def main():
     ap.add_argument("csvs", nargs="+", help="reference_Rtau CSV files (check_dense_vs_prompt.py --ref-csv)")
     ap.add_argument("--labels", help="comma list, one per csv; default = each file's parent dir name")
     ap.add_argument("--chip-m", type=float, help="chip length in meters (L1 C/A=293.0, B1I=146.6, L5=29.3) to also print widths in meters")
+    ap.add_argument("--shape-from", choices=("coherent", "magnitude"), default="coherent",
+                    help="which R(tau) to take FWHM/asym/peak from: coherent |R| (noise averages to zero, "
+                         "no low-CN0 pedestal; default) or the magnitude average mag_mean (biased wider at low CN0)")
     ap.add_argument("--min-blocks", type=int, default=20,
                     help="measurability floor on EFFECTIVE independent samples (batch-means blocks, "
                          "n_blocks=N/tau from the CSV). Epochs are correlated, so this gates on n_blocks, "
@@ -155,16 +166,19 @@ def main():
 
     runs = []
     for path, label in zip(args.csvs, labels):
-        taps, mag, tap_std, meta = load_csv(path)
-        feat = features(taps, mag, tap_std)
+        taps, mag_mean, coh, tap_std, meta = load_csv(path)
+        shape = coh if args.shape_from == "coherent" else mag_mean
+        feat = features(taps, shape, tap_std)
         kept_frac = float(meta["kept_fraction"]) if "kept_fraction" in meta else float("nan")
         n_kept = int(meta["kept_records"]) if "kept_records" in meta else -1
         n_eff = float(meta["n_eff"]) if "n_eff" in meta else float("nan")
         n_blocks = int(meta["n_blocks"]) if "n_blocks" in meta else -1
         # prefer the correlation-corrected (blocking) SEM from the CSV; fall back to naive
         sem = float(meta["sem_block_worst"]) if "sem_block_worst" in meta else max_tap_sem(tap_std, n_kept)
-        runs.append(dict(label=label, path=path, taps=taps, mag=mag, feat=feat,
+        runs.append(dict(label=label, path=path, taps=taps, mag=shape, feat=feat,
                          kept_frac=kept_frac, n_kept=n_kept, n_eff=n_eff, n_blocks=n_blocks, sem=sem))
+
+    print("(shape features from %s |R|)" % args.shape_from)
 
     # ---- per-run table (precision = correlation-corrected SEM; kept% is diagnostic) ----
     print("=== per-run fingerprint features ===")
