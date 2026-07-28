@@ -2069,6 +2069,95 @@ then revisit the fitter model or simulator delay semantics.
 
 -- Codex, 2026-07-28
 
+## Phase B Resolution Targets + Drift-Aware Real-Data Interpretation
+
+Date: 2026-07-28
+Author: Claude (Opus 4.8)
+
+AUTHORITATIVE definition of the Phase B goal (what "separate two same-code paths"
+must achieve, quantitatively) plus the read on the first real drift-aware PRN23
+30/60/90 m results. README's 🎯 block points here.
+
+### Goal: quantitative sub-chip resolution targets (do the minimum first)
+
+Minimum (current focus):
+
+```text
+Stably separate Δτ = 0.5 chip ≈ 14.7 m on real hardware.
+Conditions: 2nd path ≥ -6 dB ; CN0 ≥ 43 dB-Hz ; multiple relative phases.
+Pass bar:   detection success ≥ 90% ; false alarm ≤ 5% ; delay RMSE ≤ 0.1 chip.
+Meaning:    the system has real sub-chip separation capability.
+```
+
+Stronger:
+
+```text
+Push to 0.3 chip ≈ 8.8 m ; cover a -10 dB 2nd path ; detectable at most phases ;
+delay RMSE ≤ 0.05-0.1 chip ; clearly better than a fixed ideal-kernel MEDLL ;
+emit confidence intervals AND failure warnings.
+```
+
+High-challenge / research:
+
+```text
+0.1-0.2 chip ≈ 2.9-5.9 m. NOT all conditions must succeed. The valuable output is an
+HONEST map: which phases are separable, which power ratios are not, which results are
+multi-solution, and how the algorithm flags "I am uncertain". In super-resolution,
+reliably reporting "not separable" beats emitting a confident wrong second path.
+```
+
+### Real-data read: PRN23 30/60/90 m drift-aware summary
+
+Source: `prn23_delay30_60_90_driftaware_summary.csv` (Codex). Separated delays,
+independent simulator clocks, -6 dB injected.
+
+```text
+1. DELAY is robust. Midpoint 30->~24 m, 60->~51-53 m, 90->~84 m. recovered-vs-injected
+   line slope ~= 1.00, fixed offset ~= -6.5 m. The delay SCALE is unbiased; the offset
+   is fixed cable/combiner + a roughly-constant clock DC -> calibrate it out; use paired
+   deltas for truth (a same-session +30 m change moves the fit +31-33 m).
+
+2. AMPLITUDE RATIO is trustworthy ONLY with enough phase diversity. Good runs (many
+   detecting windows) recover -5..-6 dB; degenerate runs give garbage (30-run2 = +8.23
+   dB from 1 window; 90-run3 = -10.91 dB from 10 windows). Window count / phase coverage,
+   not delay, decides amplitude trust.
+
+3. The carrier<->code cross-check RATIO is NOT a reliable per-run metric (it ranged
+   0.01..14.5). Root cause: at small delay the drift-probe tap sits under path0's main
+   lobe, so the carrier-drift estimate is contaminated and the ratio blows up exactly in
+   the merged regime we care about. DEMOTED: report it only for well-separated runs with
+   measurable drift; print "not meaningful here" otherwise. (Corrects the earlier claim
+   that ratio~=1 is a general clock-consistency proof -- it holds only for clean
+   separated captures.)
+```
+
+Net: phase diversity is the discriminator between a trustworthy fit and a garbage one.
+
+### Tool changes (fit_windowed_twosource.py) motivated by the above
+
+```text
+1. Phase-coverage report + delay-dependent GATE + per-capture VERDICT: for merged
+   (sub-~1.3-chip) delays, require the detecting windows to sample enough of the phase
+   circle (destructive interference must be seen); else flag UNRELIABLE/uncertain
+   instead of emitting a number. This IS the false-alarm control the minimum tier needs
+   and the "report not-separable" behaviour the research tier needs.
+2. Theil-Sen robust delta(t) slope + IQR band (a confidence interval), replacing LS, so
+   a few destructive-phase bad-fit windows cannot pull the drift line.
+3. --diversity-selftest: on existing well-separated 60/90 m data, shrink the allowed
+   phase arc and watch which metrics degrade -> defines "how much coverage is enough"
+   offline, before spending hardware on 22/15 m.
+```
+
+Physical framing (see `09`): a single static antenna has no angular aperture, so two
+same-code sub-chip paths are near-unidentifiable from amplitude alone. The
+independent-clock phase sweep is the substitute for aperture -- catching the
+destructive-interference phase is what resolves the merged pair. So for the sub-chip
+experiment we WANT enough clock drift, and a capture whose phase does not sweep far
+enough is genuinely under-determined (no tuning fixes it: capture longer, or prefer a
+higher-drift run).
+
+-- Claude (Opus 4.8), 2026-07-28
+
 ## Phase B A+B Composite - PRN23 30m -6dB Near-Resolution Check
 
 Date: 2026-07-28
@@ -2266,6 +2355,91 @@ true_delay_m ~= recovered_midpoint_m + 6.5 m
 
 Use that only for this PRN23, A/B/combiner, independent-clock session until a
 new baseline calibration is made.
+
+-- Codex, 2026-07-28
+
+## Phase B PRN Switch - PRN28 A-Only Baseline 30s x3
+
+Date: 2026-07-28
+
+Author: Codex
+
+User reported that PRN23 elevation had dropped to about 9 deg, so we switched
+the next Phase B target to PRN28 (about 65 deg elevation at the time of the
+screenshot). User configured:
+
+```text
+A simulator: on, GPS L5 PRN28, L5 output=-50 dBm, delay compensation=0 m
+B simulator: off
+single-satellite amplitude=64
+Combiner / B210 RX2 chain unchanged
+```
+
+Capture / processing settings:
+
+```text
+GPS L5Q pilot
+20 Msps
+sc16 / ishort raw
+B210 RX2
+gain=40
+dense taps=-4:0.1:4 chips
+dense decimation=1
+robust L5Q lock counters enabled
+strict reference selection: cn0>=45, lock>=0.6, min-lock-run=2000, settle=200
+```
+
+NUC output directories:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn28_l5m50_amp64_run1_30s_0728
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn28_l5m50_amp64_run2_30s_0728
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn28_l5m50_amp64_run3_30s_0728
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn28_l5m50_amp64_run4_30s_0728
+```
+
+Capture / check results:
+
+```text
+run1: record_overflow=0, loss_count=1, kept=5510 records (18.5%), asym=0.0307, SEM_block=0.00062
+run2: record_overflow=0, loss_count=1, kept=0 records, rejected (no sustained lock segment)
+run3: record_overflow=0, loss_count=1, kept=6444 records (21.7%), asym=0.0312, SEM_block=0.00056
+run4: record_overflow=0, loss_count=1, kept=26984 records (90.8%), asym=0.0317, SEM_block=0.00027
+```
+
+Formal PRN28 A-only aggregate used run1/run3/run4:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/prn28_aonly_baseline_30s_x3_coherent.log
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/prn28_aonly_baseline_30s_x3_coherent.png
+```
+
+Aggregate result:
+
+```text
+VERDICT: TRUSTWORTHY (reproducible across runs) [precision: OK]
+FWHM = 1.0911 chips = 31.97 m, std=0.01 m
+asym_max = 0.0312 +/- 0.0004
+peak_chip = -0.0054 chip
+min n_blocks = 1102
+worst SEM_block = 0.00062
+kept_fraction mean=44%, min=19% (tracking churn indicator, not a quality gate)
+```
+
+Codex judgment:
+
+PRN28 now has a valid same-PRN A-only kernel for Phase B. The repeated
+single-source shape is reproducible and its FWHM matches the Phase A L5 library
+(about 32 m). The downside is recurring L5Q tracking churn near 22 s; it did not
+prevent kernel extraction, but it should be expected in later PRN28 B-only/A+B
+runs and must be handled by the same strict window/lock selection.
+
+PRN28 run2 is rejected and should not be used for kernel fitting.
+
+Recommended next step:
+
+Collect PRN28 B-only for the intended delay point, then PRN28 A+B. Keep all
+settings identical to this A-only baseline so the kernel remains comparable.
 
 -- Codex, 2026-07-28
 
