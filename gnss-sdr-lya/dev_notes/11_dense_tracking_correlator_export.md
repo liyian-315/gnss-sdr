@@ -1845,6 +1845,126 @@ Use the existing tracking dump style for the main binary stream. JSON is reserve
 
 -- Codex, 2026-07-24
 
+## Phase B Drift-Modulated Full-Segment Fitter Prototype
+
+Date: 2026-07-28
+Author: Codex
+
+Context:
+
+Claude proposed replacing the window-average-then-fit architecture with a
+full-segment drift-modulated model:
+
+```text
+Y(tau,t) = c0*K(tau-tau0) + c1*exp(j*2*pi*f_drift*t)*K(tau-tau0-delta)
+```
+
+Codex implemented the first offline prototype:
+
+```text
+dev_notes/sim/fit_drift_modulated_twosource.py
+```
+
+Design:
+
+- Reuses the existing dense dump reader and `select_locked()` gate.
+- Uses the same PRN-specific Phase A kernel CSV as `fit_two_path.py`.
+- Defaults to `tau0=0` and searches only delayed `delta`.
+- Solves `c0/c1` by complex least squares over all kept epochs and all dense taps.
+- Does not divide by tap0 magnitude in the default `--phase-reference phase` mode, avoiding the known merged-amplitude bias from full tap0 normalization.
+- Added `--drift-search-hz` for sinusoid frequency refinement.
+- Added `--modulation-source probe`, which uses the measured unit phasor at the delayed/probe tap instead of assuming a perfectly linear `exp(j2*pi*f*t)`.
+
+Synthetic smoke test:
+
+```text
+python3 dev_notes/sim/fit_drift_modulated_twosource.py --self-test --chip-m 29.3
+```
+
+Passed cases:
+
+```text
+60 m / -6 dB / slow drift: recovered 60.1 m, -6.00 dB
+60 m / -6 dB / 250 Hz drift: recovered 60.1 m, -6.00 dB
+30 m / -6 dB: recovered 30.0 m, -6.00 dB
+0.5 chip / 0 dB / destructive phase: recovered 14.7 m, -0.00 dB
+```
+
+Real-data refit: PRN28 +60 m / -6 dB
+
+Kernel:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn28_l5m50_amp64_run4_30s_0728/aonly_reference_Rtau.png.csv
+```
+
+Best current real-data mode:
+
+```text
+--phase-reference phase --modulation-source probe
+```
+
+Results:
+
+| Run | Windowed fitter result | Drift-mod probe result | Judgment |
+| --- | --- | --- | --- |
+| run1 | PASS, 53.4 m, -7.91 dB | RELIABLE, 53.9 m, -6.42 dB, drop 0.340 | Improvement: amplitude closer to injected -6 dB |
+| run2 | PASS, 54.0 m, -4.90 dB | RELIABLE, 53.3 m, -5.70 dB, drop 0.170 | Improvement: still reliable, amplitude close |
+| run3 | REJECT, 0/2465 windows | UNRELIABLE, 57.7 m but -25.26 dB, drop 0.014 | Delay lands near truth, but amplitude/residual say not separable |
+| run4 | REJECT, 0/2475 windows | UNRELIABLE, 57.7 m but -27.48 dB, drop 0.037 | Delay lands near truth, but amplitude/residual say not separable |
+
+Real-data refit: PRN28 +30 m / -6 dB
+
+| Run | Drift-mod probe result | Judgment |
+| --- | --- | --- |
+| run1 | 29.9 m, -26.21 dB, drop 0.042 | UNRELIABLE |
+| run2 | 27.5 m, -21.75 dB, drop 0.039 | UNRELIABLE |
+| run3 | 0.3 m, -17.33 dB, drop 0.004 | UNRELIABLE / bad capture |
+
+Judgment:
+
+The new fitter is a useful step, but not the final Phase B algorithm. It proves
+that using the measured probe modulation can recover the correct delay and
+amplitude on good +60 m runs, and it improves amplitude bias compared with the
+windowed fitter. However, it does not yet solve the hard cases:
+
+- PRN28 +60 m fast-drift run3/run4 still fail the reliability gate even though
+  their fitted delay moves near 58 m.
+- PRN28 +30 m still does not become reliable. The fitter sees near-correct
+  delay in run1/run2 but assigns a very weak second-source amplitude and a small
+  residual drop.
+
+Current blocker:
+
+The probe phasor is too fragile when the delayed tap is weak, when the relative
+phase is very fast, or when the second source is merged into the main lobe. A
+single probe tap is not enough. The next algorithm step should estimate the
+modulation sequence jointly from a small delayed-tap band, or alternate between:
+
+```text
+1. estimate path0/static component
+2. estimate path1 modulation from residual delayed-tap band
+3. refit c0/c1/delta over the full segment
+```
+
+Do not claim 30 m or 0.5 chip capability yet. The correct current statement is:
+PRN28 +60 m validates that the link and same-PRN kernel are usable; the
+drift-modulated fitter improves good-run amplitude recovery, but the robust
+near-resolution and fast-drift extractor remains open.
+
+Operational note:
+
+NUC GitHub HTTPS access was unstable during this test (`Empty reply from server`
+and TLS timeout). The committed script was pushed from local, but the NUC could
+not pull the final commit during the run. For the real-data checks above, Codex
+temporarily copied the same script to `/tmp/fit_drift_modulated_twosource.py`
+and executed it with `PYTHONPATH` pointing at the repo's `dev_notes/sim`
+modules. This did not modify the NUC working tree; the NUC still needs a later
+`git pull --ff-only origin research/multipath-correlator-fit` when GitHub
+connectivity recovers.
+
+-- Codex, 2026-07-28
+
 ## Phase B PRN28 A+B Composite - Delay 60m Positive Control
 
 Date: 2026-07-28
