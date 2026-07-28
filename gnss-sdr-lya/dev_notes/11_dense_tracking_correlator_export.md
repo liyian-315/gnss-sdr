@@ -1802,6 +1802,94 @@ human-readable provenance label.
 
 -- Codex, 2026-07-28
 
+## Phase A Formal L5 Fingerprint - Target CN0 40, High-EL PRN5, 30s x3
+
+Date: 2026-07-28
+
+Author: Codex
+
+Current simulator/RF environment confirmed by user:
+
+```text
+L5 output label=-65
+single-satellite amplitude=64
+external attenuation=none
+B210 gain=40 dB
+tracking mode=L5Q pilot robust dense
+sample rate=20 Msps
+sample type=sc16 / ishort
+```
+
+The same `L5=-65, amplitude=64, no attenuation` state that produced the target
+45 candidate on PRN20 also exposed a usable lower-CN0 high-elevation candidate
+on PRN5:
+
+```text
+PRN5 prescan: cn0_median=39.79 dB-Hz, lock_median=0.827,
+kept_fraction=0.9259, n_blocks=3450, sem_block_worst=0.001897
+```
+
+Formal captures were attempted as `l5_cn040_prn5_run1..run4_30s_0728`. Run 1
+collapsed under the strict selector (`strict kept=0`, no reference CSV) and was
+discarded from the formal aggregate. Runs 2, 3, and 4 were retained:
+
+```text
+run  cn0_median  lock_median  kept_fraction  n_blocks  sem_block_worst  asym     fwhm_chips
+2    39.69       0.864        0.9410         7035      0.001313         0.01088  1.1955
+3    39.78       0.852        0.9560         7147      0.001287         0.01415  1.1960
+4    39.56       0.821        0.1857         1380      0.002897         0.01572  1.1928
+```
+
+Aggregate command:
+
+```bash
+python3 dev_notes/sim/aggregate_reference_fingerprint.py /home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn040_prn5_run2_30s_0728/l5_prescan_reference_Rtau.png.csv /home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn040_prn5_run3_30s_0728/l5_prescan_reference_Rtau.png.csv /home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn040_prn5_run4_30s_0728/l5_prescan_reference_Rtau.png.csv --labels cn040,cn040,cn040 --chip-m 29.3 --plot /home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn040_prn5_30s_group.png
+```
+
+Aggregate result:
+
+```text
+VERDICT: TRUSTWORTHY (reproducible across runs) [precision: SEM above interim target]
+peak_chip=-0.0058 +/- 0.0025 chips (-0.17 +/- 0.07 m)
+FWHM=1.1947 +/- 0.0014 chips (35.01 +/- 0.04 m)
+asym_max=0.0070 +/- 0.0023
+noise_floor=0.3155 +/- 0.0007
+tap_std_mean=0.1860 +/- 0.0022
+min n_blocks=1380
+worst SEM_block=0.00290
+FWHM CV=0.12%
+kept_fraction mean=69%, min=19%
+overlay plot=/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn040_prn5_30s_group.png
+```
+
+Dataset index was rebuilt at:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l5_grid/dataset_index.csv
+```
+
+Current L5 Phase A initial library now has three measured-CN0 conditions that
+passed aggregate reproducibility:
+
+```text
+measured CN0 ~=57 dB-Hz: PRN11, target label 56
+measured CN0 ~=42-45 dB-Hz: PRN20, target label 45
+measured CN0 ~=39.7 dB-Hz: PRN5, target label 40
+```
+
+Judgment:
+
+The current `L5=-65, amplitude=64, no attenuation` environment is valid for the
+CN0 ~=40 edge of the initial L5 reference library, with PRN5 preferred over
+PRN20/18/15 for this bin. This is not as clean as the high-CN0 bins: one formal
+attempt failed completely and the retained run 4 has low kept fraction plus SEM
+above the interim precision target. However, the retained group is highly
+reproducible in FWHM and peak position, so it is acceptable as the low-CN0
+boundary condition for Phase A. Do not use the discarded run 1 in fitting or
+aggregate statistics.
+
+-- Codex, 2026-07-28
+
 ## Phase A Formal L5 Fingerprint - Target CN0 45, High-EL PRN20, 30s x3
 
 Date: 2026-07-28
