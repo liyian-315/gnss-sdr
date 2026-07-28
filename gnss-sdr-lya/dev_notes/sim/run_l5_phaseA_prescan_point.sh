@@ -21,7 +21,7 @@ Options:
   --tag NAME              Required output tag.
   --sim-power-label TEXT  Optional label for the simulator output setting.
   --prn N                 GPS L5 PRN. Default: 28.
-  --secs N                Record seconds. Default: 8.
+  --secs N                Record seconds. Default: 15.
   --rate N                Sample rate. Default: 20000000.
   --gain N                B210 gain dB. Default: 40.
   --ant NAME              B210 antenna. Default: RX2.
@@ -36,7 +36,7 @@ EOF
 TAG=""
 SIM_POWER_LABEL=""
 PRN="28"
-SECS="8"
+SECS="15"
 RATE="20000000"
 GAIN="40"
 ANT="RX2"
@@ -118,6 +118,17 @@ if [[ "$REC_STATUS" -ne 0 ]] && grep -q "No devices found" "$OUT/record.log"; th
   sleep 1
   uhd_rx_cfile -a "$DEVICE_ARGS" -f "$FREQ" -r "$RATE" -g "$GAIN" -A "$ANT" \
     -s --stream-args num_recv_frames=1024 -N "$NSAMPS" "$TMP" 2>&1 | tee -a "$OUT/record.log"
+elif [[ "$REC_STATUS" -ne 0 && -f "$TMP" ]]; then
+  actual_size="$(stat -c %s "$TMP")"
+  expected_size="$(python3 - <<PY
+print(int(float("$RATE") * float("$SECS") * 4))
+PY
+)"
+  if [[ "$actual_size" -ge "$expected_size" ]]; then
+    echo "warn: uhd_rx_cfile returned $REC_STATUS but output size is complete ($actual_size bytes); continuing" | tee -a "$OUT/record.log"
+  else
+    exit "$REC_STATUS"
+  fi
 else
   exit "$REC_STATUS"
 fi
