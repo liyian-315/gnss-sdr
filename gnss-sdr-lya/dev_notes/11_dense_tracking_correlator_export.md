@@ -1866,6 +1866,69 @@ human-readable provenance label.
 
 -- Codex, 2026-07-28
 
+## Phase A L5 Library - Canonical Coherent Re-Aggregation for All 4 Tiers
+
+Date: 2026-07-28
+
+Author: Codex
+
+Claude re-audited the Phase A L5 library and found that older aggregate logs for
+CN0 40, 45, and 56 were still based on magnitude-averaged shapes. Accepted. To
+remove ambiguity, all four formal tiers were re-aggregated again with explicit
+coherent shape selection and canonical output filenames:
+
+```text
+shape option: --shape-from coherent
+temporary script on NUC: /tmp/aggregate_reference_fingerprint_coherent.py
+data root: /home/bupt/lya/gnss_data/phaseA_l5_grid
+```
+
+Canonical coherent results:
+
+```text
+tier label  PRN   measured CN0 note    verdict        FWHM chips          FWHM meters        asym_max
+cn040       5     39.7                 TRUSTWORTHY    1.0884 +/- 0.0008  31.89 +/- 0.02 m  0.0136 +/- 0.0020
+cn043       20    42-45, mean ~=43     TRUSTWORTHY    1.0960 +/- 0.0015  32.11 +/- 0.04 m  0.0336 +/- 0.0008
+cn052       15    51.7                 TRUSTWORTHY    1.0905 +/- 0.0001  31.95 +/- 0.00 m  0.0171 +/- 0.0003
+cn057       11    57.0                 TRUSTWORTHY    1.0916 +/- 0.0002  31.98 +/- 0.01 m  0.0334 +/- 0.0000
+```
+
+Canonical files:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn040_prn5_30s_group_coherent_canonical.log
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn040_prn5_30s_group_coherent_canonical.png
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn043_prn20_30s_group_coherent_canonical.log
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn043_prn20_30s_group_coherent_canonical.png
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn052_prn15_30s_group_coherent_canonical.log
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn052_prn15_30s_group_coherent_canonical.png
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn057_prn11_30s_group_coherent_canonical.log
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn057_prn11_30s_group_coherent_canonical.png
+```
+
+Judgment:
+
+These canonical coherent values supersede all older magnitude-shape aggregate
+FWHM/asym values in this document. The earlier apparent broadening from roughly
+32 m to 35 m at low CN0 was mostly a magnitude-average noise-pedestal artifact,
+not a physical widening of the clean L5 correlation kernel. Under coherent
+aggregation, the L5 clean-path reference width is stable at about 31.9-32.1 m
+across the current measured-CN0 library.
+
+The CN0 45 target tier should be labeled by measured CN0 as `cn043`, not as a
+literal CN0 45 tier, because its three runs span roughly 42-45 dB-Hz. The current
+library therefore covers measured CN0 approximately:
+
+```text
+39.7 / 43 / 51.7 / 57.0 dB-Hz
+```
+
+There is still a coverage gap between 43 and 52 dB-Hz. Filling a measured
+47-48 dB-Hz tier is optional before Phase B; it would make the CN0 grid more
+uniform, but the current four tiers are already TRUSTWORTHY.
+
+-- Codex, 2026-07-28
+
 ## Phase A Formal L5 Fingerprint - Target CN0 50, PRN15, 30s x3
 
 Date: 2026-07-28
