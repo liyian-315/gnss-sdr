@@ -1594,6 +1594,51 @@ the reference library is TRUSTWORTHY at the CN0 points Phase B will use.
 
 -- Claude (Opus 4.8), 2026-07-28
 
+## Claude: attenuator sweep read (phantom CN0) + coherent-|R| shape fix
+
+Date: 2026-07-28
+Author: Claude (Opus 4.8)
+
+### The ~28.7 dB-Hz points are a PHANTOM, not a real low-CN0 measurement
+
+PRN11 under three different attenuations all report the same CN0:
+
+```text
++3 dB att -> cn0_median 28.77 (lock -0.003)   [if tracking, should be ~37.6]
++6 dB att -> cn0_median 28.74 (lock  0.003)   [if tracking, should be ~34.6]
++10 dB att -> cn0_median 28.66 (lock -0.012)  [if tracking, should be ~30.6]
+```
+
+3/6/10 dB differ by 7 dB but CN0 is pinned at ~28.7 with lock ~0. A real signal
+cannot do that. So ~28.7 is the CN0 estimator's UNLOCKED noise-floor readout, not
+the signal CN0. Reframe "CN0 ~29 region" -> "tracking collapsed; the 29 is an
+artifact". Attenuation below ~40 does not lower CN0, it kills lock.
+
+Real tracking floor with the current L5Q pilot robust config (PRN-dependent by
+margin): PRN7 holds to ~38 (amp60 +3 dB, kept 72%), dies by +6 dB; PRN11 (less
+margin) drops off a cliff as soon as any attenuation is added.
+
+Decision: initial L5 reference library floor = CN0 40. Grid {56,50,45,40}, all
+clean-trackable. 35/30 are NOT reachable by attenuation; reaching sub-40 needs
+weak-signal TRACKING work (longer coherent integration on the L5Q pilot, narrower
+loops, FLL) kept consistent for Phase A and B -- a separate task, only if Phase B
+sources will be below 40. Do not add attenuator points to the reference library.
+
+### Coherent-|R| shape features (removes the low-CN0 FWHM pedestal)
+
+The FWHM crept 31.5 -> 34 -> 38 m as CN0 dropped. That is a noise pedestal on the
+MAGNITUDE average |mag| ~ sqrt(R^2 + sigma^2): as sigma grows the tails lift and
+the half-max width widens. It is not a real shape change.
+
+Fix: aggregate_reference_fingerprint.py now takes FWHM/asym/peak/skew/noise_floor
+from the COHERENT |R| = hypot(coherent_re, coherent_im) by default (noise averages
+toward zero -> no pedestal). `--shape-from magnitude` keeps the old behaviour.
+This also aligns the aggregator with check_dense_vs_prompt.py, which already
+computed asym from |coherent|. Demonstrated on a sigma=0.30 synthetic: magnitude
+FWHM 33.6 m vs coherent 29.3 m (true), noise_floor 0.30 -> 0.00.
+
+-- Claude (Opus 4.8), 2026-07-28
+
 ## Step 1 Notes
 
 Changed:
@@ -1754,6 +1799,109 @@ settings for that measured bin.
 
 Keep grouping/selection by measured CN0 bins after the run. The tag is only a
 human-readable provenance label.
+
+-- Codex, 2026-07-28
+
+## Phase A Formal L5 Fingerprint - Target CN0 45, High-EL PRN20, 30s x3
+
+Date: 2026-07-28
+
+Author: Codex
+
+User suggested choosing higher-elevation satellites for cleaner formal captures.
+Accepted. Under the current simulator state:
+
+```text
+L5 output label=-65
+single-satellite amplitude=64
+external attenuation=none
+B210 gain=40 dB
+```
+
+a high-elevation prescan was run for PRN20, PRN18, PRN15, and PRN5. Results:
+
+```text
+PRN  EL(deg)  cn0_median  lock_median  kept_fraction  n_blocks  sem_block_worst  usable note
+20   79.3     44.93       0.934        0.6656         2442      0.001233         best target-45 candidate
+18   77.7     28.87       -0.0177      0              -         -                phantom/unlocked
+15   65.3     42.71       0.940        0.8569         3192      0.001406         usable but lower CN0
+5    59.9     39.79       0.827        0.9259         3450      0.001897         usable CN0 ~=40
+```
+
+PRN20 was selected for the formal target-CN0 45 condition.
+
+Formal condition:
+
+```text
+phase=A
+band=L5
+PRN=20
+cn0_target=45
+L5 output label=-65
+L1 output label=-65
+single-satellite amplitude=64
+B210 gain=40 dB
+external attenuation=none
+sample rate=20 Msps
+sample type=sc16/ishort
+tracking=L5Q pilot robust dense
+capture length=30 s
+runs=3
+```
+
+Run directories:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn045_prn20_run1_30s_0728
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn045_prn20_run2_30s_0728
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn045_prn20_run3_30s_0728
+```
+
+Per-run index:
+
+```text
+run  cn0_median  lock_median  kept_fraction  n_blocks  sem_block_worst  asym     FWHM_chips
+1    42.14       0.914        0.1102         814       0.002922         0.03285  1.1452
+2    44.99       0.922        0.8300         6175      0.000775         0.03332  1.1209
+3    42.27       0.902        0.7098         2307      0.001101         0.03464  1.1379
+```
+
+Aggregate output:
+
+```text
+[cn045] n=3
+peak_chip  = -0.0058 +/- 0.0013
+FWHM       = 1.1347 +/- 0.0102 chips = 33.25 +/- 0.30 m
+asym_max   = 0.0156 +/- 0.0018
+min n_blocks=814
+worst SEM_block=0.00292
+FWHM CV=0.90%
+asym std=0.00184
+VERDICT: TRUSTWORTHY
+```
+
+Notes:
+
+This condition was targeted as CN0 45, but the formal run set has measured CN0
+spread around `42-45 dB-Hz`. Run 1 suffered low kept fraction and SEM above the
+interim target, but the group still passed TRUSTWORTHY due to cross-run
+reproducibility. In later analysis, classify this condition by the measured CN0
+metadata rather than assuming it is exactly 45.
+
+Artifacts:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l5_grid/dataset_index.csv
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn045_prn20_30s_group.log
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn045_prn20_30s_group.png
+```
+
+Judgment:
+
+This is a second formal TRUSTWORTHY L5 Phase A reference-fingerprint condition,
+best described as the measured `CN0 ~= 43-45` band. The next useful grid point is
+`CN0 ~= 40`, for which the high-elevation prescan suggests PRN5 is a strong
+candidate under the same `L5=-65, amplitude=64` setting.
 
 -- Codex, 2026-07-28
 
