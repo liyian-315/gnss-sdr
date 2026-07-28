@@ -1757,6 +1757,72 @@ human-readable provenance label.
 
 -- Codex, 2026-07-28
 
+## Phase A L5 Prescan Slope Check - L5 Output -70
+
+Date: 2026-07-28
+
+Author: Codex
+
+User lowered both simulator signal output labels to `-70`, which is the minimum
+available output setting. Single-satellite amplitude remained `64`; B210 gain
+remained `40 dB`.
+
+Purpose:
+
+Check whether the current cabled/RF setup can reach the `CN0 ~= 40 dB-Hz` grid
+point by simulator output alone before changing per-satellite amplitude or
+adding an external attenuator.
+
+Command pattern used on NUC:
+
+```bash
+bash dev_notes/sim/run_l5_phaseA_prescan_point.sh --tag p7_l5m70_a64_g40_0728 --prn 7 --gain 40 --tx-l1-label -70 --tx-l5-label -70 --sat-power-label 64 --cn0-target 40 --cn0-min 30 --note slope_check_l1_-70_l5_-70_amp64
+bash dev_notes/sim/run_l5_phaseA_prescan_point.sh --tag p11_l5m70_a64_g40_0728 --prn 11 --gain 40 --tx-l1-label -70 --tx-l5-label -70 --sat-power-label 64 --cn0-target 40 --cn0-min 30 --note slope_check_l1_-70_l5_-70_amp64
+```
+
+Results:
+
+```text
+PRN  L5 label  cn0_median  lock_median  kept_fraction  n_blocks  sem_block_worst  asym     FWHM_m   overflow
+7    -70       40.55       0.828        0.5276         1922      0.002254         0.03465  34.06    0
+11   -70       40.97       0.835        0.6521         2346      0.001940         0.03290  34.13    0
+```
+
+Comparison across the measured L5 anchors:
+
+```text
+PRN  CN0 at -50  CN0 at -65  CN0 at -70
+7    57.42       45.57       40.55
+11   55.39       45.85       40.97
+```
+
+Judgment:
+
+The `L5=-70, amplitude=64, B210 gain=40` setting reaches the desired
+`CN0 ~= 40 dB-Hz` point for PRN7/PRN11. Therefore, for the CN0=40 L5 grid point,
+an external attenuator is not immediately required.
+
+However, PRN7's single-run `sem_block_worst=0.002254` is slightly above the
+current interim engineering target (`0.0020`), while PRN11 is just inside it.
+For formal Phase A reference-library captures at this CN0, prefer PRN11 first,
+use repeated runs, and consider 30 s capture length if repeatability or SEM is
+not good enough.
+
+If later CN0=35 or CN0=30 is required, the simulator output is already at its
+minimum. At that point the next control knob should be per-satellite amplitude
+or an external RF attenuator, not lower simulator output.
+
+Dataset index after this step:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_prescan/dataset_index.csv
+```
+
+It now contains seven L5 prescan rows: PRN6/7/11 at `L5=-50`, PRN7/11 at
+`L5=-65`, and PRN7/11 at `L5=-70`.
+
+-- Codex, 2026-07-28
+
 ## Phase A L5 Prescan Slope Check - L5 Output -65
 
 Date: 2026-07-28
