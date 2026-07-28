@@ -1866,6 +1866,110 @@ human-readable provenance label.
 
 -- Codex, 2026-07-28
 
+## Phase A Formal L5 Fingerprint - Target CN0 50, PRN15, 30s x3
+
+Date: 2026-07-28
+
+Author: Codex
+
+User adjusted the simulator to:
+
+```text
+L5 output label=-54
+single-satellite amplitude=64
+external attenuation=none
+B210 gain=40 dB
+target bin=CN0 50
+```
+
+Initial PRN5 prescan under this setting was stable but low for the target bin:
+
+```text
+PRN5 15 s prescan: cn0_median=48.49, kept_fraction=0.3675,
+n_blocks=1366, sem_block_worst=0.001110
+```
+
+Per user suggestion, changed satellites and ran a 15 s alternate-PRN prescan:
+
+```text
+PRN   cn0_median  lock_median  kept_fraction  n_blocks  sem_block_worst  judgment
+15    51.61       0.9599       0.7503         2789      0.000564         best CN0 50 candidate
+18    45.38       0.8577       0.5258         1959      0.001258         stable but too low
+20    52.19       -0.0425      0              -         -                numeric CN0 but unlocked; unusable
+11    nan         nan          0              -         -                no dense records
+```
+
+PRN15 was selected for the formal CN0 50 tier.
+
+Formal capture set:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn050_prn15_run1_30s_0728
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn050_prn15_run2_30s_0728
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn050_prn15_run3_30s_0728
+```
+
+Per-run metadata:
+
+```text
+run  cn0_median  lock_median  kept_fraction  n_blocks  sem_block_worst  asym(check)
+1    51.74       0.9807       0.8331         6223      0.000370         0.01753
+2    51.70       0.9652       0.9325         6964      0.000349         0.01703
+3    51.68       0.9899       0.8435         6306      0.000364         0.01677
+```
+
+Coherent aggregate command:
+
+```bash
+python3 /tmp/aggregate_reference_fingerprint_coherent.py /home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn050_prn15_run1_30s_0728/l5_prescan_reference_Rtau.png.csv /home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn050_prn15_run2_30s_0728/l5_prescan_reference_Rtau.png.csv /home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn050_prn15_run3_30s_0728/l5_prescan_reference_Rtau.png.csv --labels cn050,cn050,cn050 --chip-m 29.3 --shape-from coherent --plot /home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn050_prn15_30s_group_coherent.png
+```
+
+Coherent aggregate result:
+
+```text
+VERDICT: TRUSTWORTHY (reproducible across runs) [precision: OK]
+peak_chip=-0.0033 +/- 0.0002 chips (-0.10 +/- 0.01 m)
+FWHM=1.0905 +/- 0.0001 chips (31.95 +/- 0.00 m)
+asym_max=0.0171 +/- 0.0003
+noise_floor=0.0077 +/- 0.0000
+tap_std_mean=0.0433 +/- 0.0001
+min n_blocks=6223
+worst SEM_block=0.00037
+FWHM CV=0.01%
+kept_fraction mean=87%, min=83%
+overlay plot=/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn050_prn15_30s_group_coherent.png
+```
+
+The earlier PRN5 30 s target-50 candidate captures were moved out of the formal
+grid to avoid mixing two different measured-CN0/PRN conditions in the same tier:
+
+```text
+from: /home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn050_prn5_run{1,2,3}_30s_0728
+to:   /home/bupt/lya/gnss_data/phaseA_prescan/formal_rejected_or_alt/
+reason: stable but measured CN0 ~=48.6, not the selected formal CN0 50 tier
+```
+
+Dataset index was rebuilt:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l5_grid/dataset_index.csv
+captures indexed: 12
+coverage:
+CN0 40: runs=3, cn0_med=39.7, min_nblk=1380
+CN0 45: runs=3, cn0_med=43.1, min_nblk=814
+CN0 50: runs=3, cn0_med=51.7, min_nblk=6223
+CN0 56: runs=3, cn0_med=57.0, min_nblk=1728
+```
+
+Judgment:
+
+The formal L5 Phase A reference library now has the intended four-tier grid:
+approximately CN0 57, 52, 43, and 40. PRN15 is the accepted CN0 50/52 tier under
+`L5=-54, amplitude=64, no attenuation`. PRN20 again demonstrated that a numeric
+CN0 close to the target is not sufficient without positive lock and kept epochs.
+
+-- Codex, 2026-07-28
+
 ## Phase A L5 CN0 50 Prescan - L5 -57, Amplitude 64, No Attenuation
 
 Date: 2026-07-28
