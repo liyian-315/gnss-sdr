@@ -182,7 +182,8 @@ def fit_one_static(taps, Y, ktaps, K, tau0_values):
     return best
 
 
-def _fit_grid_one_tau0(taps, data, times, ktaps, K, tau0, deltas, drift_values):
+def _fit_grid_one_tau0(taps, data, times, ktaps, K, tau0, deltas, drift_values,
+                       modulation_vectors=None):
     """Grid search over (drift, delta) for one tau0 using cached Y*K(delta)."""
     y2 = float(np.vdot(data.ravel(), data.ravel()).real)
     k0 = ftp.kern_at(ktaps, K, taps - tau0)
@@ -193,8 +194,10 @@ def _fit_grid_one_tau0(taps, data, times, ktaps, K, tau0, deltas, drift_values):
     s01s = k1s @ np.conj(k0)  # sum_k K1 * conj(K0) == conj(vdot(K0,K1))
     ps = data @ np.conj(k1s).T  # (epochs, ndelta)
     best = None
-    for fhz in drift_values:
-        mod = np.exp(1j * 2.0 * np.pi * float(fhz) * times)
+    if modulation_vectors is None:
+        modulation_vectors = [(float(fhz), np.exp(1j * 2.0 * np.pi * float(fhz) * times))
+                              for fhz in drift_values]
+    for label, mod in modulation_vectors:
         b1s = np.conj(mod) @ ps
         a01s = np.sum(mod) * s01s  # sum_t mod * sum_k conj(K0)*K1
         for i, delta in enumerate(deltas):
@@ -206,7 +209,7 @@ def _fit_grid_one_tau0(taps, data, times, ktaps, K, tau0, deltas, drift_values):
                 c = np.linalg.lstsq(gram, b, rcond=None)[0]
             resid2 = max(0.0, y2 - float(np.vdot(c, b).real))
             item = (float(tau0), float(delta), complex(c[0]), complex(c[1]),
-                    float(np.sqrt(resid2)), gram, float(fhz))
+                    float(np.sqrt(resid2)), gram, label)
             if best is None or item[4] < best[4]:
                 best = item
     return best
@@ -214,13 +217,15 @@ def _fit_grid_one_tau0(taps, data, times, ktaps, K, tau0, deltas, drift_values):
 
 def fit_drift_modulated(taps, Y, ktaps, K, drift_hz, dmax, tau0_values,
                         coarse=0.02, fine=0.005, drift_search_hz=0.0,
-                        drift_step_hz=0.05):
+                        drift_step_hz=0.05, modulation_vectors=None):
     times = Y["times"] if isinstance(Y, dict) else None
     data = Y["data"] if isinstance(Y, dict) else Y
     if times is None:
         raise ValueError("fit_drift_modulated needs times")
     one = fit_one_static(taps, data, ktaps, K, tau0_values)
-    if drift_search_hz > 0.0:
+    if modulation_vectors is not None:
+        drift_values = np.array([drift_hz], dtype=float)
+    elif drift_search_hz > 0.0:
         drift_values = np.arange(drift_hz - drift_search_hz,
                                  drift_hz + drift_search_hz + 0.5 * drift_step_hz,
                                  drift_step_hz)
@@ -229,19 +234,26 @@ def fit_drift_modulated(taps, Y, ktaps, K, drift_hz, dmax, tau0_values,
     best = None
     deltas = np.arange(coarse, dmax + 1e-9, coarse)
     for tau0 in tau0_values:
-        item = _fit_grid_one_tau0(taps, data, times, ktaps, K, float(tau0), deltas, drift_values)
+        item = _fit_grid_one_tau0(taps, data, times, ktaps, K, float(tau0), deltas,
+                                  drift_values, modulation_vectors)
         if best is None or item[4] < best[4]:
             best = item
     t0b, db, fb = best[0], best[1], best[6]
     t0_fine = [t0b] if len(tau0_values) == 1 else np.arange(t0b - coarse, t0b + coarse + 1e-9, fine)
-    fine_drift_values = np.array([fb], dtype=float)
-    if drift_search_hz > 0.0:
+    fine_modulation_vectors = modulation_vectors
+    if modulation_vectors is not None:
+        fine_drift_values = np.array([drift_hz], dtype=float)
+    elif drift_search_hz > 0.0:
+        fine_drift_values = np.array([fb], dtype=float)
         fine_step = max(drift_step_hz / 10.0, 0.005)
         fine_span = max(drift_step_hz, 0.02)
         fine_drift_values = np.arange(fb - fine_span, fb + fine_span + 0.5 * fine_step, fine_step)
+    else:
+        fine_drift_values = np.array([fb], dtype=float)
     fine_deltas = np.arange(max(fine, db - coarse), min(dmax, db + coarse) + 1e-9, fine)
     for tau0 in t0_fine:
-        item = _fit_grid_one_tau0(taps, data, times, ktaps, K, float(tau0), fine_deltas, fine_drift_values)
+        item = _fit_grid_one_tau0(taps, data, times, ktaps, K, float(tau0), fine_deltas,
+                                  fine_drift_values, fine_modulation_vectors)
         if item[4] < best[4]:
             best = item
     return best, one
@@ -263,7 +275,10 @@ def summarize_fit(best, one, Y, chip_m, delay_m, ratio_db):
     print("amp ratio A1/A0=%+.2f dB  relative phase=%+.0f deg" % (amp_ratio_db, phase_deg))
     print("resid2=%.4f  resid1=%.4f  drop=%.3f  gram_cond=%.1f"
           % (resid2_rel, resid1_rel, resid_drop, cond))
-    print("fit drift=%+.3f Hz" % fit_drift_hz)
+    if isinstance(fit_drift_hz, str):
+        print("fit modulation=%s" % fit_drift_hz)
+    else:
+        print("fit drift=%+.3f Hz" % fit_drift_hz)
     reasons = []
     if resid_drop < 0.15:
         reasons.append("weak residual drop %.3f < 0.15" % resid_drop)
@@ -369,6 +384,9 @@ def main():
                     help="common-mode reference before fitting: phase keeps prompt magnitude; "
                          "tap0 matches the windowed fitter but biases merged amplitudes; "
                          "none uses raw dense taps")
+    ap.add_argument("--modulation-source", choices=("sinusoid", "probe"), default="sinusoid",
+                    help="sinusoid uses exp(j*2*pi*f*t); probe uses the measured unit phasor "
+                         "at --probe-chip/default delay tap, useful when real drift is not linear")
     ap.add_argument("--coarse-chip", type=float, default=0.02)
     ap.add_argument("--fine-chip", type=float, default=0.005)
     ap.add_argument("--self-test", action="store_true")
@@ -397,6 +415,19 @@ def main():
         _d, pidx, coh = measure_drift(times, norm_for_drift, taps, probe_chip)
         print("drift override: using %+.2f Hz; measured at %.2f chip was %+.2f Hz (coh %.2f)"
               % (drift_hz, float(taps[pidx]), _d, coh))
+    modulation_vectors = None
+    if args.modulation_source == "probe":
+        pidx = int(np.argmin(np.abs(taps - probe_chip)))
+        v = norm_for_drift[:, pidx]
+        # Remove DC/static tail before taking phase. If the delayed tap contains a
+        # little path0 leakage, its mean is static and should not define modulation.
+        v = v - np.mean(v)
+        ok = np.abs(v) > np.percentile(np.abs(v), 10.0)
+        mod = np.ones_like(v, dtype=np.complex128)
+        mod[ok] = v[ok] / np.abs(v[ok])
+        modulation_vectors = [("probe@%.2fchip" % float(taps[pidx]), mod)]
+        print("modulation source: measured probe phasor at %.2f chip (kept phase samples %d/%d)"
+              % (float(taps[pidx]), int(ok.sum()), len(ok)))
 
     dmax = args.max_delay_chips
     if dmax is None:
@@ -411,7 +442,8 @@ def main():
         taps, Y, ktaps, K, drift_hz, dmax, tau0_values,
         coarse=args.coarse_chip, fine=args.fine_chip,
         drift_search_hz=args.drift_search_hz,
-        drift_step_hz=args.drift_step_hz
+        drift_step_hz=args.drift_step_hz,
+        modulation_vectors=modulation_vectors
     )
     s = summarize_fit(best, one, iq_ref, args.chip_m, args.delay_m, args.ratio_db)
 
