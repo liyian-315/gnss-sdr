@@ -1757,6 +1757,75 @@ human-readable provenance label.
 
 -- Codex, 2026-07-28
 
+## Phase A L5 Prescan - 10 dB External Attenuator
+
+Date: 2026-07-28
+
+Author: Codex
+
+User added a 10 dB external attenuator after the `L5=-70` / amplitude `64`
+minimum-output setup. B210 gain stayed at `40 dB`.
+
+Purpose:
+
+Check whether an external attenuator can push the L5 single-source prescan from
+the previous `CN0 ~= 40 dB-Hz` point down toward the `CN0 ~= 30 dB-Hz` grid
+point.
+
+Command pattern used on NUC:
+
+```bash
+bash dev_notes/sim/run_l5_phaseA_prescan_point.sh --tag p7_l5m70_a64_g40_att10_0728 --prn 7 --gain 40 --tx-l1-label -70 --tx-l5-label -70 --sat-power-label 64 --cn0-target 30 --cn0-min 25 --note slope_check_l1_-70_l5_-70_amp64_att10db
+bash dev_notes/sim/run_l5_phaseA_prescan_point.sh --tag p11_l5m70_a64_g40_att10_0728 --prn 11 --gain 40 --tx-l1-label -70 --tx-l5-label -70 --sat-power-label 64 --cn0-target 30 --cn0-min 25 --note slope_check_l1_-70_l5_-70_amp64_att10db
+```
+
+Results:
+
+```text
+PRN  result
+7    no tracking / no dense records; overflow=0
+11   dense records=14903, cn0_median=28.66, cn0_p10=24.68, cn0_p90=33.59,
+     lock_median=-0.0119, strict kept=0, overflow=0
+```
+
+Diagnostic relaxed selector on PRN11:
+
+```text
+selector: CN0>=20, lock>=-1, min-lock-run=500, settle=100
+kept_records=1921, kept_fraction=12.9%, n_blocks=480
+sem_block_worst=0.04539
+peak_chip=+1.0498
+FWHM=nan
+noise_floor=1.4890
+```
+
+Judgment:
+
+The 10 dB attenuator does push the observed L5 signal to roughly the `CN0 ~= 30`
+region (`PRN11 cn0_median=28.66`), but at 15 s capture length and current robust
+tracking settings it does **not** yield a usable Phase A clean fingerprint.
+Strict selection keeps no epochs; relaxed diagnostic selection produces an
+unstable/noisy profile with wrong peak position and no valid FWHM. Treat this as
+a low-CN0 floor diagnostic, not as a reference-library capture.
+
+For formal Phase A, the confirmed usable L5 points so far are:
+
+```text
+CN0 ~= 55-57: L5=-50, amplitude=64, gain=40, PRN7/11
+CN0 ~= 45-46: L5=-65, amplitude=64, gain=40, PRN7/11
+CN0 ~= 40-41: L5=-70, amplitude=64, gain=40, PRN7/11, prefer PRN11
+```
+
+For `CN0 ~= 30`, do not proceed with full grid repeats until deciding one of:
+
+1. extend capture duration substantially and/or relax tracking configuration in
+   a principled way, or
+2. exclude CN0=30 from the initial L5 reference library, or
+3. use a less aggressive attenuation / per-satellite amplitude adjustment to
+   target CN0 35 first.
+
+-- Codex, 2026-07-28
+
 ## Phase A L5 Prescan Slope Check - L5 Output -70
 
 Date: 2026-07-28
