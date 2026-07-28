@@ -1757,6 +1757,85 @@ human-readable provenance label.
 
 -- Codex, 2026-07-28
 
+## Phase A L5 CN0 Prescan - Current L1/L5 Simulator Setting
+
+Date: 2026-07-28
+
+Author: Codex
+
+Simulator state reported by user:
+
+```text
+L1 output label: -65
+L5 output label: -50
+single-satellite amplitude: 64
+```
+
+Receiver / processing setup:
+
+```text
+Host: NUC11BTMi9, B210 serial=31502C6
+Branch: research/multipath-correlator-fit
+Sample rate: 20 Msps, sc16/ishort
+B210 gain: 40 dB
+Tracking: GPS L5Q pilot robust
+Dense taps: -1.5:0.1:1.5 chips
+Selector: CN0>=45, lock>=0.60, min-lock-run=2000, settle=200
+Output root: /home/bupt/lya/gnss_data/phaseA_prescan
+```
+
+Important implementation fixes made before/during this prescan:
+
+1. `run_l5_phaseA_prescan_point.sh` now writes `condition.json` per capture
+   directory so `build_fingerprint_dataset.py` can index captures.
+2. The script now continues after a successful `uhd_rx_cfile` return. Before
+   the fix, it exited right after recording and skipped GNSS-SDR/check.
+3. The raw filename was shortened to avoid older GNSS-SDR/config path
+   truncation of long `SignalSource.filename` values.
+4. The reference CSV is now named `l5_prescan_reference_Rtau.png.csv` so the
+   dataset indexer's default `*reference_Rtau*.png.csv` glob sees it.
+5. The aggregate call was aligned with the current Claude/Codex script interface
+   (`--min-blocks`, `--sem-target`, etc.; no `--min-kept-fraction` argument).
+
+Prescan results from active PRNs under the same transmitter setting:
+
+```text
+PRN  cn0_median  lock_median  kept_fraction  n_blocks  FWHM_chips  FWHM_m   asym     verdict
+6    49.06       0.913        13.74%         511       1.0676      31.28    0.0768   measurable, low kept%
+7    57.42       0.991        85.85%         2560      1.0808      31.67    0.0307   best high-CN0 candidate
+11   55.39       0.980        80.48%         2399      1.0995      32.22    0.0328   good high-CN0 candidate
+```
+
+Generated directories:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_prescan/p6_l5m50_a64_g40_0728
+/home/bupt/lya/gnss_data/phaseA_prescan/p7_l5m50_a64_g40_0728
+/home/bupt/lya/gnss_data/phaseA_prescan/p11_l5m50_a64_g40_0728
+```
+
+Dataset index:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_prescan/dataset_index.csv
+```
+
+Judgment:
+
+This confirms the user's correction: the same transmitter setting
+`L5=-50 / amplitude=64 / B210 gain=40` does not correspond to one universal CN0.
+Different PRNs under the same setup produced measured CN0 from about 49 to 57
+dB-Hz, and PRN12 in an earlier same-setting test had high CN0 but poor lock. For
+Phase A grid construction, group by measured CN0 plus PRN/RF metadata, not by the
+simulator labels alone.
+
+For the next capture step, PRN7 and PRN11 are the clean high-CN0 candidates at
+this setting. PRN6 is useful as a near-50 dB-Hz prescan point, but its 13.7%
+kept fraction should be treated as low-retention and should not become a formal
+baseline without repeats or longer capture.
+
+-- Codex, 2026-07-28
+
 ## Phase A CN0 Prescan - Active PRN Scan on Current Multi-Satellite Signal
 
 Date: 2026-07-28
