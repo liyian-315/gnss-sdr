@@ -104,11 +104,23 @@ rm -f "$TMP" "$RAW" \
 } > "$OUT/summary.txt"
 
 echo "[1/5] Recording short L5 prescan sample -> $RAW"
-uhd_rx_cfile -a "$DEVICE_ARGS" -f "$FREQ" -r "$RATE" -g "$GAIN" -A "$ANT" \
-  -s --stream-args num_recv_frames=1024 -N "$(python3 - <<PY
+NSAMPS="$(python3 - <<PY
 print(int(float("$RATE") * float("$SECS")))
 PY
-)" "$TMP" 2>&1 | tee "$OUT/record.log"
+)"
+set +e
+uhd_rx_cfile -a "$DEVICE_ARGS" -f "$FREQ" -r "$RATE" -g "$GAIN" -A "$ANT" \
+  -s --stream-args num_recv_frames=1024 -N "$NSAMPS" "$TMP" 2>&1 | tee "$OUT/record.log"
+REC_STATUS=${PIPESTATUS[0]}
+set -e
+if [[ "$REC_STATUS" -ne 0 ]] && grep -q "No devices found" "$OUT/record.log"; then
+  echo "warn: first UHD open failed after firmware/image load; retrying once" | tee -a "$OUT/record.log"
+  sleep 1
+  uhd_rx_cfile -a "$DEVICE_ARGS" -f "$FREQ" -r "$RATE" -g "$GAIN" -A "$ANT" \
+    -s --stream-args num_recv_frames=1024 -N "$NSAMPS" "$TMP" 2>&1 | tee -a "$OUT/record.log"
+else
+  exit "$REC_STATUS"
+fi
 mv "$TMP" "$RAW"
 ls -lh "$RAW" | tee -a "$OUT/summary.txt"
 if grep -qi overflow "$OUT/record.log"; then
@@ -164,7 +176,10 @@ if len(valid_cn0):
     print("cn0_p90=%.2f" % float(np.percentile(valid_cn0, 90)))
 else:
     print("cn0_median=nan")
-print("lock_median=%.4f" % float(np.median(lock)))
+if len(lock):
+    print("lock_median=%.4f" % float(np.median(lock)))
+else:
+    print("lock_median=nan")
 
 csv = os.path.join(out, "l5_prescan_Rtau.png.csv")
 if os.path.exists(csv):

@@ -1626,6 +1626,50 @@ attenuation or lower B210 gain to move out of the high-SNR plateau.
 
 -- Codex, 2026-07-28
 
+## Phase A CN0 Prescan - Current-State Dry Run
+
+Date: 2026-07-28
+Author: Codex
+
+Command:
+
+```bash
+bash dev_notes/sim/run_l5_phaseA_prescan_point.sh --tag l5_prn28_current_g40_20260728_0927 --sim-power-label current --secs 8 --gain 40 --prn 28 --device-args serial=31502C6
+```
+
+Output:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_prescan/l5_prn28_current_g40_20260728_0927/
+```
+
+Result:
+
+```text
+Recording: 8 s, 20 Msps, ishort/sc16, 611 MB, overflow=0.
+GNSS-SDR offline: processed 7.95 s, but no L5 PRN28 tracking start.
+Dense records: 0.
+CN0 median: nan.
+Fingerprint: skipped; no sustained locked records survived.
+```
+
+Codex judgment:
+
+This dry run validates the recording path and the script failure path, but it is
+not a usable CN0 prescan point. The result is consistent with no active/effective
+GPS L5 PRN28 signal at the B210 input, for example simulator off, wrong PRN, wrong
+RF port, or no L5 output. Start the real prescan only after the simulator is set
+to GPS L5 PRN28 and the intended output power/attenuator state is active.
+
+Implementation note:
+
+The prescan helper was updated after this dry run to set a default
+`UHD_IMAGES_DIR=/usr/local/share/uhd/images`, retry `uhd_rx_cfile` once if the
+first open fails immediately after B210 firmware/image loading, and avoid numpy
+warnings when dense records are empty.
+
+-- Codex, 2026-07-28
+
 ## Phase A L5 20Msps Capture - Power -45, Strict Single-Run Sample
 
 Date: 2026-07-26
