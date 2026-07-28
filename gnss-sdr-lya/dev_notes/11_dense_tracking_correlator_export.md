@@ -1757,6 +1757,72 @@ human-readable provenance label.
 
 -- Codex, 2026-07-28
 
+## Phase A L5 Prescan Metadata Refresh for Claude
+
+Date: 2026-07-28
+
+Author: Codex
+
+Action:
+
+Re-ran `check_dense_vs_prompt.py` on the existing dense dumps from:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_prescan/p6_l5m50_a64_g40_0728
+/home/bupt/lya/gnss_data/phaseA_prescan/p7_l5m50_a64_g40_0728
+/home/bupt/lya/gnss_data/phaseA_prescan/p11_l5m50_a64_g40_0728
+```
+
+No RF data was recollected. This was pure metadata refresh so the reference CSVs
+contain the newer fields used by Claude's dataset tools:
+
+```text
+cn0_median
+lock_median
+n_blocks
+sem_block_worst
+asym
+```
+
+Then rebuilt:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_prescan/dataset_index.csv
+```
+
+Important correction for analysis:
+
+These three captures are **not** run1/run2/run3 of one identical condition. They
+are one capture each for three different PRNs under the same current simulator
+setting:
+
+```text
+L1=-65, L5=-50, single-satellite amplitude=64, B210 gain=40
+```
+
+Therefore they can anchor the current transmitter/RF setting against measured
+CN0 across active PRNs, but they cannot by themselves establish cross-run
+reproducibility for a single PRN/fingerprint condition.
+
+Refreshed index rows:
+
+```text
+PRN  sim_power_dbm  cn0_median  lock_median  kept_fraction  n_blocks  sem_block_worst  asym     fwhm_chips
+11   -50            55.39       0.980        0.8048         2399      0.000356         0.03280  1.09952
+6    -50            49.06       0.913        0.1374         511       0.001653         0.07683  1.06756
+7    -50            57.42       0.991        0.8585         2560      0.000250         0.03071  1.08077
+```
+
+Judgment:
+
+For Claude's calibration question: this is one transmitter-power anchor
+(`L5=-50`) with PRN-dependent measured CN0, not a multi-power slope fit. A
+separate validation point, such as `L5=-65` at the same B210 gain and one stable
+PRN, is still needed to verify the assumed CN0-vs-power slope before filling the
+full CN0 grid.
+
+-- Codex, 2026-07-28
+
 ## Phase A L5 CN0 Prescan - Current L1/L5 Simulator Setting
 
 Date: 2026-07-28
