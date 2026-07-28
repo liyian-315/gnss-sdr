@@ -1552,6 +1552,80 @@ Use the existing tracking dump style for the main binary stream. JSON is reserve
 
 -- Codex, 2026-07-24
 
+## Phase A CN0 Prescan Plan
+
+Date: 2026-07-28
+Author: Codex
+
+Purpose:
+
+Before collecting the full Phase A fingerprint grid, run short prescan points to
+map simulator output power / attenuator / B210 gain to measured GNSS-SDR CN0.
+This prevents us from labeling a dataset only by simulator dBm when the actual
+receiver-side CN0 stays on a high-SNR plateau.
+
+Important distinction:
+
+```text
+Prescan: short captures, used to find measured-CN0 operating points.
+Formal Phase A fingerprint: repeated 20-30 s captures per CN0 bin, used to build the reference library.
+```
+
+New helper:
+
+```text
+dev_notes/sim/run_l5_phaseA_prescan_point.sh
+```
+
+Default behavior:
+
+```text
+Signal: GPS L5 PRN28
+Tracking: L5Q pilot robust
+Rate: 20 Msps
+Sample type: ishort/sc16
+Duration: 8 s
+B210: RX2, serial=31502C6, gain=40 dB
+Output root: /home/bupt/lya/gnss_data/phaseA_prescan
+Dense selector: CN0>=45, lock>=0.6, min-lock-run=2000, settle=200
+```
+
+Example one-line command:
+
+```bash
+bash dev_notes/sim/run_l5_phaseA_prescan_point.sh --tag l5_prn28_power45_g40 --sim-power-label -45
+```
+
+Output summary fields:
+
+```text
+cn0_median / cn0_p10 / cn0_p90
+lock_median
+record_overflow
+kept_records / kept_fraction metadata in l5_prescan_Rtau.png.csv
+single-run FWHM/asymmetry from aggregate_reference_fingerprint.py
+```
+
+Recommended workflow:
+
+```text
+1. User sets one simulator power / attenuator state.
+2. Run one prescan point.
+3. Record measured cn0_median.
+4. Adjust simulator power or external attenuation until the measured bins cover roughly 50/45/40/35/30 dB-Hz.
+5. Only then run the formal repeated Phase A capture set for each usable CN0 bin.
+```
+
+Codex judgment:
+
+The user is right that cabled/direct signal is very clean. Therefore simulator
+power labels alone are not enough; the project should index Phase A fingerprints
+by measured CN0 bin and RF setup, not by nominal simulator dBm alone. If cabled
+CN0 does not fall enough as simulator output is reduced, use external RF
+attenuation or lower B210 gain to move out of the high-SNR plateau.
+
+-- Codex, 2026-07-28
+
 ## Phase A L5 20Msps Capture - Power -45, Strict Single-Run Sample
 
 Date: 2026-07-26
