@@ -175,34 +175,73 @@ def fit_one_static(taps, Y, ktaps, K, tau0_values):
     return best
 
 
+def _fit_grid_one_tau0(taps, data, times, ktaps, K, tau0, deltas, drift_values):
+    """Grid search over (drift, delta) for one tau0 using cached Y*K(delta)."""
+    y2 = float(np.vdot(data.ravel(), data.ravel()).real)
+    k0 = ftp.kern_at(ktaps, K, taps - tau0)
+    a00 = float(data.shape[0]) * np.vdot(k0, k0)
+    b0 = np.sum(data @ np.conj(k0))
+    k1s = np.vstack([ftp.kern_at(ktaps, K, taps - tau0 - d) for d in deltas])
+    a11s = float(data.shape[0]) * np.einsum("ij,ij->i", np.conj(k1s), k1s)
+    s01s = k1s @ np.conj(k0)  # sum_k K1 * conj(K0) == conj(vdot(K0,K1))
+    ps = data @ np.conj(k1s).T  # (epochs, ndelta)
+    best = None
+    for fhz in drift_values:
+        mod = np.exp(1j * 2.0 * np.pi * float(fhz) * times)
+        b1s = np.conj(mod) @ ps
+        a01s = np.sum(mod) * s01s  # sum_t mod * sum_k conj(K0)*K1
+        for i, delta in enumerate(deltas):
+            gram = np.array([[a00, a01s[i]], [np.conj(a01s[i]), a11s[i]]], dtype=np.complex128)
+            b = np.array([b0, b1s[i]], dtype=np.complex128)
+            try:
+                c = np.linalg.solve(gram, b)
+            except np.linalg.LinAlgError:
+                c = np.linalg.lstsq(gram, b, rcond=None)[0]
+            resid2 = max(0.0, y2 - float(np.vdot(c, b).real))
+            item = (float(tau0), float(delta), complex(c[0]), complex(c[1]),
+                    float(np.sqrt(resid2)), gram, float(fhz))
+            if best is None or item[4] < best[4]:
+                best = item
+    return best
+
+
 def fit_drift_modulated(taps, Y, ktaps, K, drift_hz, dmax, tau0_values,
-                        coarse=0.02, fine=0.005):
+                        coarse=0.02, fine=0.005, drift_search_hz=0.0,
+                        drift_step_hz=0.05):
     times = Y["times"] if isinstance(Y, dict) else None
     data = Y["data"] if isinstance(Y, dict) else Y
     if times is None:
         raise ValueError("fit_drift_modulated needs times")
-    mod = np.exp(1j * 2.0 * np.pi * drift_hz * times)
     one = fit_one_static(taps, data, ktaps, K, tau0_values)
+    if drift_search_hz > 0.0:
+        drift_values = np.arange(drift_hz - drift_search_hz,
+                                 drift_hz + drift_search_hz + 0.5 * drift_step_hz,
+                                 drift_step_hz)
+    else:
+        drift_values = np.array([drift_hz], dtype=float)
     best = None
+    deltas = np.arange(coarse, dmax + 1e-9, coarse)
     for tau0 in tau0_values:
-        for delta in np.arange(coarse, dmax + 1e-9, coarse):
-            c, resid, gram = normal_eq_for_delta(taps, data, mod, ktaps, K, tau0, float(delta))
-            item = (float(tau0), float(delta), complex(c[0]), complex(c[1]), float(resid), gram)
-            if best is None or item[4] < best[4]:
-                best = item
-    t0b, db = best[0], best[1]
+        item = _fit_grid_one_tau0(taps, data, times, ktaps, K, float(tau0), deltas, drift_values)
+        if best is None or item[4] < best[4]:
+            best = item
+    t0b, db, fb = best[0], best[1], best[6]
     t0_fine = [t0b] if len(tau0_values) == 1 else np.arange(t0b - coarse, t0b + coarse + 1e-9, fine)
+    fine_drift_values = np.array([fb], dtype=float)
+    if drift_search_hz > 0.0:
+        fine_step = max(drift_step_hz / 10.0, 0.005)
+        fine_span = max(drift_step_hz, 0.02)
+        fine_drift_values = np.arange(fb - fine_span, fb + fine_span + 0.5 * fine_step, fine_step)
+    fine_deltas = np.arange(max(fine, db - coarse), min(dmax, db + coarse) + 1e-9, fine)
     for tau0 in t0_fine:
-        for delta in np.arange(max(fine, db - coarse), min(dmax, db + coarse) + 1e-9, fine):
-            c, resid, gram = normal_eq_for_delta(taps, data, mod, ktaps, K, float(tau0), float(delta))
-            item = (float(tau0), float(delta), complex(c[0]), complex(c[1]), float(resid), gram)
-            if item[4] < best[4]:
-                best = item
+        item = _fit_grid_one_tau0(taps, data, times, ktaps, K, float(tau0), fine_deltas, fine_drift_values)
+        if item[4] < best[4]:
+            best = item
     return best, one
 
 
 def summarize_fit(best, one, Y, chip_m, delay_m, ratio_db):
-    tau0, delta, c0, c1, resid2, gram = best
+    tau0, delta, c0, c1, resid2, gram, fit_drift_hz = best
     tau1 = tau0 + delta
     ny = float(np.linalg.norm(Y))
     resid2_rel = resid2 / ny if ny else float("nan")
@@ -217,6 +256,7 @@ def summarize_fit(best, one, Y, chip_m, delay_m, ratio_db):
     print("amp ratio A1/A0=%+.2f dB  relative phase=%+.0f deg" % (amp_ratio_db, phase_deg))
     print("resid2=%.4f  resid1=%.4f  drop=%.3f  gram_cond=%.1f"
           % (resid2_rel, resid1_rel, resid_drop, cond))
+    print("fit drift=%+.3f Hz" % fit_drift_hz)
     reasons = []
     if resid_drop < 0.15:
         reasons.append("weak residual drop %.3f < 0.15" % resid_drop)
@@ -245,6 +285,7 @@ def summarize_fit(best, one, Y, chip_m, delay_m, ratio_db):
         "c0": c0,
         "c1": c1,
         "phase_deg": phase_deg,
+        "fit_drift_hz": fit_drift_hz,
     }
 
 
@@ -310,6 +351,10 @@ def main():
     ap.add_argument("--settle-epochs", type=int, default=200)
     ap.add_argument("--probe-chip", type=float, help="tap used to estimate relative drift")
     ap.add_argument("--drift-hz", type=float, help="override measured relative drift")
+    ap.add_argument("--drift-search-hz", type=float, default=0.0,
+                    help="search +/- this many Hz around the measured/overridden drift")
+    ap.add_argument("--drift-step-hz", type=float, default=0.05,
+                    help="coarse drift search step in Hz; fine pass uses step/10")
     ap.add_argument("--max-delay-chips", type=float, default=None)
     ap.add_argument("--tau0-grid", default="0",
                     help="0 to fix tau0 at prompt, or start:step:stop for diagnostics")
@@ -352,7 +397,9 @@ def main():
     Y = {"data": iq_ref, "times": times}
     best, one = fit_drift_modulated(
         taps, Y, ktaps, K, drift_hz, dmax, tau0_values,
-        coarse=args.coarse_chip, fine=args.fine_chip
+        coarse=args.coarse_chip, fine=args.fine_chip,
+        drift_search_hz=args.drift_search_hz,
+        drift_step_hz=args.drift_step_hz
     )
     s = summarize_fit(best, one, iq_ref, args.chip_m, args.delay_m, args.ratio_db)
 
