@@ -2041,6 +2041,72 @@ uniform, but the current four tiers are already TRUSTWORTHY.
 
 -- Codex, 2026-07-28
 
+## Discussion - Phase B Batch Capture Strategy
+
+Date: 2026-07-28
+
+Author: Codex
+
+User asked whether more Phase B data should be collected now, preferably in one
+batch.
+
+Codex position:
+
+Do not immediately collect the full Phase B grid before the independent-clock
+analysis path is validated. The current Phase B setup has no shared 10 MHz
+reference, so the relative phase between the two simulators can drift inside a
+30 s capture. That means a full-record coherent average can suppress the delayed
+source; Phase B analysis must use short windows before `fit_two_path.py`.
+
+The safe strategy is:
+
+```text
+1. Collect a small but complete Phase B validation package.
+2. Run the windowed dense-profile exporter and fit_two_path.py on that package.
+3. Once delay/power recovery works on known truth, collect the full grid in one
+   batch with the validated settings.
+```
+
+Recommended validation package under the current PRN15 / L5Q / 20 Msps setup:
+
+```text
+same-PRN single-source baseline:
+  A-only, PRN15, L5=-50, delay=0, 30 s x1 or x3
+
+optional source sanity:
+  B-only, PRN15, L5=-56, delay=+60 m, 30 s x1
+
+two-source composites:
+  delay_m=60, power_ratio_db=-6, 30 s x3
+  delay_m=29, power_ratio_db=-6, 30 s x3
+  delay_m=60, power_ratio_db=0,  30 s x3
+```
+
+Why these three two-source points:
+
+```text
+60 m / -6 dB: easiest already-started point; validates non-equal power recovery.
+29 m / -6 dB: about one L5 chip; begins testing the practical resolution wall.
+60 m / 0 dB: equal-power DAS case; harder but important.
+```
+
+Full-grid collection should wait until this validation package proves that the
+window length, dense tap span, and fitter configuration are correct. The full
+grid from the SOP is large:
+
+```text
+delay_m={6,9,15,22,29,44,60,90}
+power_ratio_db={0,-3,-6,-10}
+repeats=3
+=> 96 two-source captures, about 220 GB raw IQ at 30 s / 20 Msps / sc16,
+   plus dense dumps and logs.
+```
+
+Full-grid capture is worthwhile after the analysis chain is validated, but it
+should not be the first thing collected under independent clocks.
+
+-- Codex, 2026-07-28
+
 ## Phase B First Two-Source Composite Capture - PRN15, 60 m, -6 dB
 
 Date: 2026-07-28
