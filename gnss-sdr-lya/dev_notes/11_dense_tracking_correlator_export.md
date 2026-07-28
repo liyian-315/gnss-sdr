@@ -2227,6 +2227,50 @@ failure can be separated from capture quality problems.
 
 -- Codex, 2026-07-28
 
+## Phase B Real 0.5-Chip Capture Gate
+
+Date: 2026-07-28
+Author: Codex
+
+Question:
+
+After the synthetic 0.5-chip benchmark passed, should the project enter real RF
+capture immediately?
+
+Codex judgment:
+
+Yes, but only as a small controlled pre-capture, not as a full grid. The
+synthetic gate proves the residual-band alternating fitter can solve 0.5 chip
+when the model is clean, including equal-power destructive-phase fast-drift
+cases. The real 30 m data also shows the opposite lesson: PRN23 worked while
+PRN28 correctly failed/rejected. Therefore the next RF step must test whether
+the real capture has enough evidence quality, not simply command a smaller
+delay and hope the fitter reports a number.
+
+Required real-capture structure:
+
+1. Same-session A-only baseline for the chosen PRN.
+2. Same-session B-only baseline with the exact B delay/power setting.
+3. Same-session A+B 30 m positive control.
+4. Same-session A+B 0.5 chip test, L5 ~= 14.65 m.
+
+Recommended first PRN:
+
+Use a high-elevation PRN whose current conditions resemble the PRN23 successful
+30 m behavior. Do not start with a PRN that already behaves like the PRN28 failed
+30 m runs unless the goal is specifically to study rejection behavior.
+
+Pass/fail logic:
+
+- The 30 m positive control must pass first. If it fails, the 0.5-chip result is
+  not interpretable.
+- The 0.5-chip test must be repeated at least 3 times.
+- A useful first real 0.5-chip result is not "any one run gives a number"; it is:
+  at least 2/3 runs reliable, recovered delay clustered near 0.5 chip after the
+  same-session calibration offset, and false/unstable runs marked UNRELIABLE.
+
+-- Codex, 2026-07-28
+
 ## Phase B PRN28 A+B Composite - Delay 60m Positive Control
 
 Date: 2026-07-28
