@@ -2081,6 +2081,79 @@ path0-tail energy from drifting path1 energy.
 
 -- Codex, 2026-07-28
 
+## Phase B Fixed Benchmark and 30m Separation Status
+
+Date: 2026-07-28
+Author: Codex
+
+Implemented benchmark helpers:
+
+- `score_delay_candidates.py`
+  - subtracts the best static path0 kernel,
+  - projects residual energy onto each candidate delayed kernel band,
+  - reports an evidence curve over candidate delays,
+  - writes `delay_candidate_scores.csv` per run.
+- `run_phaseb_benchmark.py`
+  - scans the existing `/home/bupt/lya/gnss_data/phaseB_l5_twosource`
+    directories,
+  - finds the matching same-PRN A-only kernel,
+  - runs candidate scoring,
+  - optionally runs the residual-band fitter,
+  - writes a single benchmark CSV.
+
+NUC outputs:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/phaseb_delay30_residual_benchmark.csv
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/phaseb_residual_fit_benchmark.csv
+```
+
+30 m result from existing data:
+
+```text
+PRN23 delay30 run1: residual-band fit RELIABLE, recovered 27.0 m, ratio -7.71 dB
+PRN23 delay30 run2: residual-band fit RELIABLE, recovered 24.9 m, ratio -8.25 dB
+PRN23 delay30 run3: residual-band fit RELIABLE, recovered 26.7 m, ratio -7.55 dB
+
+PRN28 delay30 run1/run2/run3: residual-band fit UNRELIABLE
+```
+
+Codex judgment:
+
+The existing dataset is sufficient to demonstrate 30 m separation on PRN23.
+The recovered delay is 24.9-27.0 m, which is consistent with the known
+approximately -6.5 m A/B-chain calibration offset observed in the 60/90 m tests.
+After applying that fixed offset, the PRN23 30 m captures land near 31-33 m.
+
+This does **not** mean every 30 m capture is separable. PRN28 30 m remains
+unreliable: the candidate evidence curve does not place the 30 m region near the
+top, and the fitter correctly refuses to claim a valid separation. This is a
+good outcome for the current stage: the tool can both separate a usable 30 m
+capture and reject a bad one instead of silently reporting a false second path.
+
+Model limitation observed:
+
+Residual-band fitting is good for the merged/near-resolution 30 m PRN23 runs,
+but it is not a universal replacement for the windowed fitter. For separated
+60/90 m captures, the best method is still the existing windowed/two-path
+pipeline, while residual-band can be attracted by near-prompt residuals in some
+runs. The final Phase B algorithm should therefore be hybrid:
+
+- separated paths: windowed/two-path fit with drift-aware line model,
+- near-resolution paths: residual-band evidence + residual-band fit,
+- all modes: no-silent-fail verdict gates.
+
+Next step toward 0.5 chip:
+
+Do not start by collecting new data. First extend the fixed benchmark with
+synthetic injected cases at 0.5 chip, equal power, destructive phase, and fast
+drift. The current residual-band fitter already passes synthetic 0.5 chip in
+`fit_drift_modulated_twosource.py --self-test`; the next milestone is to make
+that synthetic benchmark formal and then decide what real capture would be
+needed to validate 0.5 chip outside simulation.
+
+-- Codex, 2026-07-28
+
 ## Phase B PRN28 A+B Composite - Delay 60m Positive Control
 
 Date: 2026-07-28
