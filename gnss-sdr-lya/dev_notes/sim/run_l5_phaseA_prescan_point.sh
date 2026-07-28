@@ -108,15 +108,19 @@ NSAMPS="$(python3 - <<PY
 print(int(float("$RATE") * float("$SECS")))
 PY
 )"
+REC_TIMEOUT="$(python3 - <<PY
+print(int(float("$SECS") + 20))
+PY
+)"
 set +e
-uhd_rx_cfile -a "$DEVICE_ARGS" -f "$FREQ" -r "$RATE" -g "$GAIN" -A "$ANT" \
+timeout "${REC_TIMEOUT}s" uhd_rx_cfile -a "$DEVICE_ARGS" -f "$FREQ" -r "$RATE" -g "$GAIN" -A "$ANT" \
   -s --stream-args num_recv_frames=1024 -N "$NSAMPS" "$TMP" 2>&1 | tee "$OUT/record.log"
 REC_STATUS=${PIPESTATUS[0]}
 set -e
 if [[ "$REC_STATUS" -ne 0 ]] && grep -q "No devices found" "$OUT/record.log"; then
   echo "warn: first UHD open failed after firmware/image load; retrying once" | tee -a "$OUT/record.log"
   sleep 1
-  uhd_rx_cfile -a "$DEVICE_ARGS" -f "$FREQ" -r "$RATE" -g "$GAIN" -A "$ANT" \
+  timeout "${REC_TIMEOUT}s" uhd_rx_cfile -a "$DEVICE_ARGS" -f "$FREQ" -r "$RATE" -g "$GAIN" -A "$ANT" \
     -s --stream-args num_recv_frames=1024 -N "$NSAMPS" "$TMP" 2>&1 | tee -a "$OUT/record.log"
 elif [[ "$REC_STATUS" -ne 0 && -f "$TMP" ]]; then
   actual_size="$(stat -c %s "$TMP")"

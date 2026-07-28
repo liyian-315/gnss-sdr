@@ -1698,6 +1698,86 @@ attenuation or lower B210 gain to move out of the high-SNR plateau.
 
 -- Codex, 2026-07-28
 
+## Phase A CN0 Prescan - Active PRN Scan on Current Multi-Satellite Signal
+
+Date: 2026-07-28
+Author: Codex
+
+Context:
+
+The user showed the currently transmitted PRN list. PRN28 was not present, which
+explains the earlier empty PRN28 dry run. A short PRN21 prescan was attempted
+because PRN21 had high elevation, but the current raw showed PRN21 with weak CN0
+and poor lock. Therefore the same 15 s L5 raw sample was reused to scan the active
+PRNs offline and select a better prescan reference PRN.
+
+Current transmitted PRNs from the user's table:
+
+```text
+5, 6, 7, 9, 11, 12, 13, 19, 20, 21, 25, 29
+```
+
+Raw used for scan:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_prescan/l5_prn21_current_g40_20260728_0940/l5_prescan_prn21_l5_prn21_current_g40_20260728_0940_20000000sps_g40_15s_ishort.dat
+```
+
+PRN scan summary on the same raw:
+
+```text
+PRN  records  cn0_med  cn0_p90  lock_med  lock_p90  gate(CN0>=45,lock>=0.6)
+5    0        NA       NA       NA        NA        0
+6    14908    47.64    48.15    0.778     0.975     7776
+7    14908    53.87    54.20    0.979     0.993    10417
+9    14871    29.24    30.54    0.020     0.139        0
+11   14908    54.10    54.54    0.981     0.992    10636
+12   14889    56.47    57.12    0.987     0.995    13342
+13   14908    51.77    52.45    0.981     0.989    14609
+19   14868    29.25    30.50    0.010     0.127        0
+20   0        NA       NA       NA        NA        0
+21   14909    29.14    30.88   -0.035     0.172        0
+25   14906    47.89    48.40    0.403     0.975     7152
+29   0        NA       NA       NA        NA        0
+```
+
+Best current prescan PRN:
+
+```text
+PRN12
+CN0 median: 56.47 dB-Hz
+CN0 p90: 57.12 dB-Hz
+lock median: 0.987
+strict kept: 13142 / 14889 = 88.3%
+FWHM: 1.0798 chip = 31.64 m
+asym_max: 0.0257
+```
+
+Artifacts:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_prescan/prn_scan_current_g40_20260728_0940/
+/home/bupt/lya/gnss_data/phaseA_prescan/prn_scan_current_g40_20260728_0940/prn12/prn12_prescan_Rtau.png
+/home/bupt/lya/gnss_data/phaseA_prescan/prn_scan_current_g40_20260728_0940/prn12/prn12_prescan_fp.png
+```
+
+Codex judgment:
+
+The active PRN table matters: do not prescan a PRN that is not currently emitted.
+For the current multi-satellite state, PRN12 is the best high-CN0 prescan point.
+This point maps the current setup to roughly the high-CN0 bin (`~56.5 dB-Hz`),
+not to the target 50/45/40/35/30 grid yet. To fill the grid, reduce simulator
+power or add attenuation and repeat the same scan/prescan until measured CN0
+falls into the desired bins.
+
+The PRN12 peak width is slightly narrower than the previous PRN28 robust pilot
+baseline (`31.64 m` vs about `33.11 m`) and asymmetry is higher (`0.0257` vs
+about `0.016`). Treat this as a prescan/CN0 mapping sample, not as a final
+fingerprint replacement. Formal Phase A fingerprints still require repeated
+captures at each measured CN0 bin.
+
+-- Codex, 2026-07-28
+
 ## Phase A CN0 Prescan - Current-State Dry Run
 
 Date: 2026-07-28
