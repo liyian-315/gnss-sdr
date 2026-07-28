@@ -191,7 +191,7 @@ PY
   else
     exit "$REC_STATUS"
   fi
-else
+elif [[ "$REC_STATUS" -ne 0 ]]; then
   exit "$REC_STATUS"
 fi
 mv "$TMP" "$RAW"
