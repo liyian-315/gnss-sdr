@@ -1757,6 +1757,95 @@ human-readable provenance label.
 
 -- Codex, 2026-07-28
 
+## Phase A Formal L5 Fingerprint - CN0 56, PRN11, 30s x3
+
+Date: 2026-07-28
+
+Author: Codex
+
+Formal capture started after the amplitude-64 retry confirmed the correct RF
+state for `CN0 ~= 56`.
+
+Condition:
+
+```text
+phase=A
+band=L5
+PRN=11
+cn0_target=56
+L5 output label=-50
+L1 output label=-65
+single-satellite amplitude=64
+B210 gain=40 dB
+external attenuation=none
+sample rate=20 Msps
+sample type=sc16/ishort
+tracking=L5Q pilot robust dense
+capture length=30 s
+runs=3
+```
+
+Output root:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l5_grid
+```
+
+Run directories:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn056_prn11_run1_30s_0728
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn056_prn11_run2_30s_0728
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn056_prn11_run3_30s_0728
+```
+
+Per-run index:
+
+```text
+run  cn0_median  lock_median  kept_fraction  n_blocks  sem_block_worst  asym     FWHM_chips
+1    56.99       0.972        0.2321         1728      0.000376         0.03349  1.09261
+2    57.04       0.979        0.7915         5914      0.000210         0.03339  1.09303
+3    56.93       0.990        0.9560         7143      0.000190         0.03340  1.09296
+```
+
+Aggregate output:
+
+```text
+[cn056] n=3
+peak_chip  = -0.0057 +/- 0.0001
+FWHM       = 1.0929 +/- 0.0002 chips = 32.02 +/- 0.01 m
+asym_max   = 0.0299 +/- 0.0002
+noise_floor= 0.0453 +/- 0.0003
+min n_blocks=1728
+worst SEM_block=0.00038
+FWHM CV=0.02%
+asym std=0.00015
+VERDICT: TRUSTWORTHY
+```
+
+Notes:
+
+Run 1 had one runtime loss-of-lock around 22 s and therefore only kept 23.2% of
+the dense records, but the strict sustained-lock selector still retained enough
+clean epochs (`n_blocks=1728`). Runs 2 and 3 were much cleaner. Cross-run
+reproducibility is excellent, so 30 s is sufficient for this `CN0 ~= 56` point;
+no 60 s extension is needed.
+
+Artifacts:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l5_grid/dataset_index.csv
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn056_prn11_30s_group.log
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn056_prn11_30s_group.png
+```
+
+Judgment:
+
+This is the first formal TRUSTWORTHY L5 Phase A reference-fingerprint condition.
+Proceed to the next confirmed grid point using the same 30 s x3 workflow.
+
+-- Codex, 2026-07-28
+
 ## Phase A L5 CN0 56 Prescan - Amplitude 64 Retry
 
 Date: 2026-07-28
