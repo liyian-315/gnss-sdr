@@ -1757,6 +1757,65 @@ human-readable provenance label.
 
 -- Codex, 2026-07-28
 
+## Phase A L5 Prescan Slope Check - L5 Output -65
+
+Date: 2026-07-28
+
+Author: Codex
+
+User changed the simulator L5 output label from `-50` to `-65`, with
+single-satellite amplitude still `64`. B210 gain was kept at `40 dB`; this is
+important because the purpose was to test whether measured CN0 follows
+transmitter power at the current receiver/RF setting.
+
+Command pattern used on NUC:
+
+```bash
+bash dev_notes/sim/run_l5_phaseA_prescan_point.sh --tag p7_l5m65_a64_g40_0728 --prn 7 --gain 40 --tx-l1-label -65 --tx-l5-label -65 --sat-power-label 64 --cn0-target 40 --cn0-min 35 --note slope_check_l1_-65_l5_-65_amp64
+bash dev_notes/sim/run_l5_phaseA_prescan_point.sh --tag p11_l5m65_a64_g40_0728 --prn 11 --gain 40 --tx-l1-label -65 --tx-l5-label -65 --sat-power-label 64 --cn0-target 40 --cn0-min 35 --note slope_check_l1_-65_l5_-65_amp64
+```
+
+Why `--cn0-min 35`:
+
+This was a slope/low-CN0 validation point. Keeping the older `CN0>=45` selector
+would reject most epochs if the target actually landed near 40 dB-Hz, so the
+selector floor was lowered for this prescan point.
+
+Results:
+
+```text
+PRN  L5 label  cn0_median  lock_median  kept_fraction  n_blocks  sem_block_worst  asym     FWHM_m   overflow
+7    -65       45.57       0.913        0.4697         1749      0.001356         0.02992  32.21    0
+11   -65       45.85       0.959        0.7057         2628      0.001090         0.03364  32.55    0
+```
+
+Comparison against the earlier same-PRN `L5=-50` prescan:
+
+```text
+PRN  CN0 at -50  CN0 at -65  measured drop for -15 dB tx change
+7    57.42       45.57       11.85 dB
+11   55.39       45.85       9.54 dB
+```
+
+Judgment:
+
+The simple `delta CN0 ~= delta simulator power` assumption is not confirmed in
+this current setup. Lowering the L5 output label by 15 dB produced measured CN0
+near 45.6 dB-Hz, not near 40 dB-Hz. This still gives a good mid/high-CN0
+prescan point, but Claude should use the two measured anchors per PRN to
+estimate the next transmitter setting instead of assuming a strict 1:1 slope.
+
+The rebuilt index is:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_prescan/dataset_index.csv
+```
+
+It now contains five L5 prescan rows: PRN6/7/11 at `L5=-50`, and PRN7/11 at
+`L5=-65`.
+
+-- Codex, 2026-07-28
+
 ## Phase A L5 Prescan Metadata Refresh for Claude
 
 Date: 2026-07-28
