@@ -2562,6 +2562,109 @@ expect lower confidence than +60/+90 m and check window/probe sensitivity.
 
 -- Codex, 2026-07-28
 
+## Phase B PRN28 A+B Composite - Delay 30m -6dB 30s x3
+
+Date: 2026-07-28
+
+Author: Codex
+
+User configured PRN28 A+B:
+
+```text
+A simulator: on, GPS L5 PRN28, L5 output=-50 dBm, delay compensation=0 m
+B simulator: on, GPS L5 PRN28, L5 output=-56 dBm, delay compensation=+30 m
+single-satellite amplitude=64
+Combiner / B210 RX2 chain unchanged
+Clocking: independent simulator clocks, no shared 10 MHz reference
+```
+
+Capture / processing settings:
+
+```text
+GPS L5Q pilot
+20 Msps
+sc16 / ishort raw
+B210 RX2
+gain=40
+dense taps=-4:0.1:4 chips
+dense decimation=1
+robust L5Q lock counters enabled
+windowed fitter kernel: PRN28 A-only run4 reference CSV
+```
+
+NUC output directories:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn28_delay30m_ratio_m6db_run1_30s_0728
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn28_delay30m_ratio_m6db_run2_30s_0728
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn28_delay30m_ratio_m6db_run3_30s_0728
+```
+
+Capture quality:
+
+```text
+run1: record_overflow=0, loss_count=0, tracking_start_count=1, DUALPATH_OBS=11
+run2: record_overflow=0, loss_count=1, tracking_start_count=2, DUALPATH_OBS=0
+run3: record_overflow=0, loss_count=1, tracking_start_count=2, DUALPATH_OBS=0
+```
+
+Windowed fit results with the standard drift-aware command:
+
+```text
+run1:
+  mag_mean secondary peak = 0.90 chip / 26.4 m, amp=0.148
+  second path detected = 1 / 279 windows
+  recovered midpoint delay = 7.9 m
+  recovered ratio = -8.76 dB
+
+run2:
+  mag_mean secondary peak = 0.90 chip / 26.4 m, amp=0.164
+  second path detected = 0 / 567 windows
+  no reliable two-source fit
+
+run3:
+  mag_mean secondary peak = 2.60 chip / 76.2 m, amp=1.107
+  second path detected = 20 / 2463 windows
+  recovered midpoint delay = 49.6 m
+  recovered ratio = -14.44 dB
+  judgment: unstable / likely false or contaminated detections
+```
+
+Additional probe sensitivity on run1 did not recover a stable second-source fit:
+
+```text
+probe=0.7 chip: detected 0 / 9 windows
+probe=0.9 chip: detected 0 / 67 windows
+probe=1.1 chip: detected 1 / 1290 windows, recovered 9.4 m
+```
+
+Codex judgment:
+
+PRN28 +30 m A+B is not reliably separable with the current windowed fitter. The
+raw magnitude-mean profile does show a shoulder near 0.9 chip (~26 m) in runs 1
+and 2, but the model fitter almost never accepts a second path. Run3 produces a
+large apparent secondary peak and scattered detections near ~50 m, which does
+not match the configured +30 m condition and should not be treated as a valid
+recovery.
+
+This is a useful negative / boundary result:
+
+```text
+PRN23 +30 m: weak positive, about 23-25 m recovered in two good runs.
+PRN28 +30 m: not stable; detector/fitter mostly rejects or produces inconsistent fits.
+```
+
+Implication:
+
+Do not claim that the current algorithm generally separates 30 m L5 two-source
+cases. It can sometimes see the near-resolution deformation, but robust
+separation is PRN/session dependent and not yet reliable. Before trying smaller
+delays (22 m / 15 m), improve the fitter/window selection and add a more explicit
+near-resolution model-order decision. For PRN28, the next practical positive
+control should be +60 m at the same -6 dB ratio.
+
+-- Codex, 2026-07-28
+
 ## Phase A CN0 Prescan Plan
 
 Date: 2026-07-28
