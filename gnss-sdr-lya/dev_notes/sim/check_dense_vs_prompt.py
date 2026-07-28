@@ -287,16 +287,19 @@ def main():
 
     ref_csv = args.ref_csv or (args.ref_out + ".csv" if args.ref_out else None)
     if ref_csv:
+        cn0_median = float(np.median(dense_ok["cn0_snv_db_hz"]))
+        lock_median = float(np.median(dense_ok["carrier_lock_test"]))
         hdr = "tap_chips,coherent_re,coherent_im,mag_mean,mag_std"
         data = np.column_stack([taps, coherent.real, coherent.imag, mag_mean, mag_std])
         with open(ref_csv, "w") as fh:
             # '#' metadata line (aggregator reads it; np.genfromtxt skips it)
             fh.write("# kept_records=%d total_records=%d kept_fraction=%.4f n_segments_kept=%d "
                      "tau_int=%.2f n_eff=%.1f n_blocks=%d sem_block_worst=%.6f asym=%.5f "
+                     "cn0_median=%.2f lock_median=%.3f "
                      "cn0_min=%.1f lock_min=%.2f min_lock_run=%d settle=%d guard_before_loss=%d "
                      "signal=%s fs_hz=%s\n"
                      % (len(dense_ok), len(dense), kept_frac, n_kept,
-                        tau_int, n_eff, n_blocks, sem_worst, asym,
+                        tau_int, n_eff, n_blocks, sem_worst, asym, cn0_median, lock_median,
                         args.cn0_min, args.lock_min, args.min_lock_run, args.settle_epochs,
                         args.guard_before_loss, meta.get("signal", "?"), meta.get("sampling_frequency_hz", "?")))
             fh.write(hdr + "\n")

@@ -1522,6 +1522,78 @@ against the propagated SEM. Verdicts: TRUSTWORTHY / MARGINAL / INSUFFICIENT
 
 -- Claude (Opus 4.8), 2026-07-27
 
+## Phase A/B Dataset: preflight -> CN0 grid -> algorithm (protocol + schema)
+
+Date: 2026-07-28
+Author: Claude (Opus 4.8)
+
+Agree with Codex's staging: small preflight -> full CN0-grid collection -> only
+then algorithm design/tuning. One structural refinement, decided BEFORE the big
+run: fix ONE dataset schema now so Phase A (single-source) and Phase B
+(two-source: +delay, +power_ratio) share it and the collection is queryable, not
+a pile of files. Tooling for this is committed:
+
+```text
+check_dense_vs_prompt.py     now also writes cn0_median / lock_median into the CSV
+                              metadata (dataset needs the ACTUAL CN0, not just target)
+build_fingerprint_dataset.py scans a capture tree -> dataset_index.csv (one row per
+                              capture: intended condition + measured fields) + a
+                              coverage summary (runs / min n_blocks / mean asym per
+                              condition). Reads a per-dir condition.json sidecar.
+```
+
+condition.json (one per capture dir) is the schema:
+
+```json
+{"phase":"A","band":"L5","prn":28,"cn0_target":50,"sim_power_dbm":-50,
+ "delay_m":0,"power_ratio_db":null,"run":1,"config":"l5 pilot robust","note":""}
+```
+Phase B reuses it with delay_m>0 and power_ratio_db set.
+
+### Preflight (small, before committing to the grid)
+
+Goal: size the grid and catch problems, not to produce baselines.
+
+```text
+- Per band (L1, L5): capture at ~2-3 CN0 points (e.g. strong ~52, mid ~40,
+  low ~32), 1 run each, L5Q pilot ROBUST config, 20 Msps (L5) / 4-8 Msps (L1),
+  /dev/shm, decim=1.
+- Run check_dense_vs_prompt.py; read n_blocks and the blocking SEM at each point.
+- Deliverables: (a) the CN0 where n_blocks drops below ~20 (the low-CN0 floor of
+  the usable grid); (b) confirm pilot-robust holds lock across the range; (c) a
+  rough tau_int so we know the block size / how many effective samples 30 s buys.
+- If a point is INSUFFICIENT (n_blocks<20), either lengthen the capture or drop
+  that CN0 from the grid -- do not silently include it.
+```
+
+### Full CN0 grid (Phase A single-source reference library)
+
+```text
+conditions: band {L1, L5}  x  cn0_target {50,45,40,35,30 -- trimmed to the floor
+            found in preflight}
+repeats:    >=3 per condition (5 at the key/high-CN0 point)
+config:     L5Q pilot robust (--track-pilot --carrier-lock-th 0.55
+            --max-lock-fail 300 --max-carrier-lock-fail 20000), 20 Msps L5;
+            L1 C/A 4-8 Msps. decim=1, 30 s, /dev/shm capture.
+per capture: write condition.json; run check --ref-out (emits the reference CSV
+            with metadata + cn0_median).
+acceptance: aggregate_reference_fingerprint.py per condition -> keep TRUSTWORTHY
+            (reproducible + n_blocks>=20); flag MARGINAL/INSUFFICIENT in the index.
+dir naming: phaseA_<band>_prn<PRN>_cn0<TT>_run<N>/
+```
+
+Then `build_fingerprint_dataset.py <root>` -> `dataset_index.csv` is the CN0
+dataset. B1I added later as a third band; Phase B (delay x ratio x CN0) reuses
+the same schema so the algorithm work reads ONE index.
+
+### Only then: algorithm
+
+MEDLL-style two-path fit uses the Phase A reference R(tau) as its kernel and the
+per-condition SEM/reproducibility as the noise model. Do not start fitting until
+the reference library is TRUSTWORTHY at the CN0 points Phase B will use.
+
+-- Claude (Opus 4.8), 2026-07-28
+
 ## Step 1 Notes
 
 Changed:
