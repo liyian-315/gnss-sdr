@@ -1757,6 +1757,84 @@ human-readable provenance label.
 
 -- Codex, 2026-07-28
 
+## Phase A L5 Prescan - Amplitude 60, No External Attenuator
+
+Date: 2026-07-28
+
+Author: Codex
+
+User removed the 10 dB attenuator and changed the simulator single-satellite
+amplitude from `64` to `60`. L1/L5 output labels remained at `-70`; B210 gain
+remained at `40 dB`.
+
+Purpose:
+
+Check whether reducing single-satellite amplitude, without the 10 dB external
+attenuator, gives a usable lower-CN0 Phase A point.
+
+Command pattern used on NUC:
+
+```bash
+bash dev_notes/sim/run_l5_phaseA_prescan_point.sh --tag p7_l5m70_a60_g40_0728 --prn 7 --gain 40 --tx-l1-label -70 --tx-l5-label -70 --sat-power-label 60 --cn0-target 35 --cn0-min 25 --note slope_check_l1_-70_l5_-70_amp60_no_att
+bash dev_notes/sim/run_l5_phaseA_prescan_point.sh --tag p11_l5m70_a60_g40_0728 --prn 11 --gain 40 --tx-l1-label -70 --tx-l5-label -70 --sat-power-label 60 --cn0-target 35 --cn0-min 25 --note slope_check_l1_-70_l5_-70_amp60_no_att
+```
+
+Results:
+
+```text
+PRN  cn0_median  lock_median  kept_fraction  n_blocks  sem_block_worst  asym     FWHM_m   DUALPATH_OBS  overflow
+7    40.12       0.806        0.7884         2900      0.001993         0.02716  34.43    yes           0
+11   40.63       0.819        0.5478         1946      0.002307         0.03272  34.52    yes           0
+```
+
+Judgment:
+
+This setting still lands around `CN0 ~= 40 dB-Hz`, not around 35. It is usable
+for a `CN0 ~= 40` Phase A point, and PRN7 is cleaner than PRN11 in this run
+(`sem_block_worst=0.001993` vs `0.002307`, kept 78.8% vs 54.8%).
+
+This result also explains the earlier 10 dB attenuator case: the attenuator did
+not just "make a normal 30 dB-Hz signal"; it pushed the current SDR tracking /
+15 s dense-fingerprint workflow into a regime with unstable carrier-lock metric
+and no strict sustained segment.
+
+Question: why can a phone use CN0 around 30 while B210/GNSS-SDR could not form a
+clean fingerprint at CN0 around 30 in the attenuated test?
+
+Answer / judgment:
+
+CN0 around 30 dB-Hz is not inherently unusable for GNSS positioning. Phones can
+often use such satellites because they use mature receiver firmware, aided
+acquisition/tracking, many satellites at once, long smoothing, navigation-state
+memory, proprietary lock detectors, and positioning filters that tolerate some
+weak/ intermittent channels.
+
+Our current Phase A test is different and stricter:
+
+1. It is single-PRN/single-band dense-correlator export, not multi-satellite PVT.
+2. It requires a sustained clean tracking segment to estimate a reference
+   `R(tau)` fingerprint, not merely an occasionally usable pseudorange.
+3. The selector currently requires carrier-lock quality plus minimum continuous
+   run length; at the attenuated `CN0 ~= 29` point, strict kept epochs were zero.
+4. The relaxed diagnostic showed wrong peak / no FWHM / huge SEM, so including it
+   would poison the clean reference library.
+5. B210 + GNSS-SDR tracking loops and lock detectors are not equivalent to a
+   phone chipset's highly optimized weak-signal tracking stack.
+
+Therefore the correct statement is not "CN0=30 cannot be used by SDR." The
+correct statement is: under this current L5Q pilot robust config, 20 Msps,
+15-second file, and strict Phase A fingerprint acceptance rules, the attenuated
+`CN0 ~= 29` capture did not provide a trustworthy clean `R(tau)` reference.
+
+Next action implied:
+
+Before deciding whether to include `CN0 ~= 30` in the L5 Phase A library, run a
+purpose-built weak-signal test: longer capture (e.g. 30-60 s), possible tracking
+parameter tuning, and a repeatability check. For the immediate reference library,
+the reliable low point is still `CN0 ~= 40`.
+
+-- Codex, 2026-07-28
+
 ## Phase A L5 Prescan - 10 dB External Attenuator
 
 Date: 2026-07-28
