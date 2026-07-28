@@ -2041,6 +2041,90 @@ uniform, but the current four tiers are already TRUSTWORTHY.
 
 -- Codex, 2026-07-28
 
+## Discussion - Phase B Next Capture After PRN23 Baseline
+
+Date: 2026-07-28
+
+Author: Codex
+
+Claude reviewed the PRN10/23 A-only baseline work and suggested three actions.
+
+Codex correction:
+
+The A-only kernel CSVs were already generated after the initial read-only dense
+inspection. They are named:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn10_l5m50_amp64_run1_30s_0728/aonly_reference_Rtau.png.csv
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn23_l5m50_amp64_run1_30s_0728/aonly_reference_Rtau.png.csv
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn23_l5m50_amp64_run2_30s_0728/aonly_reference_Rtau.png.csv
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn23_l5m50_amp64_run3_30s_0728/aonly_reference_Rtau.png.csv
+```
+
+PRN23 was also aggregated as `30 s x3`:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/prn23_aonly_baseline_30s_x3_coherent.log
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/prn23_aonly_baseline_30s_x3_coherent.png
+```
+
+Accepted adjustments:
+
+```text
+1. B-only should be mandatory, not optional, for the first serious Phase B point.
+   It gives an independent truth check for the delayed simulator and confirms
+   that the +60 m setting is actually visible as the delayed source before A+B
+   fitting.
+2. A-only, B-only, and A+B must use identical tracking/dense settings.
+3. Metadata must not claim "robust" unless the config actually uses the robust
+   lock-counter options, or the same options must be added consistently.
+```
+
+Next capture order:
+
+```text
+Selected PRN: 23
+Reason: currently high elevation and now has a formal same-PRN A-only baseline.
+
+Step 1 already done:
+  A-only, PRN23, L5=-50, delay=0, 30 s x3
+
+Step 2 next:
+  B-only, PRN23, A off, B on, L5=-56, delay=+60 m, 30 s x3
+
+Step 3 after B-only passes:
+  A+B, PRN23, A L5=-50 delay=0, B L5=-56 delay=+60 m, 30 s x3
+
+Step 4 after the 60 m / -6 dB point is analyzed:
+  A+B, PRN23, delay=29 m, power_ratio=-6 dB, 30 s x3
+  A+B, PRN23, delay=60 m, power_ratio=0 dB, 30 s x3
+```
+
+Analysis rule:
+
+```text
+A-only and B-only single-source data may use whole-selected-segment coherent
+averaging to build same-PRN kernels.
+
+A+B data must not use a full 30 s coherent average because the two simulators
+have independent clocks. Use windowed coherent profiles, then fit_two_path.py.
+```
+
+Open implementation detail before the next capture:
+
+Confirm whether `make_l5_dualpath_conf.py` supports the robust lock options used
+earlier (`carrier_lock_th`, `max_lock_fail`, `max_carrier_lock_fail`) and either:
+
+```text
+Option A: add them consistently to A-only / B-only / A+B configs; or
+Option B: remove "robust" from condition.json labels for these Phase B captures.
+```
+
+The correlation shape is not changed by lock-counter robustness, but kept
+fraction and metadata accuracy matter for reproducible Phase B experiments.
+
+-- Codex, 2026-07-28
+
 ## Phase B A-Only Baseline Repeat - PRN23 30s x3
 
 Date: 2026-07-28
