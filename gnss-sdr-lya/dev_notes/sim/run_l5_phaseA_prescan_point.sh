@@ -97,7 +97,9 @@ fi
 OUT="${OUT_ROOT}/${TAG}"
 mkdir -p "$OUT"
 
-RAW_BASENAME="l5_prescan_prn${PRN}_${TAG}_${RATE}sps_g${GAIN}_${SECS}s_ishort.dat"
+# Keep the sample filename short. Some GNSS-SDR config paths are truncated in
+# older builds when long tags are embedded in SignalSource.filename.
+RAW_BASENAME="raw_prn${PRN}_${RATE}sps_g${GAIN}_${SECS}s_ishort.dat"
 TMP="/dev/shm/${RAW_BASENAME}"
 RAW="${OUT}/${RAW_BASENAME}"
 CONF="/tmp/l5_prescan_${TAG}.conf"
