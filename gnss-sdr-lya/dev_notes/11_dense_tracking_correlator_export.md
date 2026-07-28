@@ -1845,6 +1845,45 @@ Use the existing tracking dump style for the main binary stream. JSON is reserve
 
 -- Codex, 2026-07-24
 
+## Phase B PRN28 A+B Composite - Delay 60m Positive Control
+
+Date: 2026-07-28
+Author: Codex
+
+User-side simulator setup:
+
+- Sim A: PRN28, L5 power -50 dBm, pseudorange compensation 0 m.
+- Sim B: PRN28, L5 power -56 dBm, pseudorange compensation +60 m.
+- Power ratio target: -6 dB.
+- Two simulators were not sharing a 10 MHz reference.
+- A/B were combined and fed to B210 RX2.
+
+Receiver / export setup:
+
+- NUC path: `/home/bupt/lya/gnss_data/phaseB_l5_twosource/`.
+- B210 serial: `31502C6`.
+- `uhd_rx_cfile`, L5 center 1176.45 MHz, 20 Msps, int16 IQ, gain 40, RX2.
+- GNSS-SDR offline processing: GPS L5Q pilot, robust cable settings, dense taps `-4:0.1:4`, dense decimation 1.
+- Kernel: same-PRN PRN28 A-only kernel
+  `/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn28_l5m50_amp64_run4_30s_0728/aonly_reference_Rtau.png.csv`.
+
+Runs:
+
+| Run | Path | Record overflow | Tracking | Fit result |
+| --- | --- | --- | --- | --- |
+| 1 | `prn28_delay60m_ratio_m6db_run1_30s_0728` | 0 | one L5Q loss near 22 s, strict selection kept 99.3% dense records | PASS: 13/15 windows detected, midpoint delta 53.4 m, ratio -7.91 dB |
+| 2 | `prn28_delay60m_ratio_m6db_run2_30s_0728` | 0 | one L5Q loss near 22 s, strict selection kept 99.3% dense records | PASS: 1780/2464 windows detected, midpoint delta 54.0 m, ratio -4.90 dB |
+| 3 | `prn28_delay60m_ratio_m6db_run3_30s_0728` | first attempt overflowed; rerun had 0 overflow | one L5Q loss near 22 s, strict selection kept 99.3% dense records | REJECT: carrier phase drift -153.79 Hz, period about 7 ms; current 12 ms minimum windows smeared the second source, 0/2465 detections |
+| 4 | `prn28_delay60m_ratio_m6db_run4_30s_0728` | 0 | dense generated successfully | REJECT: carrier phase drift -258.46 Hz, period about 4 ms; current 12 ms minimum windows smeared the second source, 0/2475 detections |
+
+Judgment:
+
+PRN28 +60 m is a positive control when the relative simulator clock drift is slow enough for the current windowed fitter. Runs 1 and 2 recover about 53-54 m, matching the known PRN23 fixed-offset behavior of roughly -6 to -7 m. This supports the earlier interpretation: the PRN28 +30 m failure is primarily a near-resolution extraction problem, not evidence that the second source is absent.
+
+The rejected runs are also useful: independent simulator clocks can drift so fast that the present fitter's shortest practical window, about 12 ms, is longer than the relative phase period. In that regime coherent window fitting cannot see the second source even at +60 m. Before treating Phase B as production-quality, either share a 10 MHz reference between transmitters or improve the fitter for fast-drift captures.
+
+-- Codex, 2026-07-28
+
 ## Phase B A+B Composite - PRN23 60m -6dB 30s x3
 
 Date: 2026-07-28
