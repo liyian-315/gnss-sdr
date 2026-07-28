@@ -83,6 +83,9 @@ def main():
     ap.add_argument("--kernel", help="Phase A same-PRN single-source reference CSV (the kernel K); "
                                      "omit to use a synthetic kernel (geometry-only, LOUD warning)")
     ap.add_argument("--chip-m", type=float, default=29.3, help="chip length in metres (L5=29.3)")
+    ap.add_argument("--carrier-hz", type=float, default=1176.45e6,
+                    help="carrier frequency for the code<->carrier clock cross-check "
+                         "(L5=1176.45e6, L1=1575.42e6, B1I=1561.098e6)")
     ap.add_argument("--delay-m", type=float, help="injected path1 delay [m] ground truth (for scoring)")
     ap.add_argument("--ratio-db", type=float, help="injected path1/path0 amplitude ratio [dB] ground truth")
     ap.add_argument("--cn0-min", type=float, default=35.0)
@@ -203,7 +206,8 @@ def main():
         f1 = ftp.fit_one_path(taps, Yw, ktaps, K)
         s = ftp.summarize(f2, f1, Yw, args.chip_m)
         detected = s["resid_drop"] > 0.5 and s["amp_ratio_db"] > -25 and s["delta_chips"] > 0.1
-        rows.append((s["delta_m"], s["amp_ratio_db"], s["phase_deg"], s["resid_drop"], detected))
+        t_center = (w + 0.5) * win_ep * dt          # window mid-time [s], for the delta(t) drift fit
+        rows.append((s["delta_m"], s["amp_ratio_db"], s["phase_deg"], s["resid_drop"], float(detected), t_center))
     rows = np.array(rows, dtype=float)
     det = rows[:, 4] > 0.5
     n_det = int(det.sum())
@@ -223,11 +227,44 @@ def main():
           % (ph.min(), ph.max(), ph.max() - ph.min(),
              "confirms drifting phi (independent clocks)" if (ph.max() - ph.min()) > 90 else "phi ~stable"))
 
+    # --- delta(t) linear model: separate the true delay from inter-Tx clock drift ---
+    # Independent Tx clocks drift delta LINEARLY at |carrier_drift|*c/f_carrier; fitting a
+    # line separates that slope from the fit noise, and the slope cross-checks the
+    # independently-measured carrier drift (code and carrier must see the SAME clock).
+    C_M_S = 299792458.0
+    tw = rows[det, 5]
+    dm_t = rows[det, 0]
+    have_line = n_det >= 3 and (tw.max() - tw.min()) > 1e-6
+    if have_line:
+        A = np.column_stack([np.ones_like(tw), tw])
+        intercept, slope = (float(v) for v in np.linalg.lstsq(A, dm_t, rcond=None)[0])
+        line_resid = robust_std(dm_t - (intercept + slope * tw))
+        t_mid = 0.5 * (tw.min() + tw.max())
+        dm_mid = intercept + slope * t_mid
+        pred_slope = drift_hz * C_M_S / args.carrier_hz          # m/s from the carrier drift
+        ratio = abs(slope) / abs(pred_slope) if abs(pred_slope) > 1e-9 else float("nan")
+        print("\n--- delta(t) linear model (independent-clock aware) ---")
+        print("delta(t)=a+b*t:  a@t0=%.1f m   b=%+.3f m/s  (%.1f m over the %.1f s span)"
+              % (intercept, slope, slope * (tw.max() - tw.min()), tw.max() - tw.min()))
+        print("scatter about the line (robust std)=%.1f m  <- true fit noise, clock drift removed" % line_resid)
+        print("delta @ capture midpoint=%.1f m" % dm_mid)
+        print("--- carrier<->code clock cross-check ---")
+        print("carrier drift %+.2f Hz -> predicted |code drift|=%.3f m/s ; measured |b|=%.3f m/s ; ratio=%.2f"
+              % (drift_hz, abs(pred_slope), abs(slope), ratio))
+        print("  (ratio ~1 => code & carrier see the SAME clock => model self-consistent; "
+              "sign is fixed by geometry, verify once empirically)")
+    else:
+        dm_mid = float(np.median(dm))
+        print("\n--- delta(t) linear model: skipped (need >=3 detecting windows spread in time) ---")
+
     if args.delay_m is not None or args.ratio_db is not None:
         print("\n--- recovery vs ground truth ---")
         if args.delay_m is not None:
-            print("delay:  injected %.1f m  recovered %.1f m  error %+.1f m"
-                  % (args.delay_m, np.median(dm), np.median(dm) - args.delay_m))
+            print("delay:  injected %.1f m  recovered(midpoint) %.1f m  error %+.1f m"
+                  % (args.delay_m, dm_mid, dm_mid - args.delay_m))
+            print("  NOTE: with INDEPENDENT Tx clocks the recovered delay carries an unknown clock DC")
+            print("  offset + the drift above; trust the amp ratio and the slope<->carrier cross-check,")
+            print("  NOT absolute delay == injected. Shared-clock/real-DAS captures remove this caveat.")
         if args.ratio_db is not None:
             print("ratio:  injected %+.1f dB  recovered %+.2f dB  error %+.2f dB"
                   % (args.ratio_db, np.median(ar), np.median(ar) - args.ratio_db))
@@ -243,11 +280,15 @@ def main():
         ax[0].set_xlabel("tau [chips]"); ax[0].set_ylabel("|R|")
         ax[0].set_title("independent-clock signature: mag_mean shows path1, coherent does not")
         ax[0].grid(True, alpha=0.3); ax[0].legend()
-        ax[1].scatter(rows[det, 2] % 360.0, rows[det, 0], s=12, label="per-window")
+        ax[1].scatter(rows[det, 5], rows[det, 0], s=12, label="per-window delta")
+        if have_line:
+            tline = np.array([tw.min(), tw.max()])
+            ax[1].plot(tline, intercept + slope * tline, "r-", lw=1.2,
+                       label="LS line (b=%.2f m/s)" % slope)
         if args.delay_m is not None:
             ax[1].axhline(args.delay_m, color="g", ls="--", lw=0.8, label="injected delay")
-        ax[1].set_xlabel("recovered rel phase [deg]"); ax[1].set_ylabel("recovered delta [m]")
-        ax[1].set_title("delay stable while phi sweeps -> genuine second path")
+        ax[1].set_xlabel("window center time [s]"); ax[1].set_ylabel("recovered delta [m]")
+        ax[1].set_title("delta drifts linearly with the inter-Tx clock (slope <-> carrier drift)")
         ax[1].grid(True, alpha=0.3); ax[1].legend()
         fig.tight_layout(); fig.savefig(args.plot, dpi=150)
         print("\nplot -> %s" % args.plot)
