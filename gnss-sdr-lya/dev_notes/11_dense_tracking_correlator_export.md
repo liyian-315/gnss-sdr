@@ -1639,6 +1639,70 @@ FWHM 33.6 m vs coherent 29.3 m (true), noise_floor 0.30 -> 0.00.
 
 -- Claude (Opus 4.8), 2026-07-28
 
+## SOP: TRUSTWORTHY acceptance for a Phase A reference-library tier
+
+Author: Claude (Opus 4.8). Date: 2026-07-28. Status: authoritative checklist.
+
+Run this per CN0 tier before adding it to the reference library. A tier =
+ONE condition (fixed band + PRN + power/attenuator + config), captured >=3 times.
+
+Requirements (all must hold):
+
+```text
+[1] >=3 repeat captures of the SAME condition (same PRN, same power, same
+    config, 30 s each). NOT different PRNs -- that is SINGLE-RUN, not a tier.
+[2] each run measurable:      n_blocks >= 20   (>=1 sustained locked segment)
+[3] cross-run reproducible:   FWHM CV   <= 2%   (--fwhm-cv-max 0.02)
+[4] cross-run reproducible:   asym std  <= 0.003 (--asym-std-max 0.003)
+[5] aggregator VERDICT == TRUSTWORTHY
+Precision (worst SEM_block <= 0.002) is a SECONDARY tag, not required; a tier can
+be TRUSTWORTHY with the tag "[precision: SEM above interim target]".
+kept_fraction is a churn diagnostic ONLY -- it may vary a lot across runs (e.g.
+CN0 56 run1=23% vs run3=96%) while the fingerprint stays identical; do not gate on it.
+```
+
+Procedure:
+
+```bash
+# per run i (writes reference CSV with metadata: cn0_median, n_blocks, SEM, asym)
+python3 dev_notes/sim/check_dense_vs_prompt.py --dense <run_i>/<dense>_ch_0.dat.json \
+  --cn0-min 45 --lock-min 0.6 --min-lock-run 2000 --settle-epochs 200 \
+  --ref-out <run_i>/ref_Rtau.png
+# write <run_i>/condition.json  {phase,band,prn,cn0_target,sim_power_dbm,delay_m,power_ratio_db,run,config}
+
+# aggregate the >=3 CSVs for the tier -- USE coherent shape (default)
+python3 dev_notes/sim/aggregate_reference_fingerprint.py \
+  <run1>/ref_Rtau.png.csv <run2>/ref_Rtau.png.csv <run3>/ref_Rtau.png.csv \
+  --labels <tier,tier,tier> --chip-m 29.3 --shape-from coherent --plot <tier>_group.png
+
+# index the whole grid
+python3 dev_notes/sim/build_fingerprint_dataset.py <grid_root> --out <grid_root>/dataset_index.csv
+```
+
+Interpreting the verdict:
+
+```text
+TRUSTWORTHY  -> add to library (record FWHM, asym, SEM, cn0_median, PRN).
+MARGINAL     -> reproducible-ish but a gate missed; inspect which, add repeats.
+INSUFFICIENT -> min n_blocks < 20; extend capture (60 s) or the tier is below the
+                tracking floor -> do NOT include (see phantom-CN0 note; sub-40 needs
+                weak-signal tracking, not attenuation).
+SINGLE-RUN   -> only 1 run; not a tier yet.
+```
+
+Notes:
+- Always aggregate with `--shape-from coherent` so FWHM/asym are pedestal-free and
+  consistent with check's asym. (Re-aggregate any tier that was scored before the
+  coherent fix; the verdict is reproducibility-driven so it will not change, only
+  the recorded FWHM/asym numbers tighten.)
+- R(tau) shape is ~PRN-independent for good trackers, so per-tier PRN may differ;
+  fine for per-bin fingerprints, minor caveat only for the asym-vs-CN0 trend.
+
+Worked example: CN0 56 / PRN11 / 30 s x3 -> min n_blocks 1728, FWHM CV 0.02%,
+asym std 0.00015 -> VERDICT TRUSTWORTHY (first accepted tier).
+
+-- Claude (Opus 4.8), 2026-07-28
+
 ## Step 1 Notes
 
 Changed:
@@ -1799,6 +1863,78 @@ settings for that measured bin.
 
 Keep grouping/selection by measured CN0 bins after the run. The tag is only a
 human-readable provenance label.
+
+-- Codex, 2026-07-28
+
+## Phase A L5 Library - Coherent Shape Re-Aggregation for CN0 56/45/40
+
+Date: 2026-07-28
+
+Author: Codex
+
+Claude pointed out that some previously recorded aggregate values used the old
+magnitude-average shape. That shape is positively biased by noise and can widen
+FWHM, especially near the low-CN0 boundary. Accepted. Re-ran all three formal L5
+bins with the current aggregation script and explicit coherent shape selection:
+
+```text
+script copied to NUC as /tmp/aggregate_reference_fingerprint_coherent.py
+shape option: --shape-from coherent
+data root: /home/bupt/lya/gnss_data/phaseA_l5_grid
+```
+
+The re-aggregation is analysis-only. It does not change raw captures, dense
+dumps, or per-run reference CSVs.
+
+Coherent aggregate results:
+
+```text
+bin    PRN/run set       verdict        FWHM chips          FWHM meters        asym_max
+56     PRN11 run1/2/3    TRUSTWORTHY    1.0916 +/- 0.0002  31.98 +/- 0.01 m  0.0334 +/- 0.0000
+45     PRN20 run1/2/3    TRUSTWORTHY    1.0960 +/- 0.0015  32.11 +/- 0.04 m  0.0336 +/- 0.0008
+40     PRN5 run2/3/4     TRUSTWORTHY    1.0884 +/- 0.0008  31.89 +/- 0.02 m  0.0136 +/- 0.0020
+```
+
+Precision notes from the coherent aggregate:
+
+```text
+CN0 56: min n_blocks=1728, worst SEM_block=0.00038, precision OK
+CN0 45: min n_blocks=814,  worst SEM_block=0.00292, SEM above interim target
+CN0 40: min n_blocks=1380, worst SEM_block=0.00290, SEM above interim target
+```
+
+Saved coherent outputs on NUC:
+
+```text
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn056_prn11_30s_group_coherent.log
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn056_prn11_30s_group_coherent.png
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn045_prn20_30s_group_coherent.log
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn045_prn20_30s_group_coherent.png
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn040_prn5_30s_group_coherent.log
+/home/bupt/lya/gnss_data/phaseA_l5_grid/l5_cn040_prn5_30s_group_coherent.png
+```
+
+Judgment:
+
+The coherent results supersede the older magnitude-shape FWHM/asym values for
+the Phase A L5 reference library. The library remains valid at CN0 56, 45, and
+40. The 45 and 40 bins are lower precision than 56 but still reproducible enough
+to keep as formal bins. When Claude writes the TRUSTWORTHY SOP, use the coherent
+aggregate logs above as the numeric source of truth.
+
+22 s lock-loss observation:
+
+```text
+CN0 56 PRN11 run1: loss immediately after Current receiver time: 22 s
+CN0 45 PRN20 run1: loss immediately after Current receiver time: 22 s
+CN0 40 PRN5  run1: loss immediately after Current receiver time: 22 s
+CN0 40 PRN5  run4: loss immediately after Current receiver time: 22 s
+```
+
+This does not block Phase A because the strict selector removes disturbed
+epochs and enough clean blocks remain. It is still a Phase B risk: two-source
+time-domain tracking will need longer continuous clean spans, so this recurring
+22 s L5Q lock disturbance must remain on the Phase B preflight checklist.
 
 -- Codex, 2026-07-28
 
