@@ -668,6 +668,159 @@ project wording: same-signal multi-source / multi-path separation and estimation
 
 -- Codex, 2026-07-23
 
+### 2026-07-29 · Review of adaptive channel-estimation techniques (Space 0278)
+
+Author: Codex. Date: 2026-07-29.
+
+Reference:
+
+```text
+P. M. C. Pereira, H. D. M. da Silva, and C. M. G. S. Lima,
+"Advancements in Multipath Mitigation for GNSS Receivers:
+Review of Channel Estimation Techniques,"
+Space: Science & Technology, vol. 5, Article 0278, 2025.
+DOI: 10.34133/space.0278
+```
+
+This is a review paper rather than a new estimator. Its useful contribution for
+this project is a structured comparison of correlator geometry, inverse-channel
+adaptive estimation, maximum-likelihood channel estimation, EKF, and particle
+filtering.
+
+#### Directly relevant conclusions
+
+The paper models each component by:
+
+```text
+path_n = {complex amplitude alpha_n, delay tau_n, phase phi_n}
+```
+
+and estimates the sum of all components from correlation-domain observations.
+Although the paper's application objective is normally to preserve LOS and
+mitigate echoes, the estimator itself is compatible with our DAS interpretation:
+keep every component as a meaningful transmitter and output every state.
+
+Its review supports several decisions already made here:
+
+- Dense post-correlation observations are the right interface. Post-correlation
+  EKF designs reduce the raw sample space to a correlator vector while retaining
+  the channel parameters we need.
+- Narrow/double-delta correlators remain geometry-only methods. They improve
+  ordinary tracking but remain unreliable for short-delay dense multipath and
+  are not a substitute for multi-component estimation.
+- Real channels are nonstationary; path count and path state can change at
+  different rates. A one-shot two-path fit is therefore not the final receiver
+  architecture.
+- Literature results often assume high SNR, a few weak echoes, stationarity, and
+  clean synthetic models. This agrees with our finding that ideal synthetic
+  tests passed while measured path0 texture broke several estimators.
+
+#### Methods worth borrowing
+
+1. **Post-correlation EKF as the next Track B baseline**
+
+   State per path:
+
+   ```text
+   x_n = [delay, delay_rate or Doppler, complex amplitude]
+   ```
+
+   Measurement:
+
+   ```text
+   y_k(tap) = sum_n a_n,k * K(tap - tau_n,k) + noise
+   ```
+
+   This turns the current Track B dynamic-programming path into a probabilistic
+   recursive estimator. It can propagate delay/Doppler continuity, produce
+   covariance, and reject a path when innovation remains inconsistent.
+
+2. **Rao-Blackwellized particle filter for ambiguous/static-near-wall cases**
+
+   The surveyed RBPF split is particularly relevant:
+
+   ```text
+   PF/grid hypotheses: nonlinear path delay and possibly path count
+   KF/least squares: conditionally linear complex amplitudes
+   ```
+
+   This is preferable to forcing one delay solution when several `32..85 m`
+   candidates survive path0 removal. Multiple particles can preserve those
+   hypotheses until receiver motion makes one trajectory dominant. Effective
+   sample size and resampling also provide a natural uncertainty/degeneracy
+   signal.
+
+3. **RLS/APA for adaptive kernel or residual-channel tracking**
+
+   RLS converges faster than LMS and follows nonstationary channels better;
+   APA reuses recent correlated observations at intermediate complexity. A
+   limited application here is online adaptation of the single-source kernel or
+   low-dimensional path0 residual basis. Do not use the traditional
+   "inverse-filter and annihilate multipath" objective because our second/third
+   sources must be retained.
+
+4. **Explicit birth/death and model-order handling**
+
+   The review repeatedly exposes the weakness of fixed path assumptions. Track
+   B should eventually support:
+
+   ```text
+   one source <-> two sources <-> three or more sources
+   ```
+
+   with evidence-based birth, persistence, and pruning rather than always
+   instantiating exactly two paths.
+
+#### What the paper does not solve
+
+- It does not remove the static same-code same-clock sub-bandwidth
+  identifiability wall. EKF/PF can accumulate information and represent
+  uncertainty, but cannot create diversity absent from the measurements.
+- Most reviewed methods are framed as LOS estimation and echo removal. Our state
+  output, labels, and downstream use must be rewritten for cooperative
+  multi-source estimation.
+- PF is computationally expensive. It should first be an offline research
+  benchmark, not immediately inserted into the real-time GNSS-SDR loop.
+- RLS/inverse-channel methods commonly assume a known ideal ACF and known direct
+  component. Our Phase A measured per-condition kernel and faithful path0 tests
+  remain necessary.
+
+#### Recommendation after Track B prototype
+
+Do not replace the current trajectory prototype immediately. Use it to define
+the state and measurement interfaces, then compare three estimators on the same
+benchmark:
+
+```text
+A. current delay-Doppler candidates + physical dynamic programming
+B. post-correlation EKF with 1/2-path model gating
+C. offline RBPF: particles for delay/model order, linear update for amplitudes
+```
+
+The first implementation should be `B`, because it is much cheaper than PF and
+directly adds uncertainty to Track B. Add `C` only for cases where the posterior
+is visibly multi-modal and EKF linearization collapses to the wrong solution.
+
+Success must be measured on both moving and static controls:
+
+```text
+moving: trajectory RMSE, path detection rate, false alarm rate, covariance calibration
+static: separability floor and correct UNRELIABLE probability
+```
+
+Codex judgment:
+
+```text
+The paper strengthens, rather than replaces, the Track B direction.
+Its most valuable borrow is recursive probabilistic channel-state estimation
+in the post-correlation domain. The practical next step is an EKF baseline over
+the existing dense complex taps, with RBPF retained as an offline multi-modal
+reference. It does not justify claiming that static 0.5-chip separation is
+solved.
+```
+
+-- Codex, 2026-07-29
+
 ### 2026-07-23 · Cross-checking the reading list against the source PDFs
 
 Contributor: Claude (Opus 4.8). Date: 2026-07-23.
