@@ -347,3 +347,132 @@ For the final indoor DAS goal, shift from static snapshot super-resolution to
 moving-receiver trajectory separation. Snapshot dense maps remain useful as
 measurements, but the final estimator should exploit path continuity over time.
 ```
+
+## 2026-07-29 Codex: Rich Path0 Model Diagnostic
+
+Implemented:
+
+- `dev_notes/sim/diagnose_rich_path0_model.py`
+- path0 model:
+  - `K`;
+  - `dK/dtau`;
+  - A-only residual mean;
+  - A-only residual principal components;
+  - optional low-pass smoothing of residual-basis coefficients.
+- residualized-template delay-Doppler scoring:
+  - after subtracting path0, near-delay path1 no longer has the raw `K` shape;
+  - the diagnostic therefore also tests `P_perp K(tau-delay)` as the matched
+    template, where `P_perp` removes the local path0 subspace.
+
+Data used:
+
+```text
+NUC A-only PRN28:
+/home/bupt/lya/gnss_data/phaseB_l5_baseline/aonly_prn28_l5m50_amp64_run4_30s_0728
+
+dense:
+l5_aonly_dense_ch_0.dat.json
+
+kernel:
+aonly_reference_Rtau.png.csv
+```
+
+Key result 1: coefficient smoothing matters.
+
+Without smoothing, residual PCs can overfit and absorb second-source-like
+energy. With `4 PCs + 20/50/100 ms` smoothing, the earlier 53 m faithful
+synthetic case becomes much cleaner in the unprojected map:
+
+```text
+faithful synthetic after rich path0:
+best delay median 51.3 m, range 49.8..52.7 m
+target-vs-best median 0.0 dB
+target-band SNR about 34-35 dB
+VERDICT PASS
+```
+
+Interpretation:
+
+```text
+The residual basis must be constrained as a path0 model.
+Per-epoch free residual coefficients are too powerful and can eat path1.
+```
+
+Key result 2: near-delay scoring needs residualized templates.
+
+With raw `K` as the post-subtraction matched template, clean 30 m and 15 m
+synthetic cases are biased to about 38-41 m. After switching the after-rich map
+to residualized templates, clean synthetic recovers:
+
+```text
+30 m, -6 dB, 250 Hz:
+clean after rich path0 best median 29.3 m, VERDICT PASS
+
+15 m, -6 dB, 250 Hz:
+clean after rich path0 best median 14.7 m, VERDICT PASS
+
+15 m, -6 dB, 3 Hz:
+clean after rich path0 best median 14.7 m, VERDICT PASS
+```
+
+Interpretation:
+
+```text
+Once path0 basis terms are fitted out, the second-source observable is not raw
+K anymore. Any near-resolution detector must match the residualized path1
+shape, otherwise it introduces a systematic positive delay bias.
+```
+
+Key result 3: faithful synthetic still does not pass with this model.
+
+Using the stricter residualized-template map on faithful synthetic:
+
+```text
+53 m, -6 dB, 250 Hz:
+best delay median about 39.6 m, range 29.3..87.9 m
+target-vs-best median about -2.0 dB
+VERDICT FAIL
+
+30 m, -6 dB, 250 Hz:
+best delay median about 39.6 m, range 29.3..87.9 m
+target-vs-best median about -0.2 dB
+VERDICT FAIL
+
+15 m, -6 dB or equal power:
+best delay median about 39.6 m, broad competing ranges
+VERDICT FAIL
+```
+
+Capacity sweep:
+
+```text
+4 PCs + 50 ms: clean passes, faithful fails.
+8/12/16 PCs + 50 ms: clean begins to degrade or overfit, faithful still fails.
+```
+
+Interpretation:
+
+```text
+The remaining blocker is not simply "add more residual PCs".
+The real A-only path0 residual has structured time/frequency leakage that is
+not captured by a low-rank, slowly-varying residual basis.
+```
+
+Current conclusion:
+
+```text
+K + dK/dtau + smoothed residual basis is a necessary improvement, but not yet
+sufficient for faithful synthetic under the strict residualized-template
+criterion.
+```
+
+Recommended next step:
+
+```text
+Do not tune thresholds to force PASS.
+Either:
+1. build a more faithful path0 residual model that explicitly includes the
+   observed carrier/code wobble and path0 Doppler-spread terms; or
+2. move the main estimator up one level to trajectory separation, where
+   delay/Doppler continuity over receiver motion is the separating information.
+```
