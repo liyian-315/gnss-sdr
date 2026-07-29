@@ -207,7 +207,9 @@ def main():
 
     # verdict: enough detecting segments AND delay consistent (Doppler is allowed to move)
     consistent = delay_std <= max(3.0, 0.1 * args.chip_m)      # <= ~0.1 chip or 3 m
-    reliable = len(det) >= max(2, len(rows) // 2) and consistent
+    min_delay_m = args.min_delay_chips * args.chip_m
+    boundary_latched = abs(delay_med - min_delay_m) <= max(args.tau_step * args.chip_m * 1.5, 1.0)
+    reliable = len(det) >= max(2, len(rows) // 2) and consistent and not boundary_latched
     if reliable:
         print("\nVERDICT: RELIABLE (delay %.1f m, %d/%d segments, delay std %.1f m)"
               % (delay_med, len(det), len(rows), delay_std))
@@ -217,6 +219,8 @@ def main():
             why.append("only %d/%d segments detect" % (len(det), len(rows)))
         if not consistent:
             why.append("delay inconsistent across segments (std %.1f m) -> likely spurious/multi-solution" % delay_std)
+        if boundary_latched:
+            why.append("delay latched to the minimum searched separation (%.1f m) -> likely path0-tail/kernel residual, not a resolved source" % min_delay_m)
         print("\nVERDICT: UNRELIABLE / uncertain -- " + "; ".join(why))
 
     if args.delay_m is not None or args.ratio_db is not None:
