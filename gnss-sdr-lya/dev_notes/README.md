@@ -57,6 +57,7 @@ dense 相关器看到的仍是**多个 R(τ) 相关峰的叠加**。所以**信�
 | 09 | `09_academic_reference_multipath_algorithms.md` | **★学术参考/算法笔记★** MEDLL、CADLL、RAKE、多特征 LOS/NLOS 分类等论文的工作、可借鉴点、对当前卡点的启发和待讨论问题 | 暂停调参、准备算法改造/和 Claude 讨论论文前必读 | 🟡 持续更新 |
 | 10 | `10_branch_cleanup_handoff_20260724.md` | **★分支/数据目录交接★** v0.1 后研究分支、`build/` 不再入 Git、NUC 实验数据目录规范：`~/lya/gnss_data/{raw,logs,outputs,analysis}` | 切分支、同步 NUC、保存采集数据前必读 | ✅ 冻结 |
 | 11 | `11_dense_tracking_correlator_export.md` | **dense tracking correlator export 开发记录**：跟踪域密集复数相关器导出，用于 MEDLL/CADLL 离线拟合和参考相关函数标定 | 开发/验证 dense correlator dump 前必读 | 🟡 开发中 |
+| 12 | `12_phaseb_path0_diagnostic_report_20260729.md` | **Phase B path0 诊断报告**：真实 delay-Doppler 图、faithful path0 synthetic、path0 removal 结果、移动接收机轨迹分离重构建议 | 和 Claude 讨论 Phase B 下一步算法方向前必读 | 🟡 新增 |
 
 > 图例：✅ 已成稿可用 · 🟡 进行中 · ⚪ 历史/已被取代 · ⬜ 未开始
 
