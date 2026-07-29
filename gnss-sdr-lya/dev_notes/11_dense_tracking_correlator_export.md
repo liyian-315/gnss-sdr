@@ -1845,6 +1845,63 @@ Use the existing tracking dump style for the main binary stream. JSON is reserve
 
 -- Codex, 2026-07-24
 
+## 2026-07-29 Delay-Doppler Real-Data Replay
+
+Author: Codex
+
+Context:
+
+- Claude added `fit_delay_doppler_twosource.py` as a 2-D delay x Doppler extractor.
+- Codex committed and pushed the tool, then added two safety gates:
+  - reject near-zero path0 residuals by requiring a minimum positive path1 delay (`--min-delay-chips`, default `0.15`);
+  - mark results latched to that minimum delay as `UNRELIABLE`.
+- NUC could not reach GitHub during this run (`github.com:443` timeout), so the latest script was copied to the NUC with `scp` for replay. The branch on GitHub contains the committed changes.
+
+Replay set:
+
+- PRN28 +60 m fast-drift positive-control runs 3/4.
+- PRN11 +30 m x3.
+- PRN11 +15 m x3.
+- PRN11 +7 m x3.
+
+Data preparation:
+
+- PRN28 +60 m run3/run4 already had dense dumps.
+- PRN11 +30 m already had multipath dense dumps.
+- PRN11 +15 m and +7 m had raw files only; Codex generated multipath dense dumps offline from the existing raw captures with:
+  - L5Q pilot tracking,
+  - 20 Msps `ishort`,
+  - dense taps `-4:0.1:4`,
+  - dense decimation `1`,
+  - robust lock settings (`carrier_lock_th=0.55`, `max_lock_fail=300`, `max_carrier_lock_fail=20000`).
+
+Result:
+
+The current delay-Doppler extractor did **not** rescue the PRN28 +60 m fast-drift runs and did **not** provide a meaningful RELIABLE/UNRELIABLE separation boundary for PRN11 +30/+15/+7 m.
+
+Observed failure mode:
+
+- All tested real runs were pulled toward the same minimum searched delay, about `4.4 m` (`0.15 chip` on L5).
+- The recovered amplitude ratio was about `-0.3 dB`, while the injected second source was about `-6 dB`.
+- This is consistent with path0 tail / kernel mismatch residual being selected, not with a physically separated second source.
+- After adding the boundary-latch gate, these cases are reported as `UNRELIABLE` instead of false `RELIABLE`.
+
+Representative final outcomes:
+
+```text
+PRN28 +60m run3: recovered 4.4 m, ratio -0.30 dB, UNRELIABLE boundary latch
+PRN28 +60m run4: recovered 4.4 m, ratio -0.27 dB, UNRELIABLE boundary latch
+PRN11 +30m x3 : recovered 4.4 m, ratio about -0.3 dB, UNRELIABLE boundary latch
+PRN11 +15m x3 : recovered 4.4 m, ratio about -0.3 dB, UNRELIABLE boundary latch
+PRN11 +7m  x3 : recovered 4.4 m, ratio about -0.3 dB, UNRELIABLE boundary latch
+```
+
+Judgment:
+
+This negative result is useful. It shows that the first delay-Doppler prototype is not yet a valid extraction algorithm on real dense dumps. The next useful algorithm step is not to claim success by tuning thresholds, but to reduce the model-reality gap: subtract or jointly estimate the path0 static component more accurately, then build the delay-Doppler statistic on the residual with an explicit boundary/side-lobe rejection rule. Until that is done, PRN28 +60 m fast-drift should be treated as **not rescued**.
+
+-- Codex, 2026-07-29
+
 ## Phase B Drift-Modulated Full-Segment Fitter Prototype
 
 Date: 2026-07-28
