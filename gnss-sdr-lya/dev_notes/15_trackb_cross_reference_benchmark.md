@@ -130,6 +130,30 @@ they answer different questions. B-only can make path1 injection more faithful;
 static A+B continues to measure the snapshot separation wall. Neither should be
 silently treated as a real moving-receiver validation.
 
+## Existing Static A+B Coverage Audit
+
+The NUC contains 27 static A+B dense datasets:
+
+- PRN11: 7, 15, 30, and 60 m;
+- PRN23: 30, 60, and 90 m;
+- PRN28: 30 and 60 m;
+- PRN15: one early 60 m run.
+
+Twenty-five already had one or more static 1-D/2-D analysis products. The two
+previously unanalysed early 60 m runs were checked on 2026-07-29:
+
+- PRN11: no records survived the sustained-lock gate, so no separation claim
+  is possible;
+- PRN15 delay-Doppler: latched to the 4.4 m minimum-delay boundary and correctly
+  returned `UNRELIABLE`;
+- PRN15 residual-band fit: recovered 60.4 m, but estimated -22.49 dB instead of
+  -6 dB and improved residual energy by only 4.7%, so it also correctly returned
+  `UNRELIABLE`.
+
+This is a useful warning: a delay estimate close to the injected answer is not
+enough. Amplitude, residual improvement, model conditioning, and capture
+quality must pass together.
+
 ## Reproduction
 
 The reusable runner is:
