@@ -59,6 +59,7 @@ dense 相关器看到的仍是**多个 R(τ) 相关峰的叠加**。所以**信�
 | 11 | `11_dense_tracking_correlator_export.md` | **dense tracking correlator export 开发记录**：跟踪域密集复数相关器导出，用于 MEDLL/CADLL 离线拟合和参考相关函数标定 | 开发/验证 dense correlator dump 前必读 | 🟡 开发中 |
 | 12 | `12_phaseb_path0_diagnostic_report_20260729.md` | **Phase B path0 诊断报告**：真实 delay-Doppler 图、faithful path0 synthetic、path0 removal 结果、移动接收机轨迹分离重构建议 | 和 Claude 讨论 Phase B 下一步算法方向前必读 | 🟡 新增 |
 | 13 | `13_trackb_moving_trajectory_prototype.md` | **Track B 移动接收机轨迹原型**：几何驱动双源生成、delay-Doppler 候选、物理连续性轨迹提取、faithful synthetic 正负对照 | 继续移动场景算法或设计真实移动采集前必读 | 🟡 原型通过 |
+| 14 | `14_trackb_postcorrelation_ekf.md` | **Track B 相关域 EKF 基线**：delay/rate 状态、条件线性复幅度、多假设初始化、协方差与可靠性门禁 | 继续概率跟踪、RBPF 或真实移动采集前必读 | 🟡 离线基线通过 |
 
 > 图例：✅ 已成稿可用 · 🟡 进行中 · ⚪ 历史/已被取代 · ⬜ 未开始
 
@@ -69,7 +70,7 @@ dense 相关器看到的仍是**多个 R(τ) 相关峰的叠加**。所以**信�
 > **维护约定**：每完成一个里程碑，更新这一节 + 在 `05_pitfalls_and_decisions_log.md` 追加一条。
 > 只改这里和相关的那一篇，不要动无关文档，省 token。
 
-**当前阶段：`Phase A 单源参考库(L5)已建 ✅ → Phase B 静态快照分离墙已量化 🟡 → Track B 移动轨迹 faithful synthetic 已通过 🟡 → 真实移动采集待验证 🔴`（Phase B 全程与权威目标定义见 `11`；Track B 见 `13`）**
+**当前阶段：`Phase A 单源参考库(L5)已建 ✅ → Phase B 静态快照分离墙已量化 🟡 → Track B 移动轨迹 DP + 相关域 EKF faithful synthetic 已通过 🟡 → 真实移动采集待验证 🔴`（Phase B 全程与权威目标定义见 `11`；Track B 见 `13`/`14`）**
 
 🎯 **Phase B 量化分辨率目标（2026-07-28 锁定，权威定义与实测解读见 `11`）**——把"分离两条同码径"做成可量化的分辨下限，**先做最低目标**：
 - **最低目标（当前主攻）**：真实硬件稳定分离 **Δτ=0.5 chip≈14.7 m**；条件 2nd 径≥−6 dB、CN0≥43 dB-Hz、多相位；**成功率≥90%、虚警≤5%、延迟 RMSE≤0.1 chip** → 具备实际亚码片分离能力。

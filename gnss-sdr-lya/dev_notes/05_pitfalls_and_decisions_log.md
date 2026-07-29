@@ -1649,3 +1649,23 @@ Initial result: ideal and measured-PRN28-path0 faithful synthetics recover a
 are rejected. This is an algorithm milestone, not yet a real moving-capture
 claim. Full commands and acceptance gates are in
 `13_trackb_moving_trajectory_prototype.md`.
+
+### Codex decision: post-correlation EKF needs multiple initial modes
+
+The first Track B EKF used one delay-Doppler initialization candidate. It passed
+the `-6 dB` moving case but failed the equal-power destructive-phase case:
+source ordering swapped, initialization latched to the minimum delay, and the
+local EKF reported false confidence.
+
+The implemented correction keeps several initializer candidates, runs one small
+delay/rate EKF per candidate, then selects using normalized residual, two-path
+support, and boundary occupancy. This recovered the faithful equal-power case
+with `1.55 m` P90 error.
+
+Second pitfall: an EKF covariance can look precise while being wrong. Initial
+noise settings reported `0.08 m` posterior standard deviation for errors above
+`1 m`. Process and measurement floors were recalibrated against faithful
+synthetic truth; final moving cases have `88.5..100%` coverage inside `+/-2
+sigma`.
+
+Details and commands are in `14_trackb_postcorrelation_ekf.md`.
