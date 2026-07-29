@@ -8,3 +8,7 @@ gnss-sdr-lya/build-*/
 gnss-sdr-lya/build_*/
 gnss-sdr-lya/buildconda/
 gnss-sdr-lya/build-conda/
+
+# Local GNSS capture archives copied from test hosts.
+gnss_data/
+gnss_run_archive/

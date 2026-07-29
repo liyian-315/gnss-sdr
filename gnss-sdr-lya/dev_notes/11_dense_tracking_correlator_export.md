@@ -2081,6 +2081,87 @@ path0-tail energy from drifting path1 energy.
 
 -- Codex, 2026-07-28
 
+## Phase B Delay-Doppler Extractor - Claude Prototype (2-D separation)
+
+Date: 2026-07-29
+Author: Claude (Opus 4.8)
+
+Context: the drift-modulated + alternating fitters PASS every synthetic case but FAIL the
+real fast-drift (run3/4) and real +30 m captures. That "synthetic passes, real fails"
+pattern says the bottleneck is the model-reality gap + the lack of a second separation
+axis, NOT fitter cleverness -- more 1-D fitter machinery just overfits the mismatch (Codex
+saw exactly this). The user confirmed the deployment is FIXED antennas + MOVING receiver,
+which physically gives each antenna-path a DISTINCT Doppler (geometry-dependent radial
+velocity) -- the same axis the rig's independent-clock drift provides. So the rig
+faithfully proxies the real deployment, and the right move is a 2-D (delay x Doppler)
+extractor.
+
+Script (new, runs beside the windowed fitter for A/B comparison):
+`dev_notes/sim/fit_delay_doppler_twosource.py`.
+
+Method:
+
+```text
+g_{tau1}(t) = <iq(.,t), K(.-tau1)> ; M(tau1,f) = |FFT_t g|  (Hann window over t)
+path0 -> ridge at its Doppler f0 (peak at tau1=0). path1 -> peak at (tau1_true, f1).
+static kernel mismatch / path0-tail does NOT drift -> sits at f0 -> masked out.
+=> path1 separated from path0 by delay AND Doppler; MERGED-in-delay is resolved on f.
+amplitude ratio = ENERGY in each Doppler band (not peak height) -> unbiased under wander.
+per contiguous locked segment (handles gaps + Doppler/clock wander); the DELAY must be
+consistent across segments to be trusted (Doppler is allowed to move = the motion/clock
+trajectory). Delay-consistency across segments IS the false-alarm control.
+```
+
+Synthetic smoke test (kernel mismatch true fwhm1.15+skew vs fit fwhm1.09, frequency
+wander, seeded Gaussian noise) -- exactly the cases that DEFEATED the windowed/alternating
+fitter:
+
+```text
+case                              windowed/alternating   delay-Doppler
+60 m, FAST drift 258 Hz           0 detections (dead)    RELIABLE, 61.5 m, ratio -6.02 dB
+15 m = 0.5 chip merged, 30 Hz     biased/unstable        RELIABLE, 14.7 m, ratio -6.01 dB
+15 m merged, EQUAL power 0 dB     swap ambiguity         RELIABLE, 14.7 m, ratio -0.01 dB
+15 m, SMALL 3 Hz (walking speed)  n/a                    RELIABLE, 14.7 m, ratio -4.3 dB
+15 m weak -12 dB                  -                      RELIABLE, 14.7 m, ratio -12.01 dB
+TRUE NEGATIVE (no path1)          -                      UNRELIABLE (delay std 48 m) rejected
+```
+
+Delay accurate to ~1.5 m across all; amplitude ~0.1 dB after energy integration; the
+no-source case is correctly rejected by delay inconsistency. det SNR: real sources
+65-77 dB vs noise 12 dB -- a large margin.
+
+The real test (for Codex -- NO recapture, reprocess the EXISTING dumps):
+
+```bash
+# fast-drift runs the windowed fitter could not touch (expect ~53 m if the Doppler axis holds):
+python3 dev_notes/sim/fit_delay_doppler_twosource.py \
+  --dense <prn28_delay60m_ratio_m6db_run3 or run4>/l5_phaseB_dense_ch_0.dat.json \
+  --kernel <prn28 A-only run4 reference CSV> --chip-m 29.3 --delay-m 60 --ratio-db -6
+# near-resolution +30 m, and the new +15 m / +7 m captures:
+python3 dev_notes/sim/fit_delay_doppler_twosource.py \
+  --dense <prn28_delay30m/15m/7m ...>/l5_phaseB_dense_ch_0.dat.json \
+  --kernel <same-PRN A-only CSV> --chip-m 29.3 --delay-m <30/15/7> --ratio-db -6
+```
+
+Read: does a peak appear at (delay ~= injected, Doppler != 0) consistently across
+segments? RELIABLE = yes. If real run3/4 recover ~53 m where the windowed fitter got 0
+detections, the Doppler axis is confirmed on real hardware -- and the +30/15/7 m results
+map the real sub-chip floor.
+
+Honest boundaries:
+
+```text
+- Synthetic includes kernel mismatch + wander + noise, but real tracking-loop shape
+  distortion + real Doppler trajectories may still differ. Real data is the judge.
+- Small real Doppler (slow walking, or two antennas close in angle) needs LONGER coherent
+  segments (Doppler resolution = 1/T_seg). Too-slow motion + merged delay collapses the
+  axis. --segment-s trades Doppler resolution against wander tolerance.
+- This does NOT replace the windowed fitter's clock-DC-offset calibration; it is a
+  different, better-conditioned SEPARATION front-end. Compare both on the real dumps.
+```
+
+-- Claude (Opus 4.8), 2026-07-29
+
 ## Phase B Fixed Benchmark and 30m Separation Status
 
 Date: 2026-07-28

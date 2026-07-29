@@ -77,6 +77,53 @@ def robust_std(x):
     return float(1.4826 * np.median(np.abs(x - np.median(x))))
 
 
+def theil_sen(t, y, max_pairs=200000):
+    """Robust line y = a + b*t via Theil-Sen (median of pairwise slopes). Returns
+    (slope, intercept, slope_lo, slope_hi); [lo,hi] is the IQR band of pairwise slopes,
+    a distribution-free confidence interval robust to a few bad windows (e.g. a
+    destructive-phase fit) that would pull a least-squares line."""
+    t = np.asarray(t, dtype=float); y = np.asarray(y, dtype=float)
+    n = len(t)
+    if n < 3:
+        return float("nan"), float("nan"), float("nan"), float("nan")
+    i, j = np.triu_indices(n, k=1)
+    dtv = t[j] - t[i]
+    ok = np.abs(dtv) > 1e-9
+    i, j = i[ok], j[ok]
+    if len(i) == 0:
+        return float("nan"), float("nan"), float("nan"), float("nan")
+    if len(i) > max_pairs:                                  # deterministic subsample (no RNG)
+        sel = np.linspace(0, len(i) - 1, max_pairs).astype(int)
+        i, j = i[sel], j[sel]
+    sl = (y[j] - y[i]) / (t[j] - t[i])
+    slope = float(np.median(sl))
+    lo, hi = (float(v) for v in np.percentile(sl, [25.0, 75.0]))
+    inter = float(np.median(y - slope * t))
+    return slope, inter, lo, hi
+
+
+def phase_coverage(ph_deg, nbins=12):
+    """(occupied_bins, nbins): how much of the phase circle the windows sample. High
+    coverage => the destructive-interference phase is seen => a merged pair is actually
+    resolvable; low coverage => under-determined."""
+    if len(ph_deg) == 0:
+        return 0, nbins
+    b = (np.asarray(ph_deg) % 360.0) // (360.0 / nbins)
+    return int(len(np.unique(b.astype(int)))), nbins
+
+
+def densest_arc(ph_deg, width_deg):
+    """Boolean mask of the windows in the DENSEST contiguous phase arc of the given
+    width (for --diversity-selftest: simulate limited phase coverage from real data)."""
+    ph = np.asarray(ph_deg) % 360.0
+    best_mask, best_n = np.zeros(len(ph), bool), -1
+    for start in ph:
+        m = ((ph - start) % 360.0) < width_deg
+        if int(m.sum()) > best_n:
+            best_n, best_mask = int(m.sum()), m
+    return best_mask
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dense", required=True, help="two-source composite dense .dat or .dat.json")
@@ -102,6 +149,9 @@ def main():
     ap.add_argument("--max-delay-chips", type=float, default=None,
                     help="widen the two-path delay search to this many chips (default: cover --delay-m with "
                          "30%% margin, floor 2.5). Prevents silently missing delays > 2.5 chip (~73 m @ L5).")
+    ap.add_argument("--diversity-selftest", action="store_true",
+                    help="on this capture, shrink the allowed phase arc and report how delta/amp/coverage "
+                         "degrade -> calibrates 'how much phase diversity is enough' from real data")
     ap.add_argument("--plot", help="PNG: whole-capture mag_mean vs coherent + per-window delta/ratio scatter")
     args = ap.parse_args()
 
@@ -220,54 +270,101 @@ def main():
     dm = rows[det, 0]
     ar = rows[det, 1]
     ph = rows[det, 2] % 360.0
+    delta_med_chips = float(np.median(dm)) / args.chip_m
+    merged = delta_med_chips < 1.3          # inside/near the ~1.1-chip main lobe => diversity-limited
     print("delta_m      : median %.1f  robust-std %.1f  (over detecting windows)"
           % (np.median(dm), robust_std(dm)))
     print("amp_ratio_db : median %+.2f  robust-std %.2f" % (np.median(ar), robust_std(ar)))
-    print("rel phase    : spans %.0f..%.0f deg (spread %.0f deg) -> %s"
-          % (ph.min(), ph.max(), ph.max() - ph.min(),
-             "confirms drifting phi (independent clocks)" if (ph.max() - ph.min()) > 90 else "phi ~stable"))
 
-    # --- delta(t) linear model: separate the true delay from inter-Tx clock drift ---
-    # Independent Tx clocks drift delta LINEARLY at |carrier_drift|*c/f_carrier; fitting a
-    # line separates that slope from the fit noise, and the slope cross-checks the
-    # independently-measured carrier drift (code and carrier must see the SAME clock).
+    # --- phase coverage: the discriminator for merged-pair separability ---
+    occ, nbins = phase_coverage(ph)
+    cover = occ / nbins
+    print("rel phase    : spans %.0f..%.0f deg (spread %.0f deg); coverage %d/%d bins (%.0f%%)"
+          % (ph.min(), ph.max(), ph.max() - ph.min(), occ, nbins, 100.0 * cover))
+    if merged:
+        print("  (delta %.2f chip is inside the main lobe -> separation is phase-diversity limited;"
+              " coverage must sample the destructive phase)" % delta_med_chips)
+
+    # --- delta(t) drift model: Theil-Sen (robust to destructive-phase bad windows) ---
+    # Independent Tx clocks drift delta LINEARLY at |carrier_drift|*c/f_carrier.
     C_M_S = 299792458.0
     tw = rows[det, 5]
     dm_t = rows[det, 0]
     have_line = n_det >= 3 and (tw.max() - tw.min()) > 1e-6
     if have_line:
-        A = np.column_stack([np.ones_like(tw), tw])
-        intercept, slope = (float(v) for v in np.linalg.lstsq(A, dm_t, rcond=None)[0])
+        slope, intercept, slo, shi = theil_sen(tw, dm_t)
         line_resid = robust_std(dm_t - (intercept + slope * tw))
         t_mid = 0.5 * (tw.min() + tw.max())
         dm_mid = intercept + slope * t_mid
-        pred_slope = drift_hz * C_M_S / args.carrier_hz          # m/s from the carrier drift
-        ratio = abs(slope) / abs(pred_slope) if abs(pred_slope) > 1e-9 else float("nan")
-        print("\n--- delta(t) linear model (independent-clock aware) ---")
-        print("delta(t)=a+b*t:  a@t0=%.1f m   b=%+.3f m/s  (%.1f m over the %.1f s span)"
-              % (intercept, slope, slope * (tw.max() - tw.min()), tw.max() - tw.min()))
+        total_drift = abs(slope) * (tw.max() - tw.min())
+        pred_slope = drift_hz * C_M_S / args.carrier_hz
+        print("\n--- delta(t) drift model (Theil-Sen, independent-clock aware) ---")
+        print("delta(t)=a+b*t:  a@t0=%.1f m   b=%+.3f m/s  (slope IQR band %.3f..%.3f m/s)"
+              % (intercept, slope, slo, shi))
         print("scatter about the line (robust std)=%.1f m  <- true fit noise, clock drift removed" % line_resid)
         print("delta @ capture midpoint=%.1f m" % dm_mid)
-        print("--- carrier<->code clock cross-check ---")
-        print("carrier drift %+.2f Hz -> predicted |code drift|=%.3f m/s ; measured |b|=%.3f m/s ; ratio=%.2f"
-              % (drift_hz, abs(pred_slope), abs(slope), ratio))
-        print("  (ratio ~1 => code & carrier see the SAME clock => model self-consistent; "
-              "sign is fixed by geometry, verify once empirically)")
+        # honest cross-check: meaningful ONLY for a SEPARATED pair (clean drift probe) AND a
+        # drift large enough to measure above the fit scatter. Otherwise it blows up (the
+        # real 30 m runs gave ratios 0.01..14.5 because the probe sat under path0's lobe).
+        if (not merged) and total_drift > 3.0 * max(line_resid, 1e-6) and abs(pred_slope) > 1e-9:
+            print("carrier<->code cross-check: predicted |code drift|=%.3f m/s ; measured |b|=%.3f m/s ;"
+                  " ratio=%.2f (expect ~1 => same clock)"
+                  % (abs(pred_slope), abs(slope), abs(slope) / abs(pred_slope)))
+        else:
+            why = ("paths merged: drift probe contaminated by main lobe" if merged
+                   else "drift too small vs fit scatter to measure a slope")
+            print("carrier<->code cross-check: NOT meaningful here (%s) -> rely on phase coverage + detection" % why)
     else:
+        slope = intercept = float("nan")
         dm_mid = float(np.median(dm))
-        print("\n--- delta(t) linear model: skipped (need >=3 detecting windows spread in time) ---")
+        print("\n--- delta(t) drift model: skipped (need >=3 detecting windows spread in time) ---")
+
+    # --- per-capture VERDICT (false-alarm control + honest uncertainty) ---
+    reasons = []
+    if n_det < 5:
+        reasons.append("too few detecting windows (%d < 5)" % n_det)
+    if (n_det / n_win) < 0.5:
+        reasons.append("low detection fraction (%.0f%% < 50%%)" % (100.0 * n_det / n_win))
+    if merged and cover < 0.6:
+        reasons.append("insufficient phase diversity (%d/%d bins < 60%%) at sub-chip delay" % (occ, nbins))
+    reliable = not reasons
+    # amplitude is trustworthy ONLY for a separated pair: in the merged regime the per-epoch
+    # tap0 normalization mixes path1 into the reference (tap0 = path0 + path1*K(delta),
+    # K(0.5 chip) ~= 0.7), biasing the ratio even at full coverage (smoke test: injected
+    # -6 dB -> recovered -12 dB at 0.5 chip). Delay stays correct.
+    if not reliable:
+        print("\nVERDICT: UNRELIABLE / uncertain -- " + "; ".join(reasons))
+    elif merged:
+        print("\nVERDICT: RELIABLE delay=%.1f m  [amplitude ratio %+.2f dB is BIASED in the merged "
+              "regime (tap0-normalization) -- trust the delay, NOT the ratio]" % (dm_mid, np.median(ar)))
+    else:
+        print("\nVERDICT: RELIABLE (delta %.1f m, ratio %+.2f dB)" % (dm_mid, np.median(ar)))
 
     if args.delay_m is not None or args.ratio_db is not None:
         print("\n--- recovery vs ground truth ---")
         if args.delay_m is not None:
             print("delay:  injected %.1f m  recovered(midpoint) %.1f m  error %+.1f m"
                   % (args.delay_m, dm_mid, dm_mid - args.delay_m))
-            print("  NOTE: with INDEPENDENT Tx clocks the recovered delay carries an unknown clock DC")
-            print("  offset + the drift above; trust the amp ratio and the slope<->carrier cross-check,")
-            print("  NOT absolute delay == injected. Shared-clock/real-DAS captures remove this caveat.")
+            print("  NOTE: independent Tx clocks add an unknown clock DC + the drift above; trust")
+            print("  paired same-session deltas and the amp ratio, NOT absolute delay == injected.")
         if args.ratio_db is not None:
             print("ratio:  injected %+.1f dB  recovered %+.2f dB  error %+.2f dB"
                   % (args.ratio_db, np.median(ar), np.median(ar) - args.ratio_db))
+
+    # --- optional: phase-diversity self-calibration (shrink the arc, watch degradation) ---
+    if args.diversity_selftest and n_det >= 8:
+        print("\n--- diversity self-test: recovery vs phase-arc width (uses THIS capture) ---")
+        print("  arc_deg  n_win  cover  delta_med(m)  delta_std(m)  amp_med(dB)")
+        for width in (360.0, 270.0, 180.0, 120.0, 90.0, 60.0):
+            m = densest_arc(ph, width)
+            if int(m.sum()) < 3:
+                print("  %6.0f  %5d  (too few windows)" % (width, int(m.sum())))
+                continue
+            occ_w, _ = phase_coverage(ph[m])
+            print("  %6.0f  %5d  %2d/%d  %11.1f  %11.1f  %+10.2f"
+                  % (width, int(m.sum()), occ_w, nbins, float(np.median(dm[m])),
+                     robust_std(dm[m]), float(np.median(ar[m]))))
+        print("  read: where delta_med / amp_med start to move as the arc narrows = the coverage floor.")
 
     if args.plot:
         import matplotlib
@@ -284,7 +381,7 @@ def main():
         if have_line:
             tline = np.array([tw.min(), tw.max()])
             ax[1].plot(tline, intercept + slope * tline, "r-", lw=1.2,
-                       label="LS line (b=%.2f m/s)" % slope)
+                       label="Theil-Sen (b=%.2f m/s)" % slope)
         if args.delay_m is not None:
             ax[1].axhline(args.delay_m, color="g", ls="--", lw=0.8, label="injected delay")
         ax[1].set_xlabel("window center time [s]"); ax[1].set_ylabel("recovered delta [m]")
