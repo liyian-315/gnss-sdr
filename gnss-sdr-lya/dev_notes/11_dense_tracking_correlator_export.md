@@ -1902,6 +1902,123 @@ This negative result is useful. It shows that the first delay-Doppler prototype 
 
 -- Codex, 2026-07-29
 
+## 2026-07-29 Path0-Removal Diagnostic
+
+Author: Codex
+
+Purpose:
+
+Run a diagnostic-only path0 subtraction experiment on PRN28 +60 m fast-drift
+run3/run4. The question is whether the expected calibrated path1 band around
+`53 m` becomes a clean delay-Doppler peak after removing the dominant path0.
+
+Tool added:
+
+```text
+dev_notes/sim/diagnose_path0_removal.py
+```
+
+The tool:
+
+1. Loads a two-source dense dump and the same-PRN A-only reference kernel.
+2. Selects sustained locked epochs using the same `check_dense_vs_prompt.py`
+   lock gate.
+3. Fits path0 per epoch as:
+
+```text
+y_epoch(tau) ~= c0_epoch * K(tau - tau0_epoch)
+```
+
+   with `tau0_epoch` searched over a small window (`-0.25:0.025:0.25` chips by
+   default). This absorbs carrier phase, amplitude wobble, and small code-loop
+   jitter.
+4. Subtracts the fitted path0 component.
+5. Recomputes the delay-Doppler map before and after subtraction.
+6. Reports how strong the expected target band (`53 m +/- 5 m`) is relative to
+   the strongest off-ridge peak.
+
+Command used:
+
+```bash
+python3 dev_notes/sim/diagnose_path0_removal.py \
+  --dense <prn28 60m run3 or run4>/l5_phaseB_dense_ch_0.dat.json \
+  --kernel <prn28 A-only run4>/aonly_reference_Rtau.png.csv \
+  --chip-m 29.3 --target-m 53 --target-band-m 5 \
+  --cn0-min 45 --lock-min 0.6 --min-lock-run 1000 --settle-epochs 200 \
+  --segment-s 2.0 --dmax-chips 3.0 \
+  --plot-prefix <run>/path0_removal_diag_runX
+```
+
+Results:
+
+```text
+PRN28 +60m run3 before removal:
+  target vs best: median -31.3 dB, max -23.8 dB
+  target-band SNR: median 13.9 dB
+
+PRN28 +60m run3 after removal:
+  target vs best: median -0.4 dB, max 0.0 dB
+  target-band SNR: median 17.2 dB
+  best off-ridge delay median 65.9 m, range -29.3..87.9 m
+  target-band delay median 55.7 m, range 48.3..57.1 m
+
+PRN28 +60m run4 before removal:
+  target vs best: median -34.1 dB, max -33.0 dB
+  target-band SNR: median 14.3 dB
+
+PRN28 +60m run4 after removal:
+  target vs best: median -2.0 dB, max -0.5 dB
+  target-band SNR: median 16.4 dB
+  best off-ridge delay median 23.4 m, range -29.3..87.9 m
+  target-band delay median 56.4 m, range 48.3..57.1 m
+```
+
+Plots generated on the NUC:
+
+```text
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn28_delay60m_ratio_m6db_run3_30s_0728/path0_removal_diag_run3_before.png
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn28_delay60m_ratio_m6db_run3_30s_0728/path0_removal_diag_run3_after.png
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn28_delay60m_ratio_m6db_run4_30s_0728/path0_removal_diag_run4_before.png
+/home/bupt/lya/gnss_data/phaseB_l5_twosource/prn28_delay60m_ratio_m6db_run4_30s_0728/path0_removal_diag_run4_after.png
+```
+
+Judgment:
+
+Path0 subtraction is directionally useful: it raises the expected `~53 m` band
+from `~24-36 dB` below the dominant path0 smear to within `~0-2 dB` of the
+strongest residual peak. However, it does **not** yet reveal a clean, unique
+path1 peak. The residual maps contain broad horizontal striping and multiple
+near-competitive candidate delays; the strongest residual delay jumps across
+segments (`-29.3..87.9 m`), while the target band is merely one strong candidate.
+
+Therefore, this diagnostic does **not** prove successful PRN28 fast-drift
+separation. It proves a more precise intermediate result:
+
+```text
+The expected path1 band is present in the residual after path0 subtraction,
+but the current first-order path0 model leaves enough structured residual that
+path1 is not uniquely identifiable.
+```
+
+Next algorithm step:
+
+Do not ship the current residual map as a detector. The next useful experiment is
+to improve path0 modeling, not thresholding:
+
+- fit path0 over a richer local basis, e.g. `K`, `dK/dtau`, and possibly a small
+  Doppler/phase basis;
+- estimate path0 over a segment rather than independently per epoch, so removal
+  is smooth in time and does not inject residual texture;
+- after subtraction, require target delay consistency across segments and a
+  meaningful margin over non-target residual peaks.
+
+If richer path0 removal still leaves the same multi-candidate residual field,
+this static two-simulator capture should be considered insufficient for proving
+near-delay separation, and the research direction should pivot to moving-receiver
+trajectory separation.
+
+-- Codex, 2026-07-29
+
 ## 2026-07-29 PRN28 +60 m Delay-Doppler Map Diagnostic
 
 Author: Codex
