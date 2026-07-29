@@ -72,7 +72,7 @@ def delay_doppler_map(iq_seg, dt, ktaps, K, taps, tau1_grid):
     return np.abs(G), freqs
 
 
-def find_paths(M, freqs, tau1_grid, guard_hz, chip_m):
+def find_paths(M, freqs, tau1_grid, guard_hz, chip_m, min_delay_chips, allow_negative_delay):
     """path0 = global peak (strongest). path1 = strongest peak with |f - f0| >= guard_hz.
     Returns dict with delays, doppler diff, amp ratio (dB), detection SNR (dB)."""
     p0 = np.unravel_index(int(np.argmax(M)), M.shape)
@@ -81,11 +81,18 @@ def find_paths(M, freqs, tau1_grid, guard_hz, chip_m):
     off_f0 = np.abs(freqs - f0) >= guard_hz
     if not off_f0.any():
         return None
-    Mo = M[off_f0, :]
+    if allow_negative_delay:
+        delay_cols = np.abs(tau1_grid - tau0) >= min_delay_chips
+    else:
+        delay_cols = (tau1_grid - tau0) >= min_delay_chips
+    if not delay_cols.any():
+        return None
+    Mo = M[off_f0, :][:, delay_cols]
     fo = freqs[off_f0]
+    to = tau1_grid[delay_cols]
     p1 = np.unravel_index(int(np.argmax(Mo)), Mo.shape)
     f1, peak1 = float(fo[p1[0]]), float(Mo[p1[0], p1[1]])
-    tau1 = float(tau1_grid[p1[1]])
+    tau1 = float(to[p1[1]])
     # noise floor = median away from both Doppler ridges
     off_f1 = np.abs(fo - f1) >= guard_hz
     noise = float(np.median(Mo[off_f1, :])) if off_f1.any() else float(np.median(Mo))
@@ -96,7 +103,8 @@ def find_paths(M, freqs, tau1_grid, guard_hz, chip_m):
     def _energy(tau_idx, fc):
         sl = np.abs(freqs - fc) <= band
         return float(np.sum(M[sl, tau_idx] ** 2)) if sl.any() else 0.0
-    e0, e1 = _energy(p0[1], f0), _energy(p1[1], f1)
+    tau1_idx = int(np.flatnonzero(delay_cols)[p1[1]])
+    e0, e1 = _energy(p0[1], f0), _energy(tau1_idx, f1)
     amp_ratio_db = 10.0 * np.log10(e1 / e0) if (e0 > 0 and e1 > 0) else float("nan")
     to_db = lambda a, b: 20.0 * np.log10(a / b) if (b > 0 and a > 0) else float("nan")
     return dict(tau0_chips=tau0, f0_hz=f0, peak0=peak0,
@@ -125,6 +133,10 @@ def main():
     ap.add_argument("--guard-hz", type=float, default=None,
                     help="path0 Doppler-ridge exclusion half-width [Hz] (default = 3/segment_len)")
     ap.add_argument("--det-snr-min", type=float, default=10.0, help="per-segment detection threshold [dB]")
+    ap.add_argument("--min-delay-chips", type=float, default=0.15,
+                    help="minimum separation from path0 searched for path1 [chips]; default keeps 7 m L5 visible while rejecting path0 residual")
+    ap.add_argument("--allow-negative-delay", action="store_true",
+                    help="also search second-source delays earlier than path0; default assumes simB delay compensation is positive")
     ap.add_argument("--plot", help="PNG of the delay-Doppler map (first good segment)")
     args = ap.parse_args()
 
@@ -154,8 +166,9 @@ def main():
     tau1_grid = np.round(np.arange(-1.0, dmax + 1e-9, args.tau_step), 4)
     seg_ep = max(64, int(args.segment_s / dt))
     guard_hz = args.guard_hz if args.guard_hz is not None else 3.0 / (seg_ep * dt)
-    print("delay grid: -1.0..%.2f chip step %.2f ; segment: %d ep (~%.1f s) ; guard: %.2f Hz"
-          % (dmax, args.tau_step, seg_ep, seg_ep * dt, guard_hz))
+    print("delay grid: -1.0..%.2f chip step %.2f ; min path1 sep: %.2f chip%s ; segment: %d ep (~%.1f s) ; guard: %.2f Hz"
+          % (dmax, args.tau_step, args.min_delay_chips,
+             " either side" if args.allow_negative_delay else " positive", seg_ep, seg_ep * dt, guard_hz))
 
     rows, first_map = [], None
     for (a, b) in contiguous_runs(keep):
@@ -164,7 +177,8 @@ def main():
             if e - s < max(64, seg_ep // 2):
                 continue
             M, freqs = delay_doppler_map(iq_all[s:e], dt, ktaps, K, taps, tau1_grid)
-            r = find_paths(M, freqs, tau1_grid, guard_hz, args.chip_m)
+            r = find_paths(M, freqs, tau1_grid, guard_hz, args.chip_m,
+                           args.min_delay_chips, args.allow_negative_delay)
             if r is None:
                 continue
             rows.append(r)
