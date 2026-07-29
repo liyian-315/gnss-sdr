@@ -1619,3 +1619,33 @@ Tracking_L5.track_pilot=false
 
 Updated `make_l5_dualpath_conf.py` and active L5 configs so future PRN24/25
 configs track the L5I data component emitted by the simulator.
+
+---
+
+## 2026-07-29
+
+### Codex decision: Track B starts with trajectory diversity, not another snapshot fitter
+
+Static real-data diagnostics showed that path0 residual texture can leave
+several plausible delay solutions after subtraction. Adding another
+unconstrained snapshot fit risks selecting one of those artifacts.
+
+Track B therefore starts with a separate moving-receiver hypothesis:
+
+- fixed transmitters and receiver geometry generate time-varying delay and
+  relative Doppler;
+- each segment keeps several delay-Doppler candidates;
+- a physical transition law selects a continuous trajectory;
+- static data remains a required negative control.
+
+Important pitfall found during implementation: fitting free `K + dK/dtau`
+coefficients independently at every epoch also absorbs a merged moving path.
+That subtraction destroyed the temporal signature and produced false
+main-lobe-edge candidates. It is diagnostic-only; the Track B default preserves
+the temporal modulation.
+
+Initial result: ideal and measured-PRN28-path0 faithful synthetics recover a
+`0.37..0.55 chip` moving second source, while the corresponding static controls
+are rejected. This is an algorithm milestone, not yet a real moving-capture
+claim. Full commands and acceptance gates are in
+`13_trackb_moving_trajectory_prototype.md`.
