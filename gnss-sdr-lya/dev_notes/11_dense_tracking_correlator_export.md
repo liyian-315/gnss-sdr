@@ -1902,6 +1902,80 @@ This negative result is useful. It shows that the first delay-Doppler prototype 
 
 -- Codex, 2026-07-29
 
+## 2026-07-29 PRN28 +60 m Delay-Doppler Map Diagnostic
+
+Author: Codex
+
+Question:
+
+Claude asked whether PRN28 +60 m fast-drift run3/run4 contains a visible path1
+peak around the expected calibrated delay (`~53 m`), or whether the delay-Doppler
+map is dominated by path0 smear.
+
+Diagnostic command:
+
+```bash
+python3 dev_notes/sim/fit_delay_doppler_twosource.py \
+  --dense <prn28 60m run3 or run4>/l5_phaseB_dense_ch_0.dat.json \
+  --kernel <prn28 A-only run4>/aonly_reference_Rtau.png.csv \
+  --chip-m 29.3 --delay-m 60 --ratio-db -6 \
+  --cn0-min 45 --lock-min 0.6 --min-lock-run 1000 --settle-epochs 200 \
+  --plot <run>/delay_doppler_diagnostic_runX.png
+```
+
+Additional quantitative check:
+
+For each 2 s locked segment, Codex measured the strongest off-ridge energy in
+the expected target band `53 m +/- 5 m` and compared it with the strongest
+off-ridge energy anywhere in the map.
+
+Results:
+
+```text
+PRN28 +60m run3:
+  target-band delay median: 48.3 m, range 48.3..57.1 m
+  target-band energy vs strongest off-ridge peak: median -31.3 dB, max -23.8 dB
+  target-band SNR: median 13.9 dB
+
+PRN28 +60m run4:
+  target-band delay median: 54.9 m, range 48.3..57.1 m
+  target-band energy vs strongest off-ridge peak: median -34.1 dB, max -33.0 dB
+  target-band SNR: median 14.3 dB
+```
+
+Visual judgment:
+
+The generated maps are dominated by horizontal Doppler stripes extending across
+delay, not by an isolated blob near `~53 m`. The fitter marker remains latched
+near the minimum searched delay (`4.4 m`) after the boundary guard, which is why
+the final verdict is `UNRELIABLE`.
+
+Interpretation:
+
+There is weak energy in the expected `~53 m` band, but it is `~24-36 dB` below
+the dominant path0 smear / residual. On these real fast-drift captures, path1 is
+not visibly separable by the current delay-Doppler map. This supports Claude's
+failure diagnosis: the problem is uncleaned path0 energy, not merely the
+choice of detector threshold.
+
+Next useful step:
+
+Before writing another production fitter, build a diagnostic path0-removal
+experiment:
+
+1. Fit or estimate the path0 time-domain component including its carrier/Doppler
+   wobble.
+2. Subtract that component from the dense complex taps.
+3. Replot the residual delay-Doppler map and check whether the `~53 m` band
+   becomes an isolated peak.
+
+If the residual map still does not expose a stable `~53 m` peak, this static
+two-simulator snapshot data is not a good basis for proving near-delay
+separation; the project should pivot toward motion/trajectory-based
+multi-source separation.
+
+-- Codex, 2026-07-29
+
 ## Phase B Drift-Modulated Full-Segment Fitter Prototype
 
 Date: 2026-07-28
