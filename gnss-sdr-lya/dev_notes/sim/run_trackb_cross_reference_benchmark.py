@@ -166,8 +166,12 @@ def main():
                 "reference_quality": quality,
                 "prn": reference.get("prn", ""),
                 "cn0_median": meta.get("cn0_median", ""),
+                "lock_median": meta.get("lock_median", ""),
                 "kept_fraction": meta.get("kept_fraction", ""),
                 "n_blocks": meta.get("n_blocks", ""),
+                "tau_int": meta.get("tau_int", ""),
+                "sem_block_worst": meta.get("sem_block_worst", ""),
+                "asym": meta.get("asym", ""),
                 "dense": dense,
                 "kernel": kernel,
             }

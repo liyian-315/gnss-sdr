@@ -1669,3 +1669,23 @@ synthetic truth; final moving cases have `88.5..100%` coverage inside `+/-2
 sigma`.
 
 Details and commands are in `14_trackb_postcorrelation_ekf.md`.
+
+## 2026-07-29 - Codex - Track B cross-reference result
+
+The first faithful Track B benchmark used PRN28 run4. A 23-reference rerun now
+covers PRN5/10/11/15/20/23/28 and measured CN0 about 39.6--59.9 dB-Hz.
+
+Decision:
+
+- retain the motion-diversity direction because several real textures still
+  recover the 0.37--0.55 chip trajectory at meter-level P90;
+- withdraw any implication that the PRN28 result already generalizes to all
+  PRNs or sessions;
+- use EKF rather than DP reliability for claims, because EKF rejected every
+  static/path-absent control while DP accepted four static controls;
+- add texture-aware initialization and covariance before real moving capture.
+
+The strict EKF moving-case pass rate was 8/19 for both -6 dB and equal-power
+cases. Point-estimate P90 was <=3 m in 11/19 and 10/19 respectively, showing
+that uncertainty calibration and gross initialization failures are separate
+problems. Full evidence is in `15_trackb_cross_reference_benchmark.md`.
