@@ -79,6 +79,15 @@ def texture_glrt_map(iq_seg, dt, taps, ktaps, kernel, tau_grid, model):
     return np.abs(spectrum), freqs
 
 
+def map_peak_score_db(M, tau_grid, min_delay_chips):
+    """Max texture-whitened matched power relative to the map median."""
+    allowed = tau_grid[None, :] >= min_delay_chips
+    samples = M[np.broadcast_to(allowed, M.shape)]
+    noise = float(np.median(samples))
+    peak = float(np.max(samples))
+    return 20.0 * np.log10(max(peak, 1e-30) / max(noise, 1e-30))
+
+
 def select_trajectory(candidate_sets, segment_dt, wavelength_m, delay_scale_m,
                       doppler_scale_hz, score_weight):
     if not candidate_sets or any(not row for row in candidate_sets):
@@ -254,6 +263,7 @@ def main():
 
     candidate_sets = []
     segment_rows = []
+    glrt_peak_scores = []
     for start in range(0, len(iq) - segment_epochs + 1, segment_epochs):
         end = start + segment_epochs
         if texture_model is not None:
@@ -263,6 +273,10 @@ def main():
         else:
             M, freqs = dd.delay_doppler_map(
                 residual[start:end], dt, ktaps, kernel, taps, tau_grid)
+        if texture_model is not None:
+            glrt_peak_scores.append(
+                map_peak_score_db(M, tau_grid, args.tau_min)
+            )
         candidates = top_candidates(
             M, freqs, tau_grid, args.top_k, guard_hz, args.tau_min,
             args.nms_delay_chips, args.nms_hz, chip_m)
@@ -322,6 +336,15 @@ def main():
     print("input: %s" % args.input)
     print("candidate likelihood: %s" %
           ("path0-texture whitened GLRT" if texture_model is not None else "unwhitened matched map"))
+    if glrt_peak_scores:
+        print(
+            "texture GLRT peak: min %.2f dB, median %.2f dB, mean %.2f dB"
+            % (
+                np.min(glrt_peak_scores),
+                np.median(glrt_peak_scores),
+                np.mean(glrt_peak_scores),
+            )
+        )
     print("segments=%d segment=%.2fs candidates/segment=%d guard=%.2fHz" %
           (len(tracked), segment_epochs * dt, args.top_k, guard_hz))
     print("truth delay span: %.2f..%.2f m; Doppler span: %+.3f..%+.3f Hz" %

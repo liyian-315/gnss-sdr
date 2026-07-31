@@ -49,6 +49,9 @@ DP_CONF_MARGIN_RE = re.compile(
     r"best-vs-2nd path\s+: margin ([+\-]?(?:inf|nan|[0-9.]+))\s+"
     r"\(best cost ([+\-]?(?:inf|nan|[0-9.]+)), 2nd-best ([+\-]?(?:inf|nan|[0-9.]+))"
 )
+TEXTURE_GLRT_RE = re.compile(
+    r"texture GLRT peak: min ([0-9.]+) dB, median ([0-9.]+) dB, mean ([0-9.]+) dB"
+)
 
 
 def run(cmd, log_path):
@@ -94,6 +97,9 @@ def metric_row(base, method, proc):
             "confidence_margin": "",
             "confidence_best_cost": "",
             "confidence_alt_cost": "",
+            "texture_glrt_min_db": "",
+            "texture_glrt_median_db": "",
+            "texture_glrt_mean_db": "",
         }
     )
     verdict = VERDICT_RE.search(proc.stdout)
@@ -117,6 +123,7 @@ def metric_row(base, method, proc):
         motion = DP_CONF_MOTION_RE.search(proc.stdout)
         physics = DP_CONF_PHYSICS_RE.search(proc.stdout)
         margin = DP_CONF_MARGIN_RE.search(proc.stdout)
+        texture_glrt = TEXTURE_GLRT_RE.search(proc.stdout)
         if confidence:
             row["confidence"] = confidence.group(1)
         if motion:
@@ -129,6 +136,12 @@ def metric_row(base, method, proc):
                 row["confidence_best_cost"],
                 row["confidence_alt_cost"],
             ) = margin.groups()
+        if texture_glrt:
+            (
+                row["texture_glrt_min_db"],
+                row["texture_glrt_median_db"],
+                row["texture_glrt_mean_db"],
+            ) = texture_glrt.groups()
     if proc.returncode != 0 and not row["verdict"]:
         row["verdict"] = "ERROR"
     return row
