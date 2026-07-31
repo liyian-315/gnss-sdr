@@ -5,6 +5,9 @@ The manifest is a CSV with these required columns:
 
     label,dense,kernel,cn0_min
 
+An optional ``texture_model`` column enables path0-residual whitened GLRT
+candidates for the DP tracker.
+
 Each real A-only texture is reused as path0 in four controlled synthetic cases.
 The generated NPZ files are small and remain under the requested output
 directory; original captures are never modified.
@@ -160,8 +163,14 @@ def main():
     for reference in load_manifest(args.manifest):
         dense = os.path.abspath(os.path.expanduser(reference["dense"]))
         kernel = os.path.abspath(os.path.expanduser(reference["kernel"]))
+        texture_model = reference.get("texture_model", "").strip()
+        if texture_model:
+            texture_model = os.path.abspath(os.path.expanduser(texture_model))
         if not os.path.exists(dense) or not os.path.exists(kernel):
             print("SKIP %s: missing dense or kernel" % reference["label"])
+            continue
+        if texture_model and not os.path.exists(texture_model):
+            print("SKIP %s: missing texture model" % reference["label"])
             continue
         meta = parse_kernel_metadata(kernel)
         quality = "normal"
@@ -207,6 +216,7 @@ def main():
                 "asym": meta.get("asym", ""),
                 "dense": dense,
                 "kernel": kernel,
+                "texture_model": texture_model,
             }
             if generated.returncode != 0:
                 for method in ("dp", "ekf"):
@@ -222,8 +232,11 @@ def main():
                 print("%s -> GENERATOR_ERROR" % stem)
                 continue
 
+            dp_cmd = [sys.executable, dp, "--input", npz, "--kernel", kernel]
+            if texture_model:
+                dp_cmd.extend(["--texture-model", texture_model])
             dp_proc = run(
-                [sys.executable, dp, "--input", npz, "--kernel", kernel],
+                dp_cmd,
                 os.path.join(args.output_dir, stem + "__dp.log"),
             )
             ekf_proc = run(

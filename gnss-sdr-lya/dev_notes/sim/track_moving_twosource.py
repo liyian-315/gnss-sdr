@@ -17,6 +17,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fit_delay_doppler_twosource as dd  # noqa: E402
 import fit_two_path as ftp  # noqa: E402
+import build_path0_texture_model as texture  # noqa: E402
 
 
 def remove_path0_first_order(iq, taps, ktaps, kernel):
@@ -60,6 +61,22 @@ def top_candidates(M, freqs, tau_grid, top_k, guard_hz, min_delay_chips,
         if len(out) >= top_k:
             break
     return out
+
+
+def texture_glrt_map(iq_seg, dt, taps, ktaps, kernel, tau_grid, model):
+    basis = texture.path0_basis(taps, ktaps, kernel)
+    whitened_iq, _coeff = texture.whiten_residual(iq_seg, basis, model)
+    templates = []
+    for delay in tau_grid:
+        shifted = ftp.kern_at(ktaps, kernel, taps - delay)
+        templates.append(texture.whiten_template(shifted, basis, model))
+    templates = np.asarray(templates)
+    norms = np.maximum(np.linalg.norm(templates, axis=1), 1e-12)
+    matched = whitened_iq @ np.conj(templates).T / norms[None, :]
+    win = np.hanning(len(matched))[:, None] if len(matched) >= 8 else np.ones((len(matched), 1))
+    spectrum = np.fft.fftshift(np.fft.fft(matched * win, axis=0), axes=0)
+    freqs = np.fft.fftshift(np.fft.fftfreq(len(matched), d=dt))
+    return np.abs(spectrum), freqs
 
 
 def select_trajectory(candidate_sets, segment_dt, wavelength_m, delay_scale_m,
@@ -186,6 +203,8 @@ def main():
     ap.add_argument("--delay-scale-m", type=float, default=3.0)
     ap.add_argument("--doppler-scale-hz", type=float, default=1.0)
     ap.add_argument("--score-weight", type=float, default=0.08)
+    ap.add_argument("--texture-model",
+                    help="A-only path0 residual texture model; enables whitened GLRT candidates")
     ap.add_argument("--conf-min-motion-m", type=float, default=3.0,
                     help="truth-free gate: min delay span of the track (a static latch is ~flat)")
     ap.add_argument("--conf-min-doppler-hz", type=float, default=0.5,
@@ -213,6 +232,14 @@ def main():
         ktaps, kernel = ftp.load_reference_csv(args.kernel)
     else:
         ktaps, kernel = taps.copy(), ftp.synth_kernel(taps)
+    texture_model = None
+    if args.texture_model:
+        texture_model = texture.load_model(args.texture_model)
+        if (
+            len(texture_model["taps"]) != len(taps)
+            or not np.allclose(texture_model["taps"], taps)
+        ):
+            raise SystemExit("texture-model tap grid does not match input")
 
     dt = float(np.median(np.diff(times)))
     segment_epochs = max(64, int(round(args.segment_s / dt)))
@@ -229,8 +256,13 @@ def main():
     segment_rows = []
     for start in range(0, len(iq) - segment_epochs + 1, segment_epochs):
         end = start + segment_epochs
-        M, freqs = dd.delay_doppler_map(
-            residual[start:end], dt, ktaps, kernel, taps, tau_grid)
+        if texture_model is not None:
+            M, freqs = texture_glrt_map(
+                iq[start:end], dt, taps, ktaps, kernel, tau_grid, texture_model
+            )
+        else:
+            M, freqs = dd.delay_doppler_map(
+                residual[start:end], dt, ktaps, kernel, taps, tau_grid)
         candidates = top_candidates(
             M, freqs, tau_grid, args.top_k, guard_hz, args.tau_min,
             args.nms_delay_chips, args.nms_hz, chip_m)
@@ -288,6 +320,8 @@ def main():
     )
 
     print("input: %s" % args.input)
+    print("candidate likelihood: %s" %
+          ("path0-texture whitened GLRT" if texture_model is not None else "unwhitened matched map"))
     print("segments=%d segment=%.2fs candidates/segment=%d guard=%.2fHz" %
           (len(tracked), segment_epochs * dt, args.top_k, guard_hz))
     print("truth delay span: %.2f..%.2f m; Doppler span: %+.3f..%+.3f Hz" %
