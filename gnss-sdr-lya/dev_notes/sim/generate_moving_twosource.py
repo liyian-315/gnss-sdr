@@ -83,6 +83,23 @@ def shift_texture(texture_row, taps, delay_chips):
     )
 
 
+def smooth_texture_rows(texture, window):
+    if window <= 1:
+        return texture
+    window = min(int(window), len(texture))
+    if window % 2 == 0:
+        window -= 1
+    if window <= 1:
+        return texture
+    pad = window // 2
+    padded = np.pad(texture, ((pad, pad), (0, 0)), mode="edge")
+    cumulative = np.vstack(
+        (np.zeros((1, texture.shape[1]), dtype=np.complex128),
+         np.cumsum(padded, axis=0))
+    )
+    return (cumulative[window:] - cumulative[:-window]) / float(window)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--output", required=True, help="output compressed .npz")
@@ -92,6 +109,15 @@ def main():
                     help="B-only dense .dat.json used as measured path1 texture")
     ap.add_argument("--path1-kernel",
                     help="B-only coherent reference CSV; default: --kernel")
+    ap.add_argument(
+        "--path1-texture-mode",
+        choices=("kernel", "smoothed", "epoch"),
+        default="smoothed",
+        help="kernel=coherent B-only shape; smoothed=shape plus slow residual; "
+             "epoch=diagnostic raw residual including receiver noise",
+    )
+    ap.add_argument("--path1-texture-smooth-epochs", type=int, default=51,
+                    help="post-decimation moving-average length for smoothed mode")
     ap.add_argument("--duration-s", type=float, default=30.0)
     ap.add_argument("--epoch-ms", type=float, default=10.0)
     ap.add_argument("--taps", type=parse_grid, default=parse_grid("-4:0.1:4"))
@@ -163,7 +189,12 @@ def main():
         path0, times, b_iq = path0[:count], times[:count], b_iq[:count]
         if count < 2:
             raise SystemExit("not enough common path0/path1 texture epochs")
-        path1_texture = normalized_texture(b_iq, taps, b_ktaps, b_kernel)
+        if args.path1_texture_mode != "kernel":
+            path1_texture = normalized_texture(b_iq, taps, b_ktaps, b_kernel)
+            if args.path1_texture_mode == "smoothed":
+                path1_texture = smooth_texture_rows(
+                    path1_texture, args.path1_texture_smooth_epochs
+                )
         path1_source = "faithful"
 
     rx_end = args.rx_start if args.static else args.rx_end
@@ -198,6 +229,9 @@ def main():
         "path1_kernel": (
             os.path.abspath(path1_kernel_path)
             if args.faithful_path1_dense else None
+        ),
+        "path1_texture_mode": (
+            args.path1_texture_mode if args.faithful_path1_dense else None
         ),
         "carrier_hz": args.carrier_hz,
         "chip_m": args.chip_m,

@@ -182,6 +182,7 @@ def main():
             texture_model = os.path.abspath(os.path.expanduser(texture_model))
         path1_dense = reference.get("path1_dense", "").strip()
         path1_kernel = reference.get("path1_kernel", "").strip()
+        path1_texture_mode = reference.get("path1_texture_mode", "").strip()
         if path1_dense:
             path1_dense = os.path.abspath(os.path.expanduser(path1_dense))
         if path1_kernel:
@@ -231,6 +232,8 @@ def main():
                 cmd.extend(["--faithful-path1-dense", path1_dense])
             if path1_kernel:
                 cmd.extend(["--path1-kernel", path1_kernel])
+            if path1_texture_mode:
+                cmd.extend(["--path1-texture-mode", path1_texture_mode])
             generated = run(cmd, gen_log)
             base = {
                 "label": reference["label"],
@@ -249,6 +252,7 @@ def main():
                 "texture_model": texture_model,
                 "path1_dense": path1_dense,
                 "path1_kernel": path1_kernel,
+                "path1_texture_mode": path1_texture_mode,
             }
             if generated.returncode != 0:
                 for method in ("dp", "ekf"):
