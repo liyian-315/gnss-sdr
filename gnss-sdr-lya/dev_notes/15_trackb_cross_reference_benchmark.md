@@ -353,3 +353,65 @@ NUC artifacts:
 /home/bupt/lya/gnss_data/trackb_btexture_0731/
 /home/bupt/lya/gnss_data/trackb_glrt_loo_0731/results_current/
 ```
+
+## Moving-Simulator Capture Means Virtual Motion
+
+**Date:** 2026-07-31
+**Author:** Codex
+
+The simulator, combiner, B210, and capture server do not move. The next
+known-truth experiment moves a virtual receiver by programming a time-varying
+relative range into the two RF outputs.
+
+There are two evidence tiers:
+
+1. known-delay trajectory: only the relative delay is commanded. This is the
+   next, simplest algorithm validation and is sufficient because the estimator
+   observes relative path delay;
+2. geometry-faithful trajectory: define fixed source coordinates and a virtual
+   receiver route, then compute both source-to-receiver ranges at every epoch.
+   This follows after the known-delay ramp passes.
+
+The first recommended trajectory is:
+
+```text
+A compensation: 0 m
+B compensation: 7 m -> 22 m in 30 s -> 7 m in 30 s
+relative range rate: +/-0.5 m/s
+L5 relative Doppler: approximately -/+1.96 Hz
+```
+
+This remains inside `0.24..0.75 chip`, crosses the sub-chip region, and has
+known delay, rate, reversal time, and Doppler sign. "Known position" does not
+mean physically surveying the instruments. For the geometry-faithful tier it
+means an arbitrary local ENU frame, for example fixed sources at
+`(-15,0)` and `(15,0)` m and a commanded receiver route. The simulator's route
+speed or the delay-ramp slope controls velocity; no operator walking speed is
+used.
+
+Before capture, verify that the hardware can provide one of:
+
+- per-output time-varying pseudorange compensation or a trajectory file;
+- two independently delayed RF outputs from one shared-clock simulator;
+- synchronized scheduled playback with exported per-epoch range logs.
+
+Applying the same ordinary GNSS receiver trajectory to both simulators is not
+enough if it leaves their relative delay constant.
+
+The current two simulators do not share 10 MHz. Their relative clock contributes
+an unknown offset and drift to the commanded geometric delay and Doppler.
+Therefore:
+
+- record A-only and B-only static baselines immediately before and after the
+  A+B run;
+- save both simulators' start time and per-epoch compensation logs;
+- compare trajectory shape/rate after clock-offset calibration;
+- do not claim absolute meter-level ground truth unless a common clock,
+  same-clock dual output, or independently measured clock correction is
+  available.
+
+If the simulators cannot accept a dynamic per-channel delay/trajectory, the
+current fixed hardware cannot perform this known-truth virtual-motion tier.
+The fallback is not to move the simulators: use a same-clock multi-output
+source, add programmable RF delay, or postpone to a physically moving B210 with
+external trajectory truth.
