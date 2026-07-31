@@ -1730,3 +1730,31 @@ The strict EKF moving-case pass rate was 8/19 for both -6 dB and equal-power
 cases. Point-estimate P90 was <=3 m in 11/19 and 10/19 respectively, showing
 that uncertainty calibration and gross initialization failures are separate
 problems. Full evidence is in `15_trackb_cross_reference_benchmark.md`.
+
+## 2026-07-31 - Codex - Texture likelihood replaces geometry-only gating
+
+The geometry-only confidence gate was rejected as a decision gate: at no
+operating point with false-positive rate <=5% did it recover more than 16.7% of
+the truth-reliable moving cases.
+
+The first path0-texture-aware GLRT was implemented and evaluated with
+leave-one-run-out models grouped by PRN and tap grid. It produced two separate
+findings:
+
+- second-source existence is nearly separable on the current benchmark
+  (AUC 0.999; 53/54 H1 detected with 0/18 H0 false alarms at a provisional
+  between-class threshold);
+- trajectory recovery improved strongly for equal-power destructive cases but
+  regressed for some -6 dB and low-CN0 cases.
+
+Decision: preserve this ordering:
+
+1. texture-aware existence likelihood;
+2. strengthen it with measured B-only texture and recalibrate;
+3. validate known-truth moving simulator trajectories;
+4. perform OTA capture only after those gates pass.
+
+Do not call `static_m6` an H0 case. It contains a second source and is H1 for
+existence, even though it lacks the motion diversity needed for moving-mode
+trajectory separation. Full results and reproduction commands are in
+`15_trackb_cross_reference_benchmark.md`.

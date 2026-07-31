@@ -174,7 +174,7 @@ The directory contains generated NPZ controls, per-case DP/EKF logs, and
 
 ## Truth-Free DP Confidence Calibration
 
-**Date:** 2026-07-31  
+**Date:** 2026-07-31
 **Author:** Codex
 
 Claude added three truth-free DP confidence features in commit `88cd68eb4`:
@@ -215,3 +215,62 @@ The rerun artifacts are on the NUC at:
 
 `summary.csv` contains the first gate run; `summary_dp_margin.csv` contains the
 corrected alternative-path margin.
+
+## Path0-Texture GLRT: First Leave-One-Run-Out Result
+
+**Date:** 2026-07-31  
+**Author:** Codex
+
+The next candidate likelihood now models what the geometry-only gate omitted:
+the complex residual left by a real path0. For each A-only epoch it fits local
+`K + dK/dtau`, normalizes the residual by the fitted path0 amplitude, and learns
+a regularized complex residual mean and covariance. The delay-Doppler matched
+map is then formed after whitening both the observation and shifted path1
+templates.
+
+Evaluation used strict leave-one-run-out grouping by PRN and dense tap grid.
+Each test run's texture model was trained only from other normal-quality runs;
+the test run never trained itself. PRN10 was excluded because it has only one
+run. Twenty-two references received independent models, of which 18 were
+normal-quality references shared with the previous baseline.
+
+The first trajectory result is mixed but useful:
+
+- moving H1 median P90 improved from 4.06 m to 2.32 m;
+- equal-power destructive-phase reliability improved from 4/18 to 11/18;
+- weak path1 at -6 dB regressed from 13/18 to 9/18, mainly at low CN0;
+- 24/36 moving cases had lower P90 than the unwhitened baseline.
+
+This means whitening exposes merged equal-power structure but does not yet
+generalize weak-path texture across sessions. It is not a finished tracker.
+
+Existence detection is much stronger. The pre-Doppler-guard texture GLRT peak
+was evaluated separately from trajectory recovery. Labels are:
+
+- H0: path1 absent (`moving_absent`);
+- H1: path1 present, including moving and static cases.
+
+Across 18 normal H0 controls, median GLRT scores were 9.26--11.67 dB. Across 54
+H1 cases, 53 scored at least 12.16 dB. The empirical AUC was 0.999. A provisional
+threshold between 11.67 and 12.16 dB gives 0/18 false alarms and 53/54
+detections on this leave-one-run-out set. The sole miss was the lowest-CN0 PRN5
+static weak-path case.
+
+Do not hard-code that threshold yet. The set is small and derived from A-only
+texture injection. The next required step is B-only-texture strengthening:
+inject or compose the second source using measured B-only residual/kernel
+texture, rerun the same H0/H1 protocol, and calibrate the threshold with
+confidence intervals. Geometry confidence remains diagnostic only.
+
+Reproduction:
+
+```text
+python3 dev_notes/sim/prepare_path0_texture_loo.py --summary <old-summary.csv> --output-dir <loo-dir>
+python3 dev_notes/sim/run_trackb_cross_reference_benchmark.py --manifest <loo-dir>/manifest.csv --output-dir <loo-dir>/results --duration-s 20
+```
+
+NUC artifacts:
+
+```text
+/home/bupt/lya/gnss_data/trackb_glrt_loo_0731/
+```
