@@ -110,21 +110,33 @@ def trajectory_total_cost(path, segment_dt, wavelength_m, delay_scale_m,
 
 def second_best_cost(best_path, candidate_sets, tube_m, segment_dt, wavelength_m,
                      delay_scale_m, doppler_scale_hz, score_weight):
-    """Cost of the best trajectory that is MATERIALLY DIFFERENT from best_path (every
-    segment forced >tube_m away in delay). inf => no distinct alternative exists (the
-    chosen track is unique). The gap best->second is a truth-free ambiguity measure."""
-    masked = []
-    for cands, chosen in zip(candidate_sets, best_path):
-        alt = [c for c in cands if abs(c["delay_m"] - chosen["delay_m"]) > tube_m]
-        if not alt:
-            return float("inf")
-        masked.append(alt)
-    alt_path = select_trajectory(masked, segment_dt, wavelength_m,
-                                 delay_scale_m, doppler_scale_hz, score_weight)
-    if alt_path is None:
-        return float("inf")
-    return trajectory_total_cost(alt_path, segment_dt, wavelength_m,
-                                 delay_scale_m, doppler_scale_hz, score_weight)
+    """Cost of the best trajectory materially different from ``best_path``.
+
+    A distinct alternative only needs to leave the best path's delay tube in
+    one segment. Requiring that at every segment made the margin infinite when
+    a single segment had no distant candidate, which overstated uniqueness.
+    """
+    alternative_costs = []
+    for forced_segment, chosen in enumerate(best_path):
+        masked = [list(cands) for cands in candidate_sets]
+        masked[forced_segment] = [
+            c for c in candidate_sets[forced_segment]
+            if abs(c["delay_m"] - chosen["delay_m"]) > tube_m
+        ]
+        if not masked[forced_segment]:
+            continue
+        alt_path = select_trajectory(
+            masked, segment_dt, wavelength_m,
+            delay_scale_m, doppler_scale_hz, score_weight
+        )
+        if alt_path is not None:
+            alternative_costs.append(
+                trajectory_total_cost(
+                    alt_path, segment_dt, wavelength_m,
+                    delay_scale_m, doppler_scale_hz, score_weight
+                )
+            )
+    return min(alternative_costs) if alternative_costs else float("inf")
 
 
 def trajectory_confidence(best_path, candidate_sets, segment_dt, wavelength_m,
