@@ -6,7 +6,8 @@ The manifest is a CSV with these required columns:
     label,dense,kernel,cn0_min
 
 An optional ``texture_model`` column enables path0-residual whitened GLRT
-candidates for the DP tracker.
+candidates for the DP tracker. Optional ``path1_dense`` and ``path1_kernel``
+columns replace the ideal injected path1 shape with measured B-only texture.
 
 Each real A-only texture is reused as path0 in four controlled synthetic cases.
 The generated NPZ files are small and remain under the requested output
@@ -179,11 +180,23 @@ def main():
         texture_model = reference.get("texture_model", "").strip()
         if texture_model:
             texture_model = os.path.abspath(os.path.expanduser(texture_model))
+        path1_dense = reference.get("path1_dense", "").strip()
+        path1_kernel = reference.get("path1_kernel", "").strip()
+        if path1_dense:
+            path1_dense = os.path.abspath(os.path.expanduser(path1_dense))
+        if path1_kernel:
+            path1_kernel = os.path.abspath(os.path.expanduser(path1_kernel))
         if not os.path.exists(dense) or not os.path.exists(kernel):
             print("SKIP %s: missing dense or kernel" % reference["label"])
             continue
         if texture_model and not os.path.exists(texture_model):
             print("SKIP %s: missing texture model" % reference["label"])
+            continue
+        if path1_dense and not os.path.exists(path1_dense):
+            print("SKIP %s: missing path1 dense" % reference["label"])
+            continue
+        if path1_kernel and not os.path.exists(path1_kernel):
+            print("SKIP %s: missing path1 kernel" % reference["label"])
             continue
         meta = parse_kernel_metadata(kernel)
         quality = "normal"
@@ -214,6 +227,10 @@ def main():
                 "--settle-epochs",
                 str(args.settle_epochs),
             ] + scenario_args
+            if path1_dense:
+                cmd.extend(["--faithful-path1-dense", path1_dense])
+            if path1_kernel:
+                cmd.extend(["--path1-kernel", path1_kernel])
             generated = run(cmd, gen_log)
             base = {
                 "label": reference["label"],
@@ -230,6 +247,8 @@ def main():
                 "dense": dense,
                 "kernel": kernel,
                 "texture_model": texture_model,
+                "path1_dense": path1_dense,
+                "path1_kernel": path1_kernel,
             }
             if generated.returncode != 0:
                 for method in ("dp", "ekf"):

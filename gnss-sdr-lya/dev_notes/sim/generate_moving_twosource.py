@@ -63,11 +63,35 @@ def ideal_path0(times, taps, ktaps, kernel, rng, noise_sigma):
     return path0
 
 
+def normalized_texture(iq, taps, ktaps, kernel):
+    coefficient = faithful.estimate_c0(iq, taps, ktaps, kernel)
+    safe = np.maximum(np.abs(coefficient), 1e-12)
+    coefficient = np.where(
+        np.abs(coefficient) >= 1e-12,
+        coefficient,
+        safe.astype(np.complex128),
+    )
+    local_kernel = ftp.kern_at(ktaps, kernel, taps)
+    return iq / coefficient[:, None] - local_kernel[None, :]
+
+
+def shift_texture(texture_row, taps, delay_chips):
+    sample_at = taps - delay_chips
+    return (
+        np.interp(sample_at, taps, texture_row.real, left=0.0, right=0.0)
+        + 1j * np.interp(sample_at, taps, texture_row.imag, left=0.0, right=0.0)
+    )
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--output", required=True, help="output compressed .npz")
     ap.add_argument("--kernel", help="single-source coherent reference CSV")
     ap.add_argument("--faithful-path0-dense", help="A-only dense .dat.json")
+    ap.add_argument("--faithful-path1-dense",
+                    help="B-only dense .dat.json used as measured path1 texture")
+    ap.add_argument("--path1-kernel",
+                    help="B-only coherent reference CSV; default: --kernel")
     ap.add_argument("--duration-s", type=float, default=30.0)
     ap.add_argument("--epoch-ms", type=float, default=10.0)
     ap.add_argument("--taps", type=parse_grid, default=parse_grid("-4:0.1:4"))
@@ -118,6 +142,30 @@ def main():
 
     if len(times) < 2:
         raise SystemExit("not enough epochs after source selection")
+
+    path1_texture = None
+    path1_source = "ideal"
+    path1_kernel_path = args.path1_kernel or args.kernel
+    path1_ktaps, path1_base_kernel = ktaps, kernel
+    if args.faithful_path1_dense:
+        if not path1_kernel_path:
+            raise SystemExit("--faithful-path1-dense requires --path1-kernel or --kernel")
+        b_ktaps, b_kernel = ftp.load_reference_csv(path1_kernel_path)
+        path1_ktaps, path1_base_kernel = b_ktaps, b_kernel
+        b_iq, _b_t, b_dt, b_taps, _b_fs, _b_n_seg, _b_n_kept = faithful.load_locked_dense(
+            args.faithful_path1_dense, args.cn0_min, args.lock_min,
+            args.min_lock_run, args.settle_epochs)
+        if len(b_taps) != len(taps) or not np.allclose(b_taps, taps):
+            raise SystemExit("path1 dense tap grid does not match path0")
+        b_stride = max(1, int(round(requested_dt / b_dt)))
+        b_iq = b_iq[::b_stride]
+        count = min(len(path0), len(b_iq))
+        path0, times, b_iq = path0[:count], times[:count], b_iq[:count]
+        if count < 2:
+            raise SystemExit("not enough common path0/path1 texture epochs")
+        path1_texture = normalized_texture(b_iq, taps, b_ktaps, b_kernel)
+        path1_source = "faithful"
+
     rx_end = args.rx_start if args.static else args.rx_end
     rx, range0, range1, delta_m, relative_phase, relative_doppler = geometry(
         times, args.tx0, args.tx1, args.rx_start, rx_end, args.carrier_hz)
@@ -127,7 +175,10 @@ def main():
     amplitude = np.median(np.abs(c0)) * 10.0 ** (args.ratio_db / 20.0)
     path1 = np.empty_like(path0, dtype=np.complex128)
     for i, delay_m in enumerate(delta_m):
-        k1 = ftp.kern_at(ktaps, kernel, taps - delay_m / args.chip_m)
+        delay_chips = delay_m / args.chip_m
+        k1 = ftp.kern_at(path1_ktaps, path1_base_kernel, taps - delay_chips)
+        if path1_texture is not None:
+            k1 = k1 + shift_texture(path1_texture[i], taps, delay_chips)
         path1[i] = amplitude * np.exp(1j * relative_phase[i]) * k1
     iq = path0 + path1
 
@@ -138,6 +189,15 @@ def main():
         "faithful_path0_dense": (
             os.path.abspath(args.faithful_path0_dense)
             if args.faithful_path0_dense else None
+        ),
+        "path1_source": path1_source,
+        "faithful_path1_dense": (
+            os.path.abspath(args.faithful_path1_dense)
+            if args.faithful_path1_dense else None
+        ),
+        "path1_kernel": (
+            os.path.abspath(path1_kernel_path)
+            if args.faithful_path1_dense else None
         ),
         "carrier_hz": args.carrier_hz,
         "chip_m": args.chip_m,
@@ -164,8 +224,9 @@ def main():
         meta_json=np.asarray(json.dumps(meta, sort_keys=True)),
     )
     print("wrote %s" % args.output)
-    print("epochs=%d taps=%d dt=%.3f ms path0=%s" %
-          (len(times), len(taps), np.median(np.diff(times)) * 1e3, source))
+    print("epochs=%d taps=%d dt=%.3f ms path0=%s path1=%s" %
+          (len(times), len(taps), np.median(np.diff(times)) * 1e3,
+           source, path1_source))
     print("relative delay: %.2f..%.2f m (%.3f..%.3f chip)" %
           (delta_m.min(), delta_m.max(),
            delta_m.min() / args.chip_m, delta_m.max() / args.chip_m))
