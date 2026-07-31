@@ -415,3 +415,174 @@ current fixed hardware cannot perform this known-truth virtual-motion tier.
 The fallback is not to move the simulators: use a same-clock multi-output
 source, add programmable RF delay, or postpone to a physically moving B210 with
 external trajectory truth.
+
+## Simulator Motion UI and Spatially Assisted Static Mode
+
+**Date:** 2026-07-31
+**Author:** Codex
+
+### Simulator UI finding
+
+Static inspection of the `RpsNetCtrl_4000-yazhi2025-8-19.exe` controller in
+the `NSF4000 tool` directory found controls for:
+
+- constant-velocity spoofing with east/north/up velocity and duration;
+- start/stop real-time trajectory;
+- distance compensation and trajectory mode;
+- start/stop trajectory spoofing;
+- an on-screen log list.
+
+This makes constant-velocity spoofing a plausible source of virtual motion,
+but it is not yet a verified ground-truth delay generator. It changes a
+navigation trajectory, while the estimator needs the per-PRN relative delay
+between simulator A and simulator B. Before a formal capture:
+
+1. hold A static and run constant-velocity spoofing on B only;
+2. verify that the target PRN's displayed `PR1` changes linearly and calculate
+   its measured slope;
+3. verify whether the on-screen log contains the command time, velocity,
+   duration, and per-epoch position/range;
+4. save the controller traffic to TCP port 90 as a `pcapng` file so that the
+   motion-command timestamp is preserved;
+5. synchronize the Windows controller and NUC clocks before the run.
+
+The local controller directory does not currently contain a non-empty exported
+trajectory log. Until an export or packet-level timestamp is available, the
+motion start must not be treated as exact truth.
+
+The controller can operate only one simulator at a time. That does not prevent
+the pilot: configure and start static A, disconnect the controller, start raw
+capture, connect to B, and then start B motion. A continuous raw capture must
+cover a static pre-roll, the complete motion interval, and a static post-roll.
+
+### Decision on two-channel B210
+
+The two-channel direction is accepted as a separate **spatially assisted static
+mode**. It complements Track B motion; it does not replace it.
+
+The useful model is not "two independent MEDLL results." Stack the complex
+dense correlators from both RF channels:
+
+```text
+y = c0 q0(theta0, tau0) + c1 q1(theta1, tau1) + n
+```
+
+For this controlled DAS experiment, do not initially estimate both unknown
+angles with a two-element array. Two sensors and two coherent sources leave no
+noise-subspace margin and make unconstrained DOA estimation fragile. Instead:
+
+- collect A-only and B-only at the final antenna geometry;
+- measure the complete complex spatial-delay templates `qA(tau)` and
+  `qB(tau)`;
+- use those measured templates in a one-source versus two-source GLRT;
+- refine accepted two-source candidates with constrained joint ML;
+- report `RELIABLE`, `MARGINAL`, `UNRESOLVED`, or `NO_SECOND_SOURCE`.
+
+This is more defensible than ideal steering-vector-only MUSIC, and it directly
+reuses the current measured-kernel and texture-aware GLRT work.
+
+Adding dense taps alone is not super-resolution. HRC is a useful tracking-error
+baseline, but the path-separation candidates are joint space-delay ML, SAGE, or
+MSBL/SBL initialization followed by ML. The first implementation should be the
+smallest constrained joint GLRT/ML model, not MUSIC or a large sparse Bayesian
+solver.
+
+### Existing software support and missing work
+
+The current code already supports a multi-output UHD source:
+
+```text
+SignalSource.RF_channels=2
+SignalSource.subdevice=A:A A:B
+SignalSource.freq0=1176450000
+SignalSource.freq1=1176450000
+Channel0.RF_channel_ID=0
+Channel1.RF_channel_ID=1
+```
+
+`UhdSignalSource` creates one UHD streamer with both channel indices, and
+`GNSSFlowgraph` maps each output to a signal conditioner using
+`ChannelN.RF_channel_ID`. The current L5 generator, recorder, and dense
+correlator workflow remain single-RF-channel oriented and need explicit
+two-channel integration and tests.
+
+The B210 channels are simultaneously streamable, but that does not mean their
+complex phases are pre-calibrated. UHD documents a random frontend phase offset
+after tuning and phase drift over time. Every measurement session therefore
+needs a complex channel calibration, and calibration must be rechecked after a
+retune, restart, cable change, or material temperature change.
+
+There is also a receiver-side phase-reference trap. If each RF stream is
+processed by an independent tracking PLL, the two carrier NCOs can absorb the
+spatial phase difference. Two complex dense dumps cannot simply be stacked
+unless their accumulated carrier phases are used to restore a common phase
+reference. The preferred first prototype is offline:
+
+- record both raw RF streams with one synchronized UHD streamer;
+- acquire and track on RF channel 0;
+- apply channel 0's common code/carrier hypothesis to both RF streams;
+- generate both dense complex profiles under that shared reference;
+- apply the measured inter-channel calibration before joint estimation.
+
+This preserves the spatial phase by construction and avoids changing the
+real-time tracking loop before the observation model is validated.
+
+### Required experiment order
+
+1. **Cabled two-channel feasibility, no spatial claim.** Split one composite RF
+   input into both B210 RX2 ports. Record both channels in one streamer and
+   measure sample alignment, overflow rate, complex gain, group delay, and
+   phase stability. Repeat after restart and retune.
+2. **Wideband complex calibration.** Estimate frequency-dependent
+   `G21(f)=Y2(f)/Y1(f)`, not only one scalar phase. Require stable calibrated
+   cross-channel residuals over a 30 s run.
+3. **Single-source spatial templates.** In a controlled RF environment, use two
+   receive antennas separated initially by about `lambda/2` (`12.7 cm` at L5).
+   Capture A-only and B-only for every tested geometry. A cable combiner followed
+   by a splitter cannot create spatial diversity.
+4. **Zero-delay spatial control.** Set the two sources to the same code delay
+   but different arrival directions. The two-source GLRT must beat the
+   one-source model without using delay separation.
+5. **Delay ladder.** Test `1.5, 1.0, 0.75, 0.5 chip`, then only after passing,
+   attempt `0.3 chip`. Sweep angle separation, power ratio, phase, and CN0.
+
+Do not start the joint estimator before steps 1 and 2 pass. At 20 Msps,
+two-channel `sc16` is approximately 160 MB/s before file-system overhead, so a
+5 s `/dev/shm` smoke test precedes every 30 s capture.
+
+### What counts as success
+
+Two channels can improve static `0.5 chip` identifiability only when the
+measured spatial signatures are sufficiently different. The result must be a
+condition map, not a universal claim:
+
+- detection probability at fixed false-alarm rate;
+- delay-difference RMSE and power-ratio error;
+- model-selection false alarms on A-only and B-only;
+- fraction correctly returned as `UNRESOLVED`;
+- sensitivity to angle separation, array orientation, CN0, power ratio, phase,
+  restart, and calibration age.
+
+The current research hypothesis is:
+
+> Measured two-channel spatial-delay templates plus constrained joint GLRT/ML
+> can materially improve static same-code `0.5 chip` separation over the
+> single-channel texture-aware baseline when the two source signatures are
+> linearly distinguishable.
+
+This is plausible and testable. It is not yet a demonstrated capability, and it
+does not imply that two channels can resolve equal-direction or poorly
+calibrated sources.
+
+Primary references:
+
+- Ettus UHD device synchronization:
+  https://files.ettus.com/manual/page_sync.html
+- Ettus UHD multi-channel streamer configuration:
+  https://files.ettus.com/manual/structuhd_1_1stream__args__t.html
+- Chang et al., joint angle-delay MSBL and SAGE refinement:
+  https://doi.org/10.1007/s10291-020-01072-0
+- Rougerie et al., array SAGE/STAP for GNSS multipath:
+  https://doi.org/10.1155/2012/804732
+- Chang et al., sparse spatial-temporal GNSS estimation:
+  https://doi.org/10.1109/PLANS46316.2020.9109852
