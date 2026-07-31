@@ -37,6 +37,15 @@ EKF_SUPPORT_RE = re.compile(
     r"median posterior std ([0-9.]+) m"
 )
 VERDICT_RE = re.compile(r"VERDICT: (RELIABLE|UNRELIABLE)")
+CONFIDENCE_RE = re.compile(r"CONFIDENCE: (CONFIDENT|LOW-CONFIDENCE)")
+DP_CONF_MOTION_RE = re.compile(
+    r"motion diversity\s+: delay span ([0-9.]+) m, Doppler span ([0-9.]+) Hz"
+)
+DP_CONF_PHYSICS_RE = re.compile(r"physics link\s+: resid ([+\-]?(?:inf|nan|[0-9.]+)) m")
+DP_CONF_MARGIN_RE = re.compile(
+    r"best-vs-2nd path\s+: margin ([+\-]?(?:inf|nan|[0-9.]+))\s+"
+    r"\(best cost ([+\-]?(?:inf|nan|[0-9.]+)), 2nd-best ([+\-]?(?:inf|nan|[0-9.]+))"
+)
 
 
 def run(cmd, log_path):
@@ -75,6 +84,13 @@ def metric_row(base, method, proc):
             "support_pct": "",
             "median_posterior_std_m": "",
             "coverage_2sigma_pct": "",
+            "confidence": "",
+            "confidence_delay_span_m": "",
+            "confidence_doppler_span_hz": "",
+            "confidence_physics_resid_m": "",
+            "confidence_margin": "",
+            "confidence_best_cost": "",
+            "confidence_alt_cost": "",
         }
     )
     verdict = VERDICT_RE.search(proc.stdout)
@@ -93,6 +109,23 @@ def metric_row(base, method, proc):
                 row["support_pct"],
                 row["median_posterior_std_m"],
             ) = support.groups()
+    else:
+        confidence = CONFIDENCE_RE.search(proc.stdout)
+        motion = DP_CONF_MOTION_RE.search(proc.stdout)
+        physics = DP_CONF_PHYSICS_RE.search(proc.stdout)
+        margin = DP_CONF_MARGIN_RE.search(proc.stdout)
+        if confidence:
+            row["confidence"] = confidence.group(1)
+        if motion:
+            row["confidence_delay_span_m"], row["confidence_doppler_span_hz"] = motion.groups()
+        if physics:
+            row["confidence_physics_resid_m"] = physics.group(1)
+        if margin:
+            (
+                row["confidence_margin"],
+                row["confidence_best_cost"],
+                row["confidence_alt_cost"],
+            ) = margin.groups()
     if proc.returncode != 0 and not row["verdict"]:
         row["verdict"] = "ERROR"
     return row
@@ -201,10 +234,11 @@ def main():
             ekf_row = metric_row(base, "ekf", ekf_proc)
             results.extend((dp_row, ekf_row))
             print(
-                "%-42s DP=%-10s p90=%-6s EKF=%-10s p90=%-6s"
+                "%-42s DP=%-10s conf=%-14s p90=%-6s EKF=%-10s p90=%-6s"
                 % (
                     stem,
                     dp_row["verdict"],
+                    dp_row["confidence"],
                     dp_row["p90_error_m"],
                     ekf_row["verdict"],
                     ekf_row["p90_error_m"],

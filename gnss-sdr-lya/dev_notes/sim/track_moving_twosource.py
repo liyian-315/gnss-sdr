@@ -287,8 +287,8 @@ def main():
     print("trajectory   : median abs error %.2f m, p90 %.2f m, within %.1f%%" %
           (np.median(track_error), np.percentile(track_error, 90),
            100.0 * np.mean(within)))
-    print("VERDICT (truth-based, synthetic scoring only): %s" %
-          ("RELIABLE" if reliable else "UNRELIABLE"))
+    print("VERDICT: %s" % ("RELIABLE" if reliable else "UNRELIABLE"))
+    print("(truth-based synthetic scoring only; real captures must use CONFIDENCE)")
     print("\n--- truth-free confidence (NO ground truth; this is the REAL-DATA gate) ---")
     print("motion diversity : delay span %.1f m, Doppler span %.2f Hz  (static latch is ~flat -> rejected)"
           % (conf["delay_span_m"], conf["doppler_span_hz"]))
@@ -300,6 +300,18 @@ def main():
                                 "" if confident else " -- " + "; ".join(conf_reasons)))
 
     if args.csv:
+        confidence_fields = {
+            "truth_verdict": "RELIABLE" if reliable else "UNRELIABLE",
+            "confidence": "CONFIDENT" if confident else "LOW-CONFIDENCE",
+            "confidence_delay_span_m": conf["delay_span_m"],
+            "confidence_doppler_span_hz": conf["doppler_span_hz"],
+            "confidence_physics_resid_m": conf["physics_resid_m"],
+            "confidence_best_cost": conf["best_cost"],
+            "confidence_alt_cost": conf["alt_cost"],
+            "confidence_margin": conf["margin"],
+        }
+        for row in segment_rows:
+            row.update(confidence_fields)
         with open(args.csv, "w", newline="", encoding="utf-8") as fh:
             writer = csv.DictWriter(fh, fieldnames=list(segment_rows[0]))
             writer.writeheader()
