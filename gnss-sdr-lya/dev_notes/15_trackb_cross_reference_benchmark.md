@@ -171,3 +171,47 @@ stored under:
 
 The directory contains generated NPZ controls, per-case DP/EKF logs, and
 `summary.csv`. It contains no copied raw IQ captures.
+
+## Truth-Free DP Confidence Calibration
+
+**Date:** 2026-07-31  
+**Author:** Codex
+
+Claude added three truth-free DP confidence features in commit `88cd68eb4`:
+motion diversity, delay-Doppler physics consistency, and a best-vs-second
+trajectory cost margin. The full 23-reference benchmark was rerun before
+accepting the default thresholds.
+
+The first implementation of the alternative-path margin required the
+alternative to leave the best path's delay tube in every segment. One segment
+without a distant candidate therefore produced an infinite margin and falsely
+implied uniqueness. Commit `ea92cacb8` corrected this to the cheapest path that
+differs materially in at least one segment.
+
+Results on the 19 normal-quality references:
+
+- all 19 static and all 19 path-absent controls were `LOW-CONFIDENCE`;
+- moving -6 dB: only 1 of 14 truth-reliable tracks was confident (7.1% recall);
+- moving equal-power: 0 of 4 truth-reliable tracks was confident;
+- two of the three confident moving tracks were actually truth-unreliable;
+- the corrected margin was not discriminative: truth-reliable moving tracks
+  had median margin about 0.27, while negative cases had median about 1.81.
+
+A grid search over delay span, Doppler span, physics residual, and corrected
+margin found no useful operating point. With false-positive rate constrained
+to 5%, the best recall was 16.7% (3/18).
+
+Decision: retain these fields as diagnostics, but do not label them a calibrated
+real-data gate and do not tune the three global thresholds further. False
+tracks can be smooth, move substantially, and satisfy the local
+delay-Doppler relation. The next gate must include evidence tied to the actual
+path0 texture and observation likelihood, not trajectory geometry alone.
+
+The rerun artifacts are on the NUC at:
+
+```text
+/home/bupt/lya/gnss_data/trackb_cross_reference_conf_0731/
+```
+
+`summary.csv` contains the first gate run; `summary_dp_margin.csv` contains the
+corrected alternative-path margin.

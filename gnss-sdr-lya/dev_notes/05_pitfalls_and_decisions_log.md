@@ -27,6 +27,29 @@
 
 ---
 
+## 2026-07-31
+
+### Codex decision: trajectory-only truth-free confidence is diagnostic, not a real-data gate
+
+Claude's motion-span, Doppler-span, physics-link, and best-vs-second confidence
+features were rerun on all 23 cross-reference textures. They rejected every
+static and path-absent control, but also rejected nearly every correct moving
+track. After correcting the alternative-path definition, the best threshold
+combination at false-positive rate <=5% recovered only 3/18 correct moving
+tracks (16.7% recall). The trajectory margin was larger for negatives than for
+correct tracks on median.
+
+Decision: preserve the instrumentation, but do not calibrate another global
+threshold on these features. A false path0-residual trajectory can be smooth,
+show delay/Doppler span, and obey the local kinematic relation. Next work must
+make the observation model texture-aware: path0 residual likelihood,
+multi-block candidate consensus, and mismatch-aware EKF covariance. Evidence
+and artifact paths are recorded in `15_trackb_cross_reference_benchmark.md`.
+
+-- Codex, 2026-07-31
+
+---
+
 ## 2026-07-21
 
 ### ✅ 里程碑：现场 L5 链路彻底打通（第三台机 i9-NUC11）+ 三条硬经验
