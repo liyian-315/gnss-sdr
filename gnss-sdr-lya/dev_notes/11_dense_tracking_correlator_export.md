@@ -2868,6 +2868,18 @@ then revisit the fitter model or simulator delay semantics.
 Date: 2026-07-28
 Author: Claude (Opus 4.8)
 
+> ⚠️ REFRAMED 2026-07-29 → DUAL-MODE (this 07-28 section is kept for history; its
+> minimum-target framing was implicitly STATIC and is now known to be the wrong frame).
+> Evidence since: static same-code same-clock sub-chip separation is UNDER-DETERMINED —
+> three snapshot architectures fail identically, path1 buried ~30 dB under real path0
+> residual (`12`). The 0.5-chip minimum target's real home is the MOVING receiver (motion
+> = synthetic aperture): Track B recovers 0.37–0.55 chip on real PRN28 texture (`13`/`14`),
+> but the 23-reference cross-texture benchmark shows it is feasible-not-yet-robust (EKF
+> moving −6 dB 8/19; run/texture dependent) (`15`). Read the targets below as: STATIC mode
+> → report the honest separability floor + uncertainty; MOVING mode → the sub-chip targets.
+> Next lever is texture-aware init/covariance + a truth-free confidence gate, NOT another
+> threshold. See README 🎯 and `05` (2026-07-29).
+
 AUTHORITATIVE definition of the Phase B goal (what "separate two same-code paths"
 must achieve, quantitatively) plus the read on the first real drift-aware PRN23
 30/60/90 m results. README's 🎯 block points here.

@@ -95,6 +95,68 @@ def select_trajectory(candidate_sets, segment_dt, wavelength_m, delay_scale_m,
     return list(reversed(path))
 
 
+def trajectory_total_cost(path, segment_dt, wavelength_m, delay_scale_m,
+                          doppler_scale_hz, score_weight):
+    """Total DP cost of a chosen path (same model as select_trajectory): score reward
+    plus physical delay-Doppler transition penalty. Used for the best-vs-second margin."""
+    cost = -score_weight * sum(p["score_db"] for p in path)
+    for a, b in zip(path[:-1], path[1:]):
+        dstep = (b["delay_m"] - a["delay_m"]
+                 + wavelength_m * 0.5 * (b["doppler_hz"] + a["doppler_hz"]) * segment_dt) / delay_scale_m
+        fstep = (b["doppler_hz"] - a["doppler_hz"]) / doppler_scale_hz
+        cost += dstep * dstep + fstep * fstep
+    return float(cost)
+
+
+def second_best_cost(best_path, candidate_sets, tube_m, segment_dt, wavelength_m,
+                     delay_scale_m, doppler_scale_hz, score_weight):
+    """Cost of the best trajectory that is MATERIALLY DIFFERENT from best_path (every
+    segment forced >tube_m away in delay). inf => no distinct alternative exists (the
+    chosen track is unique). The gap best->second is a truth-free ambiguity measure."""
+    masked = []
+    for cands, chosen in zip(candidate_sets, best_path):
+        alt = [c for c in cands if abs(c["delay_m"] - chosen["delay_m"]) > tube_m]
+        if not alt:
+            return float("inf")
+        masked.append(alt)
+    alt_path = select_trajectory(masked, segment_dt, wavelength_m,
+                                 delay_scale_m, doppler_scale_hz, score_weight)
+    if alt_path is None:
+        return float("inf")
+    return trajectory_total_cost(alt_path, segment_dt, wavelength_m,
+                                 delay_scale_m, doppler_scale_hz, score_weight)
+
+
+def trajectory_confidence(best_path, candidate_sets, segment_dt, wavelength_m,
+                          delay_scale_m, doppler_scale_hz, score_weight, chip_m, tube_chips):
+    """Truth-free confidence signals (NO ground truth). Real captures have no truth, so
+    this is the gate that must run on hardware:
+      - motion diversity: a real moving source sweeps delay AND Doppler; a static latch
+        is ~flat -> this is the diversity gate that rejects the DP static false positives.
+      - physics link: does delay[k]-delay[k-1] match -lambda*mean(Doppler)*dt? tests that
+        the track obeys geometry, not just smoothness.
+      - best-vs-second margin: how much better the chosen path is than the best
+        materially-different alternative (unique vs ambiguous).
+    """
+    delays = np.asarray([p["delay_m"] for p in best_path])
+    dopp = np.asarray([p["doppler_hz"] for p in best_path])
+    scores = np.asarray([p["score_db"] for p in best_path])
+    if len(delays) > 1:
+        pred = -wavelength_m * 0.5 * (dopp[1:] + dopp[:-1]) * segment_dt
+        obs = delays[1:] - delays[:-1]
+        physics_resid = float(np.sqrt(np.mean((obs - pred) ** 2)))
+    else:
+        physics_resid = float("nan")
+    best_cost = trajectory_total_cost(best_path, segment_dt, wavelength_m,
+                                      delay_scale_m, doppler_scale_hz, score_weight)
+    alt_cost = second_best_cost(best_path, candidate_sets, tube_chips * chip_m, segment_dt,
+                                wavelength_m, delay_scale_m, doppler_scale_hz, score_weight)
+    return dict(delay_span_m=float(delays.max() - delays.min()),
+                doppler_span_hz=float(dopp.max() - dopp.min()),
+                physics_resid_m=physics_resid, min_score_db=float(scores.min()),
+                best_cost=best_cost, alt_cost=alt_cost, margin=float(alt_cost - best_cost))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--input", required=True, help="moving two-source .npz")
@@ -112,6 +174,17 @@ def main():
     ap.add_argument("--delay-scale-m", type=float, default=3.0)
     ap.add_argument("--doppler-scale-hz", type=float, default=1.0)
     ap.add_argument("--score-weight", type=float, default=0.08)
+    ap.add_argument("--conf-min-motion-m", type=float, default=3.0,
+                    help="truth-free gate: min delay span of the track (a static latch is ~flat)")
+    ap.add_argument("--conf-min-doppler-hz", type=float, default=0.5,
+                    help="truth-free gate: min Doppler span (the real separation axis)")
+    ap.add_argument("--conf-max-physics-m", type=float, default=3.0,
+                    help="truth-free gate: max RMS delay-step vs -lambda*Doppler*dt residual")
+    ap.add_argument("--conf-min-margin", type=float, default=0.0,
+                    help="truth-free gate: min best-vs-2nd trajectory cost margin (default 0 = report only; "
+                         "calibrate on the cross-reference benchmark before gating on it)")
+    ap.add_argument("--conf-tube-chips", type=float, default=0.2,
+                    help="delay tube [chips] a 2nd-best trajectory must clear the best by")
     ap.add_argument("--csv")
     ap.add_argument("--plot")
     args = ap.parse_args()
@@ -174,6 +247,22 @@ def main():
             "track_score_db": selected["score_db"],
         })
 
+    # truth-free confidence (the gate a REAL capture must use -- no ground truth here)
+    wavelength_m = 299792458.0 / float(meta["carrier_hz"])
+    conf = trajectory_confidence(
+        trajectory, candidate_sets, segment_epochs * dt, wavelength_m,
+        args.delay_scale_m, args.doppler_scale_hz, args.score_weight,
+        chip_m, args.conf_tube_chips)
+    conf_reasons = []
+    if conf["delay_span_m"] < args.conf_min_motion_m or conf["doppler_span_hz"] < args.conf_min_doppler_hz:
+        conf_reasons.append("no motion diversity (delay span %.1f m, Doppler %.2f Hz -> static latch)"
+                            % (conf["delay_span_m"], conf["doppler_span_hz"]))
+    if np.isnan(conf["physics_resid_m"]) or conf["physics_resid_m"] > args.conf_max_physics_m:
+        conf_reasons.append("delay-Doppler link violated (physics resid %.2f m)" % conf["physics_resid_m"])
+    if conf["margin"] < args.conf_min_margin:
+        conf_reasons.append("best-vs-2nd margin %.2f < %.2f (ambiguous)" % (conf["margin"], args.conf_min_margin))
+    confident = not conf_reasons
+
     truth = np.asarray([r["truth_delay_m"] for r in segment_rows])
     snapshot = np.asarray([r["snapshot_delay_m"] for r in segment_rows])
     tracked = np.asarray([r["track_delay_m"] for r in segment_rows])
@@ -198,7 +287,17 @@ def main():
     print("trajectory   : median abs error %.2f m, p90 %.2f m, within %.1f%%" %
           (np.median(track_error), np.percentile(track_error, 90),
            100.0 * np.mean(within)))
-    print("VERDICT: %s" % ("RELIABLE" if reliable else "UNRELIABLE"))
+    print("VERDICT (truth-based, synthetic scoring only): %s" %
+          ("RELIABLE" if reliable else "UNRELIABLE"))
+    print("\n--- truth-free confidence (NO ground truth; this is the REAL-DATA gate) ---")
+    print("motion diversity : delay span %.1f m, Doppler span %.2f Hz  (static latch is ~flat -> rejected)"
+          % (conf["delay_span_m"], conf["doppler_span_hz"]))
+    print("physics link     : resid %.2f m  (delay-step vs -lambda*Doppler*dt; tests geometry, not smoothness)"
+          % conf["physics_resid_m"])
+    print("best-vs-2nd path : margin %.2f  (best cost %.2f, 2nd-best %.2f; larger = more unique)"
+          % (conf["margin"], conf["best_cost"], conf["alt_cost"]))
+    print("CONFIDENCE: %s%s" % ("CONFIDENT" if confident else "LOW-CONFIDENCE",
+                                "" if confident else " -- " + "; ".join(conf_reasons)))
 
     if args.csv:
         with open(args.csv, "w", newline="", encoding="utf-8") as fh:
