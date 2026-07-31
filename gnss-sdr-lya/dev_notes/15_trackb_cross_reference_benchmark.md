@@ -218,7 +218,7 @@ corrected alternative-path margin.
 
 ## Path0-Texture GLRT: First Leave-One-Run-Out Result
 
-**Date:** 2026-07-31  
+**Date:** 2026-07-31
 **Author:** Codex
 
 The next candidate likelihood now models what the geometry-only gate omitted:
