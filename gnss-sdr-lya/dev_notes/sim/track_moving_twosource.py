@@ -34,7 +34,7 @@ def remove_path0_first_order(iq, taps, ktaps, kernel):
 
 def top_candidates(M, freqs, tau_grid, top_k, guard_hz, min_delay_chips,
                    nms_delay_chips, nms_hz, chip_m,
-                   map_peak_is_path0=True):
+                   map_peak_is_path0=True, max_abs_doppler_hz=None):
     if map_peak_is_path0:
         p0 = np.unravel_index(int(np.argmax(M)), M.shape)
         f0 = float(freqs[p0[0]])
@@ -42,6 +42,10 @@ def top_candidates(M, freqs, tau_grid, top_k, guard_hz, min_delay_chips,
     else:
         f0 = 0.0
         doppler_allowed = np.ones((len(freqs), 1), dtype=bool)
+    if max_abs_doppler_hz is not None:
+        doppler_allowed &= (
+            np.abs(freqs[:, None] - f0) <= max_abs_doppler_hz
+        )
     allowed = doppler_allowed & (tau_grid[None, :] >= min_delay_chips)
     noise = float(np.median(M[allowed])) if allowed.any() else float(np.median(M))
     ranked = np.argsort(np.where(allowed, M, -np.inf).ravel())[::-1]
@@ -82,10 +86,15 @@ def texture_glrt_map(iq_seg, dt, taps, ktaps, kernel, tau_grid, model):
     return np.abs(spectrum), freqs
 
 
-def map_peak_score_db(M, tau_grid, min_delay_chips):
+def map_peak_score_db(M, freqs, tau_grid, min_delay_chips,
+                      max_abs_doppler_hz=None):
     """Max texture-whitened matched power relative to the map median."""
-    allowed = tau_grid[None, :] >= min_delay_chips
-    samples = M[np.broadcast_to(allowed, M.shape)]
+    allowed = np.broadcast_to(
+        tau_grid[None, :] >= min_delay_chips, M.shape
+    ).copy()
+    if max_abs_doppler_hz is not None:
+        allowed &= np.abs(freqs[:, None]) <= max_abs_doppler_hz
+    samples = M[allowed]
     noise = float(np.median(samples))
     peak = float(np.max(samples))
     return 20.0 * np.log10(max(peak, 1e-30) / max(noise, 1e-30))
@@ -215,6 +224,12 @@ def main():
     ap.add_argument("--delay-scale-m", type=float, default=3.0)
     ap.add_argument("--doppler-scale-hz", type=float, default=1.0)
     ap.add_argument("--score-weight", type=float, default=0.08)
+    ap.add_argument(
+        "--max-abs-doppler-hz",
+        type=float,
+        default=20.0,
+        help="physical bound on relative path Doppler; L5 walking is normally below this",
+    )
     ap.add_argument("--texture-model",
                     help="A-only path0 residual texture model; enables whitened GLRT candidates")
     ap.add_argument("--conf-min-motion-m", type=float, default=3.0,
@@ -278,12 +293,16 @@ def main():
                 residual[start:end], dt, ktaps, kernel, taps, tau_grid)
         if texture_model is not None:
             glrt_peak_scores.append(
-                map_peak_score_db(M, tau_grid, args.tau_min)
+                map_peak_score_db(
+                    M, freqs, tau_grid, args.tau_min,
+                    args.max_abs_doppler_hz
+                )
             )
         candidates = top_candidates(
             M, freqs, tau_grid, args.top_k, guard_hz, args.tau_min,
             args.nms_delay_chips, args.nms_hz, chip_m,
-            map_peak_is_path0=texture_model is None)
+            map_peak_is_path0=texture_model is None,
+            max_abs_doppler_hz=args.max_abs_doppler_hz)
         if not candidates:
             continue
         mid = (start + end - 1) // 2
