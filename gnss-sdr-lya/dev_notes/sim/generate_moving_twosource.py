@@ -90,6 +90,18 @@ def shift_texture(texture_row, taps, delay_chips):
     )
 
 
+def resample_texture_rows(texture, source_taps, target_taps):
+    rows = []
+    for row in texture:
+        rows.append(
+            np.interp(target_taps, source_taps, row.real, left=0.0, right=0.0)
+            + 1j * np.interp(
+                target_taps, source_taps, row.imag, left=0.0, right=0.0
+            )
+        )
+    return np.asarray(rows)
+
+
 def smooth_texture_rows(texture, window):
     if window <= 1:
         return texture
@@ -188,8 +200,6 @@ def main():
         b_iq, _b_t, b_dt, b_taps, _b_fs, _b_n_seg, _b_n_kept = faithful.load_locked_dense(
             args.faithful_path1_dense, args.cn0_min, args.lock_min,
             args.min_lock_run, args.settle_epochs)
-        if len(b_taps) != len(taps) or not np.allclose(b_taps, taps):
-            raise SystemExit("path1 dense tap grid does not match path0")
         b_stride = max(1, int(round(requested_dt / b_dt)))
         b_iq = b_iq[::b_stride]
         count = min(len(path0), len(b_iq))
@@ -197,7 +207,13 @@ def main():
         if count < 2:
             raise SystemExit("not enough common path0/path1 texture epochs")
         if args.path1_texture_mode != "kernel":
-            path1_texture = normalized_texture(b_iq, taps, b_ktaps, b_kernel)
+            path1_texture = normalized_texture(
+                b_iq, b_taps, b_ktaps, b_kernel
+            )
+            if len(b_taps) != len(taps) or not np.allclose(b_taps, taps):
+                path1_texture = resample_texture_rows(
+                    path1_texture, b_taps, taps
+                )
             if args.path1_texture_mode == "smoothed":
                 path1_texture = smooth_texture_rows(
                     path1_texture, args.path1_texture_smooth_epochs
