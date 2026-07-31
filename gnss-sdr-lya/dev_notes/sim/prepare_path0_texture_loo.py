@@ -95,7 +95,7 @@ def main():
                 "prn": reference.get("prn", ""),
                 "dense": reference["dense"],
                 "kernel": reference["kernel"],
-                "cn0_min": reference.get("cn0_median") or args.cn0_min,
+                "cn0_min": args.cn0_min,
                 "texture_model": model,
             }
         )
