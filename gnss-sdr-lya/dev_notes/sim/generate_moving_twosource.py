@@ -36,8 +36,15 @@ def parse_grid(value):
     return np.arange(parts[0], parts[2] + 0.5 * parts[1], parts[1])
 
 
-def geometry(times, tx0, tx1, rx_start, rx_end, carrier_hz):
-    fraction = times / max(float(times[-1]), np.finfo(float).eps)
+def geometry(times, tx0, tx1, rx_start, rx_end, carrier_hz, trajectory_duration_s=None):
+    duration = (
+        float(trajectory_duration_s)
+        if trajectory_duration_s is not None
+        else float(times[-1])
+    )
+    fraction = np.clip(
+        times / max(duration, np.finfo(float).eps), 0.0, 1.0
+    )
     rx = rx_start[None, :] + fraction[:, None] * (rx_end - rx_start)[None, :]
     range0 = np.linalg.norm(rx - tx0[None, :], axis=1)
     range1 = np.linalg.norm(rx - tx1[None, :], axis=1)
@@ -199,7 +206,8 @@ def main():
 
     rx_end = args.rx_start if args.static else args.rx_end
     rx, range0, range1, delta_m, relative_phase, relative_doppler = geometry(
-        times, args.tx0, args.tx1, args.rx_start, rx_end, args.carrier_hz)
+        times, args.tx0, args.tx1, args.rx_start, rx_end, args.carrier_hz,
+        args.duration_s)
     relative_phase = relative_phase - relative_phase[0] + np.radians(args.phase_deg)
 
     c0 = faithful.estimate_c0(path0, taps, ktaps, kernel)
