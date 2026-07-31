@@ -1758,3 +1758,22 @@ Do not call `static_m6` an H0 case. It contains a second source and is H1 for
 existence, even though it lacks the motion diversity needed for moving-mode
 trajectory separation. Full results and reproduction commands are in
 `15_trackb_cross_reference_benchmark.md`.
+
+## 2026-07-31 - Codex - B-only texture strengthens the benchmark, not the claim
+
+Existing PRN11/23/28 B-only captures were integrated as measured path1 kernels.
+The benchmark exposed and fixed two hidden assumptions: a whitened residual map
+must not mask its own strongest peak as path0, and a short texture record must
+not accelerate the simulated receiver trajectory.
+
+After quality gating, all eight same-PRN A/B references recovered both moving
+-6 dB and equal-power cases. Path-absent controls remained rejected and
+existence AUC was 1.0. A smoothed B residual added complexity without consistent
+benefit, so the coherent B-only kernel is the default.
+
+The low-CN0 stress test established a real boundary: measured CN0 around 45
+dB-Hz and above passed all moving cases, while around 40 dB-Hz the H1
+likelihood overlapped H0 and weak-path tracking failed. Decision: likelihood
+thresholds must be conditional on CN0/noise; data below the validated envelope
+returns `INSUFFICIENT/UNDECIDED`. The next evidence tier is a simulator-driven
+moving receiver trajectory with known truth, followed later by OTA.

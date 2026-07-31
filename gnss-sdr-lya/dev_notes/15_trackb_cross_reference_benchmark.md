@@ -262,6 +262,11 @@ inject or compose the second source using measured B-only residual/kernel
 texture, rerun the same H0/H1 protocol, and calibrate the threshold with
 confidence intervals. Geometry confidence remains diagnostic only.
 
+The `11.67..12.16 dB` provisional split above used the original unbounded
+Doppler map. It is retained as historical evidence only. The current score
+uses the physically bounded Doppler map described below; the old numerical
+threshold must not be reused.
+
 Reproduction:
 
 ```text
@@ -273,4 +278,78 @@ NUC artifacts:
 
 ```text
 /home/bupt/lya/gnss_data/trackb_glrt_loo_0731/
+```
+
+## B-Only Texture Strengthening
+
+**Date:** 2026-07-31
+**Author:** Codex
+
+The synthetic path1 can now use a measured B-only coherent kernel and optional
+slow residual texture. Its historical absolute code phase is removed. The
+measured local profile is shifted and phase-modulated by the new known
+geometry, so the injected delay remains ground truth.
+
+Three implementation faults were found and corrected during the real-texture
+smoke test:
+
+1. injecting every B-only residual epoch duplicated receiver thermal noise;
+   the default is now the coherent B-only kernel, while smoothed and raw-epoch
+   residual modes remain explicit experiments;
+2. the whitened map had already removed path0, but candidate extraction still
+   treated the map maximum as path0 and masked it. That maximum was commonly
+   path1, so the old code suppressed the desired signal;
+3. a short locked texture segment compressed the full receiver trajectory into
+   the available time. Geometry now keeps the requested trajectory duration
+   and uses only the physically elapsed prefix.
+
+The texture-aware candidate search is limited to `+/-20 Hz` relative Doppler.
+For an L5 walking receiver this is a conservative physical bound and rejects
+known `48--50 Hz` tracking-texture lines. It is not selected from injected
+delay truth.
+
+### Same-PRN A/B result
+
+Eight normal-quality A/B references from PRN11, PRN23, and PRN28 passed the
+minimum-duration gate. With the measured B-only coherent kernel:
+
+- moving -6 dB: 8/8 `RELIABLE`, median P90 1.74 m;
+- moving equal-power destructive: 8/8 `RELIABLE`, median P90 1.15 m;
+- path-absent: 0/8 false `RELIABLE`;
+- existence GLRT: AUC 1.0, H0 max 10.87 dB, H1 min 16.44 dB.
+
+The smoothed residual mode also passed 8/8 and had no consistent advantage.
+It is therefore not the default. Against the current ideal-path1 control, the
+B-only kernel slightly worsened median -6 dB P90 (1.46 to 1.74 m) and improved
+equal-power P90 (1.52 to 1.15 m). Its value is a more faithful stress test, not
+an artificial claim of universal accuracy gain.
+
+### Low-CN0 boundary
+
+The wide B-only kernel was resampled onto the Phase A narrow tap grid for a
+cross-PRN stress test. This is not a same-PRN deployment claim.
+
+- measured CN0 about 45 dB-Hz and above: moving -6 dB 8/8 and equal-power 8/8
+  `RELIABLE`;
+- measured CN0 about 40 dB-Hz: moving -6 dB 0/2 and equal-power 1/2;
+- at the lowest CN0, H1 GLRT scores overlap the path-absent H0 distribution.
+
+The current full 18-reference rerun gives moving -6 dB 16/18 and equal-power
+17/18. At measured CN0 >=45 dB-Hz, existence AUC is 1.0 with H0 max 11.16 dB
+and H1 min 16.22 dB. Including the lowest-CN0 runs removes that clean margin.
+
+Decision:
+
+- use the coherent B-only kernel as the default strengthened benchmark;
+- do not hard-code one global GLRT threshold;
+- calibrate likelihood by CN0/noise condition;
+- below the validated work envelope, return `INSUFFICIENT/UNDECIDED` rather
+  than force a path decision;
+- proceed to known-truth moving-simulator trajectory capture before OTA.
+
+NUC artifacts:
+
+```text
+/home/bupt/lya/gnss_data/trackb_btexture_0731/
+/home/bupt/lya/gnss_data/trackb_glrt_loo_0731/results_current/
 ```
