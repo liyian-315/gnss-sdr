@@ -33,13 +33,16 @@ def remove_path0_first_order(iq, taps, ktaps, kernel):
 
 
 def top_candidates(M, freqs, tau_grid, top_k, guard_hz, min_delay_chips,
-                   nms_delay_chips, nms_hz, chip_m):
-    p0 = np.unravel_index(int(np.argmax(M)), M.shape)
-    f0 = float(freqs[p0[0]])
-    allowed = (
-        (np.abs(freqs[:, None] - f0) >= guard_hz)
-        & (tau_grid[None, :] >= min_delay_chips)
-    )
+                   nms_delay_chips, nms_hz, chip_m,
+                   map_peak_is_path0=True):
+    if map_peak_is_path0:
+        p0 = np.unravel_index(int(np.argmax(M)), M.shape)
+        f0 = float(freqs[p0[0]])
+        doppler_allowed = np.abs(freqs[:, None] - f0) >= guard_hz
+    else:
+        f0 = 0.0
+        doppler_allowed = np.ones((len(freqs), 1), dtype=bool)
+    allowed = doppler_allowed & (tau_grid[None, :] >= min_delay_chips)
     noise = float(np.median(M[allowed])) if allowed.any() else float(np.median(M))
     ranked = np.argsort(np.where(allowed, M, -np.inf).ravel())[::-1]
     out = []
@@ -279,7 +282,8 @@ def main():
             )
         candidates = top_candidates(
             M, freqs, tau_grid, args.top_k, guard_hz, args.tau_min,
-            args.nms_delay_chips, args.nms_hz, chip_m)
+            args.nms_delay_chips, args.nms_hz, chip_m,
+            map_peak_is_path0=texture_model is None)
         if not candidates:
             continue
         mid = (start + end - 1) // 2
