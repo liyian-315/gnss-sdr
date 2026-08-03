@@ -1777,3 +1777,28 @@ likelihood overlapped H0 and weak-path tracking failed. Decision: likelihood
 thresholds must be conditional on CN0/noise; data below the validated envelope
 returns `INSUFFICIENT/UNDECIDED`. The next evidence tier is a simulator-driven
 moving receiver trajectory with known truth, followed later by OTA.
+
+## 2026-08-03 - Codex - Static research pivots to four-antenna space-time data
+
+Moving-receiver capture is paused. The next static research line uses up to
+four synchronized antennas plus multi-epoch complex correlator observations.
+
+Decision:
+
+- treat spatial channels as the new identifiability dimension;
+- treat repeated static epochs as statistical reinforcement, not synthetic
+  spatial diversity;
+- prefer a native phase-calibratable four-channel receiver; two synchronized
+  B210 units are only a conditional prototype requiring per-run calibration;
+- preserve one common carrier/code reference across all RF streams;
+- prove the hardware and measured array manifold before implementing a large
+  joint estimator;
+- start with measured-template constrained GLRT/ML, then consider MSBL/SAGE;
+- report same-direction or ill-conditioned cases as `UNRESOLVED`.
+
+The first controlled fixture is a four-element L5 ULA at half-wavelength
+spacing. A `2 x 2` planar array follows only after the one-dimensional proof.
+The minimal screen fixes high CN0 and -6 dB power ratio, then tests
+`0/0.5/1.0 chip` against `0/10/30/60 deg` before any full boundary campaign.
+The complete plan and stop rules are in
+`16_static_four_antenna_space_time_plan.md`.
