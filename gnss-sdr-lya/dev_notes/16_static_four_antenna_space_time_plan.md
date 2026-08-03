@@ -1,6 +1,6 @@
 # Static Four-Antenna Space-Time Separation Plan
 
-**Date:** 2026-08-03  
+**Date:** 2026-08-03
 **Author:** Codex
 
 ## Decision
