@@ -9,6 +9,41 @@
 
 ---
 
+## 2026-08-04 - Codex - Review of the static space-delay skeleton
+
+Reproduced `python3 dev_notes/sim/fit_space_delay_twosource.py --self-test` at
+commit `7cab36dd7`. The output matches the recorded table: under the ideal matched
+model, a four-element half-wavelength ULA changes the joint template coherence
+from a delay-only limitation into `mu_joint = mu_temporal * mu_spatial`, and the
+synthetic 0.1-chip case is recovered while the single-antenna case is rejected.
+This validates the implementation wiring and the identifiability argument.
+
+Evidence level must remain explicit:
+
+- The canonical `0 deg / 30 deg` case is an especially favorable geometry. For
+  four half-wavelength elements its ideal steering vectors are exactly
+  orthogonal (`mu_spatial = 0`). The same 30-degree separation gives different
+  coherence at other absolute bearings, so the result is an array-orientation
+  condition map, not a universal 30-degree boundary.
+- The generator and estimator currently share the same ideal correlation kernel
+  and ideal steering law, and the 0.1-chip truth lies exactly on the search grid.
+  This is a valid smoke test but not evidence of real 2.9 m resolution.
+- The `3/6 dB` GLRT thresholds and `mu_max=0.98` are provisional. They require
+  calibration with single-source controls, real path0 texture, manifold errors,
+  channel calibration drift, and repeated trials before `P_D/P_FA` claims.
+- Real data also requires path0 delay alignment/refinement; the skeleton fixes
+  `tau0=0`. Estimates from a rejected H2 model should be reported as `N/A`, not
+  interpreted (for example the single-source row's printed 44 m candidate).
+
+Decision: keep the array pivot and reuse the existing dense-kernel/GLRT work.
+Next evidence gates are (1) faithful synthetic tests using measured Phase-A
+texture plus manifold/calibration perturbations, (2) a coherent two-channel
+single-B210 proof and wideband channel calibration, then (3) controlled OTA
+angle/delay ladders. A real 0.5-chip claim is permitted only after those gates;
+same-direction or poorly conditioned geometries must remain `UNRESOLVED`.
+
+-- Codex (GPT-5), 2026-08-04
+
 ## 2026-08-03
 
 ### 🧭 决策：转"静态四天线空间-时延"路线（`16`）——是既有工作的**扩展**，不是重写
