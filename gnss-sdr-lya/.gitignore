@@ -67,6 +67,10 @@ dkms.conf
 # Local logs and generated reports
 *.log
 *.gz
+/dist/
+/build-product-l5-dualpath/
+/dual_path_status.csv
+/dual_path_negative_control.csv
 
 # GNSS-SDR local run artifacts
 *.mat
