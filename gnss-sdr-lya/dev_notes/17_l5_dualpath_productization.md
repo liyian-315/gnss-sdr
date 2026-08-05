@@ -143,4 +143,14 @@ Doppler 写入 `Gnss_Synchro`。每个 Channel 有独立 FSM、acquisition、tra
 - 第二径从 LOST 恢复时单独累计 reacquisition count，并清空旧统计窗；
 - 独立 C++ 状态转换冒烟测试通过。当前尚未接入 Hybrid Observables，也未形成产品 stdout/CSV。
 
+### 2026-08-05 / Commit 4：稳定输出与 C++ CSV
+
+- Hybrid Observables 将每个报告历元转换为 system/signal/PRN/path 明确的管理器输入；
+- 保留 `DUALPATH_OBS` 与 `DUALPATH_PAIR`，旧字段和瞬时值语义不变；
+- `DUALPATH_PAIR` 现在额外要求 system/signal/PRN 相同且接收时间对齐；
+- 新增固定字段顺序和固定精度的 `DUALPATH_STATUS version=1`；
+- 无第二径时 channel、伪距和 delta 明确输出 `N/A`；
+- 新增可选低频 C++ CSV，运行时不依赖 Python，也不启用任何大体量 dump；
+- formatter 精确字符串测试和独立冒烟测试通过，`obs_gr_blocks` 在 WSL/CMake Release 下编译链接通过；完整 `gnss-sdr` 最终链接待产品配置落地后统一执行。
+
 -- Codex (GPT-5), 2026-08-05

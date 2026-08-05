@@ -224,6 +224,10 @@ std::vector<DualPathPairStatus> DualPathPairManager::update(const std::vector<Du
             status.window_samples = record.deltas_m.size();
             status.primary_pseudorange_m = primary_valid ? pair.primary.pseudorange_m : 0.0;
             status.second_pseudorange_m = second_valid ? pair.second.pseudorange_m : 0.0;
+            status.primary_cn0_db_hz = primary_valid ? pair.primary.cn0_db_hz : 0.0;
+            status.second_cn0_db_hz = second_valid ? pair.second.cn0_db_hz : 0.0;
+            status.primary_doppler_hz = primary_valid ? pair.primary.doppler_hz : 0.0;
+            status.second_doppler_hz = second_valid ? pair.second.doppler_hz : 0.0;
             status.delta_m = pair_valid ? pair.second.pseudorange_m - pair.primary.pseudorange_m : 0.0;
             status.delta_median_m = median(record.deltas_m);
             status.delta_mad_m = median_absolute_deviation(record.deltas_m);

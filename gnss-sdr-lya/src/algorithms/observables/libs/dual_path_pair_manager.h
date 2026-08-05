@@ -72,6 +72,10 @@ struct DualPathPairStatus
     size_t window_samples{0U};
     double primary_pseudorange_m{0.0};
     double second_pseudorange_m{0.0};
+    double primary_cn0_db_hz{0.0};
+    double second_cn0_db_hz{0.0};
+    double primary_doppler_hz{0.0};
+    double second_doppler_hz{0.0};
     double delta_m{0.0};
     double delta_median_m{0.0};
     double delta_mad_m{0.0};

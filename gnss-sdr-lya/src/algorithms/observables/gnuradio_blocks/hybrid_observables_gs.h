@@ -20,6 +20,7 @@
 #ifndef GNSS_SDR_HYBRID_OBSERVABLES_GS_H
 #define GNSS_SDR_HYBRID_OBSERVABLES_GS_H
 
+#include "dual_path_pair_manager.h"
 #include "gnss_block_interface.h"
 #include "gnss_time.h"  // for timetags produced by Tracking
 #include "obs_conf.h"
@@ -78,7 +79,7 @@ private:
     void compute_pranges(std::vector<Gnss_Synchro>& data) const;
     void smooth_pseudoranges(std::vector<Gnss_Synchro>& data);
     void detect_cycle_slips(std::vector<Gnss_Synchro>& data, uint64_t rx_clock);
-    void print_stdout_observables(const std::vector<Gnss_Synchro>& data) const;
+    void report_dual_path_observables(const std::vector<Gnss_Synchro>& data);
 
     void set_tag_timestamp_in_sdr_timeframe(const std::vector<Gnss_Synchro>& data, uint64_t rx_clock);
 
@@ -87,6 +88,7 @@ private:
     int32_t save_matfile() const;
 
     Obs_Conf d_conf;
+    DualPathPairManager d_dual_path_pair_manager;
 
     std::unique_ptr<Gnss_circular_deque<Gnss_Synchro>> d_gnss_synchro_history;  // Tracking observable history
 
@@ -106,6 +108,7 @@ private:
     std::string d_dump_filename;
 
     std::ofstream d_dump_file;
+    std::ofstream d_dual_path_csv_file;
 
     double d_smooth_filter_M;
     double d_T_rx_step_s;

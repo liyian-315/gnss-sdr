@@ -10,14 +10,16 @@ if(USE_CMAKE_TARGET_SOURCES)
     target_sources(observables_libs
         PRIVATE
             dual_path_pair_manager.cc
+            dual_path_status_formatter.cc
             obs_conf.cc
         PUBLIC
             dual_path_pair_manager.h
+            dual_path_status_formatter.h
             obs_conf.h
     )
 else()
-    source_group(Headers FILES dual_path_pair_manager.h obs_conf.h)
-    add_library(observables_libs dual_path_pair_manager.cc dual_path_pair_manager.h obs_conf.cc obs_conf.h)
+    source_group(Headers FILES dual_path_pair_manager.h dual_path_status_formatter.h obs_conf.h)
+    add_library(observables_libs dual_path_pair_manager.cc dual_path_pair_manager.h dual_path_status_formatter.cc dual_path_status_formatter.h obs_conf.cc obs_conf.h)
 endif()
 
 target_link_libraries(observables_libs
