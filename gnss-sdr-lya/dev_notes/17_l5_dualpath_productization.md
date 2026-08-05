@@ -154,3 +154,25 @@ Doppler 写入 `Gnss_Synchro`。每个 Channel 有独立 FSM、acquisition、tra
 - formatter 精确字符串测试和独立冒烟测试通过，`obs_gr_blocks` 在 WSL/CMake Release 下编译链接通过；完整 `gnss-sdr` 最终链接待产品配置落地后统一执行。
 
 -- Codex (GPT-5), 2026-08-05
+
+### 2026-08-05 / Product regression and packaging close-out
+
+- The online quality manager now rejects equal pseudoranges, weak path1 CN0,
+  excessive path Doppler separation, and sudden delay jumps before declaring a
+  pair `RELIABLE`.
+- `DUALPATH_STATUS version=1` has a fixed field order and now includes Doppler
+  delta, valid-window count, track age, and successful path1 reacquisition
+  count. Missing path1 values remain `N/A`.
+- Added static B210 20 Msps (recommended), B210 10 Msps (bandwidth-limited),
+  sc16 file-replay, and single-source negative-control configurations under
+  `product/l5_dualpath/conf/`. All high-volume dumps are disabled by default,
+  while the low-rate C++ status/CSV output remains enabled.
+- Built and ran 16 focused GoogleTest cases from four suites. All passed:
+  acquisition path selection, second-peak gates, pair-state transitions and
+  exact text/CSV formatting.
+- Product documentation, runtime checks, validation manifest, and release
+  packaging scripts are present under `product/l5_dualpath/`. The permitted
+  status remains `CODE COMPLETE`; file-replay matrix and B210 long-run product
+  acceptance are still pending.
+
+-- Codex (GPT-5), 2026-08-05

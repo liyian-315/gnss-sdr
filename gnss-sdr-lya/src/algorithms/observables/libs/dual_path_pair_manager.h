@@ -57,6 +57,8 @@ struct DualPathPairConfig
     double min_primary_cn0_db_hz{0.0};
     double min_second_cn0_db_hz{0.0};
     double max_doppler_difference_hz{1000000.0};
+    double min_abs_delta_m{1.0};
+    double max_delta_jump_m{1000000.0};
     double max_delta_mad_m{1000000.0};
 };
 
@@ -76,6 +78,8 @@ struct DualPathPairStatus
     double second_cn0_db_hz{0.0};
     double primary_doppler_hz{0.0};
     double second_doppler_hz{0.0};
+    double doppler_delta_hz{0.0};
+    double track_age_s{0.0};
     double delta_m{0.0};
     double delta_median_m{0.0};
     double delta_mad_m{0.0};
@@ -105,6 +109,7 @@ private:
         uint32_t primary_only_count{0U};
         uint32_t reacquisition_count{0U};
         bool has_seen_second{false};
+        double pair_start_time_s{0.0};
         std::deque<double> deltas_m;
         std::deque<double> primary_cn0_db_hz;
         std::deque<double> second_cn0_db_hz;

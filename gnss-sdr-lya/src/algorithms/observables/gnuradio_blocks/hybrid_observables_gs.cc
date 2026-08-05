@@ -71,6 +71,8 @@ DualPathPairConfig make_dual_path_pair_config(const Obs_Conf& conf)
     config.min_primary_cn0_db_hz = conf.dual_path_min_primary_cn0_db_hz;
     config.min_second_cn0_db_hz = conf.dual_path_min_second_cn0_db_hz;
     config.max_doppler_difference_hz = conf.dual_path_max_doppler_difference_hz;
+    config.min_abs_delta_m = conf.dual_path_min_abs_delta_m;
+    config.max_delta_jump_m = conf.dual_path_max_delta_jump_m;
     config.max_delta_mad_m = conf.dual_path_max_delta_mad_m;
     return config;
 }

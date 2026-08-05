@@ -61,6 +61,8 @@ HybridObservables::HybridObservables(const ConfigurationInterface* configuration
     conf.dual_path_min_primary_cn0_db_hz = configuration->property(role + ".dual_path_min_primary_cn0_db_hz", conf.dual_path_min_primary_cn0_db_hz);
     conf.dual_path_min_second_cn0_db_hz = configuration->property(role + ".dual_path_min_second_cn0_db_hz", conf.dual_path_min_second_cn0_db_hz);
     conf.dual_path_max_doppler_difference_hz = configuration->property(role + ".dual_path_max_doppler_difference_hz", conf.dual_path_max_doppler_difference_hz);
+    conf.dual_path_min_abs_delta_m = configuration->property(role + ".dual_path_min_abs_delta_m", conf.dual_path_min_abs_delta_m);
+    conf.dual_path_max_delta_jump_m = configuration->property(role + ".dual_path_max_delta_jump_m", conf.dual_path_max_delta_jump_m);
     conf.dual_path_max_delta_mad_m = configuration->property(role + ".dual_path_max_delta_mad_m", conf.dual_path_max_delta_mad_m);
     conf.enable_carrier_smoothing = configuration->property(role + ".enable_carrier_smoothing", conf.enable_carrier_smoothing);
     conf.always_output_gs = configuration->property("PVT.an_output_enabled", conf.always_output_gs) || configuration->property(role + ".always_output_gs", conf.always_output_gs);

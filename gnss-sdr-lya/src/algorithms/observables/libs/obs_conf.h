@@ -48,6 +48,8 @@ public:
     double dual_path_min_primary_cn0_db_hz{0.0};
     double dual_path_min_second_cn0_db_hz{0.0};
     double dual_path_max_doppler_difference_hz{1000000.0};
+    double dual_path_min_abs_delta_m{1.0};
+    double dual_path_max_delta_jump_m{1000000.0};
     double dual_path_max_delta_mad_m{1000000.0};
     bool enable_carrier_smoothing{false};
     bool always_output_gs{false};

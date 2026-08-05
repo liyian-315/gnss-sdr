@@ -151,7 +151,10 @@ std::vector<DualPathPairStatus> DualPathPairManager::update(const std::vector<Du
                                    pair.second.cn0_db_hz >= d_config.min_second_cn0_db_hz;
             const bool doppler_valid = primary_valid && second_valid &&
                                        std::abs(pair.primary.doppler_hz - pair.second.doppler_hz) <= d_config.max_doppler_difference_hz;
-            const bool pair_valid = time_aligned && cn0_valid && doppler_valid;
+            const double current_delta_m = primary_valid && second_valid ? pair.second.pseudorange_m - pair.primary.pseudorange_m : 0.0;
+            const bool delta_separated = primary_valid && second_valid && std::abs(current_delta_m) >= d_config.min_abs_delta_m;
+            const bool delta_stable = record.deltas_m.empty() || std::abs(current_delta_m - median(record.deltas_m)) <= d_config.max_delta_jump_m;
+            const bool pair_valid = time_aligned && cn0_valid && doppler_valid && delta_separated && delta_stable;
 
             if (pair_valid)
                 {
@@ -163,12 +166,17 @@ std::vector<DualPathPairStatus> DualPathPairManager::update(const std::vector<Du
                             record.second_cn0_db_hz.clear();
                             record.primary_doppler_hz.clear();
                             record.second_doppler_hz.clear();
+                            record.pair_start_time_s = pair.primary.rx_time_s;
+                        }
+                    else if (!record.has_seen_second)
+                        {
+                            record.pair_start_time_s = pair.primary.rx_time_s;
                         }
                     record.has_seen_second = true;
                     record.primary_only_count = 0U;
                     record.consecutive_bad = 0U;
                     record.consecutive_good++;
-                    append_bounded(record.deltas_m, pair.second.pseudorange_m - pair.primary.pseudorange_m, d_config.window_size);
+                    append_bounded(record.deltas_m, current_delta_m, d_config.window_size);
                     append_bounded(record.primary_cn0_db_hz, pair.primary.cn0_db_hz, d_config.window_size);
                     append_bounded(record.second_cn0_db_hz, pair.second.cn0_db_hz, d_config.window_size);
                     append_bounded(record.primary_doppler_hz, pair.primary.doppler_hz, d_config.window_size);
@@ -228,7 +236,9 @@ std::vector<DualPathPairStatus> DualPathPairManager::update(const std::vector<Du
             status.second_cn0_db_hz = second_valid ? pair.second.cn0_db_hz : 0.0;
             status.primary_doppler_hz = primary_valid ? pair.primary.doppler_hz : 0.0;
             status.second_doppler_hz = second_valid ? pair.second.doppler_hz : 0.0;
-            status.delta_m = pair_valid ? pair.second.pseudorange_m - pair.primary.pseudorange_m : 0.0;
+            status.doppler_delta_hz = pair_valid ? pair.second.doppler_hz - pair.primary.doppler_hz : 0.0;
+            status.track_age_s = record.has_seen_second && primary_valid ? std::max(0.0, pair.primary.rx_time_s - record.pair_start_time_s) : 0.0;
+            status.delta_m = pair_valid ? current_delta_m : 0.0;
             status.delta_median_m = median(record.deltas_m);
             status.delta_mad_m = median_absolute_deviation(record.deltas_m);
             status.primary_cn0_median_db_hz = median(record.primary_cn0_db_hz);

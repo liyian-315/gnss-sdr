@@ -1,0 +1,7 @@
+id,category,iq_path,rate_sps,sample_type,prn,expected_delta_m,expected_result,notes
+single_source,single_source_negative,/external/path/single.sc16,20000000,ishort,18,N/A,NO_SECOND_SOURCE,no sustained RELIABLE allowed
+dual_1000m,long_distance_positive,/external/path/dual_1000m.sc16,20000000,ishort,18,1000,PASS,three runs minimum
+dual_220m,long_distance_positive,/external/path/dual_220m.sc16,20000000,ishort,18,220,PASS,replace with calibrated truth
+dual_350m,long_distance_positive,/external/path/dual_350m.sc16,20000000,ishort,18,350,PASS,three runs minimum
+near_failure,known_failure,/external/path/near.sc16,20000000,ishort,18,15,UNRESOLVED,must not force RELIABLE
+noise_or_absent,negative_control,/external/path/noise.sc16,20000000,ishort,18,N/A,NO_SECOND_SOURCE,no target PRN

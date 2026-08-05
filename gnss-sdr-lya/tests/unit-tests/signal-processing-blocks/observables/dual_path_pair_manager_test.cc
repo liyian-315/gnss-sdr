@@ -75,3 +75,44 @@ TEST(DualPathPairManager, RejectsTimeMismatchAndKeepsSignalsSeparate)
     second.key.signal = "1C";
     EXPECT_EQ(manager.update({make_observation(0U, 1000.0), second}).size(), 2U);
 }
+
+TEST(DualPathPairManager, EqualPseudorangesNeverBecomeReliablePair)
+{
+    DualPathPairConfig config;
+    config.reliable_confirmations = 1U;
+    config.min_abs_delta_m = 1.0;
+    DualPathPairManager manager(config);
+    const auto status = manager.update({make_observation(0U, 1000.0), make_observation(1U, 1000.0)}).front();
+    EXPECT_NE(status.state, DualPathState::RELIABLE);
+    EXPECT_EQ(status.window_samples, 0U);
+}
+
+TEST(DualPathPairManager, RejectsWeakSecondAndExcessiveDopplerDifference)
+{
+    DualPathPairConfig config;
+    config.reliable_confirmations = 1U;
+    config.min_second_cn0_db_hz = 35.0;
+    config.max_doppler_difference_hz = 10.0;
+    DualPathPairManager manager(config);
+
+    auto weak = make_observation(1U, 1060.0);
+    weak.cn0_db_hz = 30.0;
+    EXPECT_NE(manager.update({make_observation(0U, 1000.0), weak}).front().state, DualPathState::RELIABLE);
+
+    auto wrong_doppler = make_observation(1U, 1060.0);
+    wrong_doppler.doppler_hz = -950.0;
+    EXPECT_NE(manager.update({make_observation(0U, 1000.0), wrong_doppler}).front().state, DualPathState::RELIABLE);
+}
+
+TEST(DualPathPairManager, SuddenDelayJumpDegradesReliablePair)
+{
+    DualPathPairConfig config;
+    config.reliable_confirmations = 1U;
+    config.max_delta_jump_m = 10.0;
+    DualPathPairManager manager(config);
+
+    EXPECT_EQ(manager.update({make_observation(0U, 1000.0), make_observation(1U, 1060.0)}).front().state, DualPathState::RELIABLE);
+    const auto status = manager.update({make_observation(0U, 1001.0), make_observation(1U, 1101.0)}).front();
+    EXPECT_EQ(status.state, DualPathState::DEGRADED);
+    EXPECT_EQ(status.window_samples, 1U);
+}

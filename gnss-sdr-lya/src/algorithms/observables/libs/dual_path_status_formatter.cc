@@ -57,14 +57,17 @@ std::string format_dual_path_status_v1(const DualPathPairStatus& status)
     append_value_or_na(stream, history_valid, status.primary_doppler_median_hz, 3);
     stream << " second_doppler_hz=";
     append_value_or_na(stream, history_valid, status.second_doppler_median_hz, 3);
-    stream << " reacq_count=" << status.reacquisition_count
-           << " window_samples=" << status.window_samples;
+    stream << " doppler_delta_hz=";
+    append_value_or_na(stream, pair_valid, status.doppler_delta_hz, 3);
+    stream << " valid_count=" << status.window_samples
+           << " track_age_s=" << std::fixed << std::setprecision(1) << status.track_age_s
+           << " reacquisition_count=" << status.reacquisition_count;
     return stream.str();
 }
 
 std::string dual_path_csv_header_v1()
 {
-    return "version,system,signal,prn,state,primary_channel,second_channel,primary_pseudorange_m,second_pseudorange_m,delta_m,delta_median_m,delta_mad_m,primary_cn0_median_db_hz,second_cn0_median_db_hz,primary_doppler_median_hz,second_doppler_median_hz,reacquisition_count,window_samples";
+    return "version,system,signal,prn,state,primary_channel,second_channel,primary_pseudorange_m,second_pseudorange_m,delta_m,delta_median_m,delta_mad_m,primary_cn0_median_db_hz,second_cn0_median_db_hz,primary_doppler_median_hz,second_doppler_median_hz,doppler_delta_hz,valid_count,track_age_s,reacquisition_count";
 }
 
 std::string format_dual_path_csv_v1(const DualPathPairStatus& status)
@@ -96,6 +99,10 @@ std::string format_dual_path_csv_v1(const DualPathPairStatus& status)
     append_value_or_na(stream, history_valid, status.primary_doppler_median_hz, 3);
     stream << ',';
     append_value_or_na(stream, history_valid, status.second_doppler_median_hz, 3);
-    stream << ',' << status.reacquisition_count << ',' << status.window_samples;
+    stream << ',';
+    append_value_or_na(stream, pair_valid, status.doppler_delta_hz, 3);
+    stream << ',' << status.window_samples
+           << ',' << std::fixed << std::setprecision(1) << status.track_age_s
+           << ',' << status.reacquisition_count;
     return stream.str();
 }
