@@ -183,7 +183,9 @@ private:
     void update_grid_doppler_wipeoffs_step2();
     void doppler_grid(const gr_complex* in);
     AcquisitionResult compute_statistics();
-    void update_synchro(const AcquisitionResult& result);
+    void update_synchro(const AcquisitionResult& result, bool use_second);
+    void invalidate_second_path_synchro();
+    void handle_second_path_threshold_reached(AcquisitionResult& result);
     void handle_threshold_reached(AcquisitionResult& result);
     void handle_integration_done(const AcquisitionResult& result);
     void acquisition_core(uint64_t sample_count);

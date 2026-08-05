@@ -20,6 +20,7 @@
  */
 
 #include "pcps_acquisition.h"
+#include "acquisition_path_selector.h"
 #include "GLONASS_L1_L2_CA.h"  // for GLONASS_PRN
 #include "MATH_CONSTANTS.h"    // for TWO_PI
 #include "gnss_frequencies.h"
@@ -680,13 +681,8 @@ pcps_acquisition::AcquisitionResult pcps_acquisition::compute_statistics()
 }
 
 
-void pcps_acquisition::update_synchro(const AcquisitionResult& result)
+void pcps_acquisition::update_synchro(const AcquisitionResult& result, bool use_second)
 {
-    // Stage 1b: an "acquire_second_path" channel hands the SECOND path (the delayed
-    // multipath replica) to tracking instead of the main peak, so it locks the reflection
-    // while a sibling channel on the same PRN tracks the direct path. Assumes make_2_steps
-    // is off (the 2-step refinement targets the main peak, not the second one).
-    const bool use_second = (d_acq_parameters.acquire_second_path || d_gnss_synchro->Signal_Path == 1U) && result.has_second_peak;
     const uint32_t acq_code_phase = use_second ? result.index_time2 : result.index_time;
     const int32_t acq_doppler = use_second ? result.doppler2 : result.doppler;
 
@@ -710,6 +706,26 @@ void pcps_acquisition::update_synchro(const AcquisitionResult& result)
         {
             d_gnss_synchro->Acq_doppler_step = d_acq_parameters.doppler_step2;
         }
+}
+
+
+void pcps_acquisition::invalidate_second_path_synchro()
+{
+    d_gnss_synchro->Acq_delay_samples = 0.0;
+    d_gnss_synchro->Acq_doppler_hz = 0.0;
+    d_gnss_synchro->Acq_samplestamp_samples = 0U;
+}
+
+
+void pcps_acquisition::handle_second_path_threshold_reached(AcquisitionResult& result)
+{
+    // Main-peak two-step refinement and bit-transition shortcuts are not valid
+    // substitutes for an accepted second peak.
+    d_state = 0;
+    send_positive_acquisition(result);
+    result.positive_acq = true;
+    d_active = false;
+    d_step_two = false;
 }
 
 
@@ -802,14 +818,42 @@ void pcps_acquisition::acquisition_core(uint64_t sample_count)
 
     lk.lock();
 
-    update_synchro(result);
+    const bool requires_second_path = d_acq_parameters.acquire_second_path || d_gnss_synchro->Signal_Path == 1U;
+    const bool main_peak_valid = result.test_statistics > get_threshold();
+    const auto path_selection = select_acquisition_path(requires_second_path, main_peak_valid, result.has_second_peak);
 
-    if (!d_acq_parameters.bit_transition_flag)
+    if (path_selection.accepted)
         {
-            // Stage 1b: an acquire_second_path channel declares success on a valid SECOND
-            // peak (the reflection it is meant to track); otherwise the usual main-peak test.
-            const bool acq_positive = (d_acq_parameters.acquire_second_path || d_gnss_synchro->Signal_Path == 1U) ? result.has_second_peak : (result.test_statistics > get_threshold());
-            if (acq_positive)
+            update_synchro(result, path_selection.use_second);
+        }
+    else if (requires_second_path)
+        {
+            invalidate_second_path_synchro();
+        }
+    else
+        {
+            update_synchro(result, false);
+        }
+
+    if (requires_second_path)
+        {
+            if (path_selection.accepted)
+                {
+                    handle_second_path_threshold_reached(result);
+                }
+            else
+                {
+                    d_buffer_count = 0;
+                    d_state = 1;
+                    if ((d_num_noncoherent_integrations_counter == d_acq_parameters.max_dwells) || d_acq_parameters.bit_transition_flag)
+                        {
+                            handle_integration_done(result);
+                        }
+                }
+        }
+    else if (!d_acq_parameters.bit_transition_flag)
+        {
+            if (path_selection.accepted)
                 {
                     handle_threshold_reached(result);
                 }
@@ -826,7 +870,7 @@ void pcps_acquisition::acquisition_core(uint64_t sample_count)
         }
     else
         {
-            if (result.test_statistics > d_threshold)
+            if (path_selection.accepted)
                 {
                     handle_threshold_reached(result);
                 }

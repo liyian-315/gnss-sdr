@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
-set(ACQUISITION_LIB_HEADERS acq_conf.h)
+set(ACQUISITION_LIB_HEADERS acquisition_path_selector.h acq_conf.h)
 set(ACQUISITION_LIB_SOURCES acq_conf.cc)
 
 if(ENABLE_FPGA)

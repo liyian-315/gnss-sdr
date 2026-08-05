@@ -113,4 +113,16 @@ Doppler 写入 `Gnss_Synchro`。每个 Channel 有独立 FSM、acquisition、tra
 | 已知失败 | 近距融合峰、现场噪声化第二峰、亚码片 |
 | 后续版本 | 空间阵列、运动轨迹、第二径定位融合 |
 
+## 6. 实施进度
+
+### 2026-08-05 / Commit 2：禁止 path1 回退主峰
+
+- 新增 `select_acquisition_path()` 纯策略函数，明确主径与第二径的接受语义；
+- path1 必须同时满足主峰有效和第二峰有效，缺少第二峰时清空 acquisition 初值并继续搜索；
+- path1 不再通过主峰的 bit-transition 或 two-step 捷径进入 tracking；
+- path0 的既有捕获行为保持不变；
+- 新增四组单元测试，覆盖主径成功、第二径缺失、第二径成功和主峰无效；
+- WSL 全量链接生成 `build-wsl-codex/src/main/gnss-sdr`，`--version` 正常；
+- 独立 C++ 断言冒烟测试通过。GNU Radio/gtest 完整测试和 NUC/B210 行为测试尚未执行，不能据此标记硬件验收通过。
+
 -- Codex (GPT-5), 2026-08-05
