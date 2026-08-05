@@ -176,6 +176,10 @@ private:
         int32_t doppler2{0};          // 2nd-peak Doppler [Hz]
         float test_statistics2{0};    // 2nd-peak strength relative to input power
         float peak_ratio{0};          // main-peak magnitude / 2nd-peak magnitude
+        float second_delay_chips{0};
+        float second_peak_to_noise_db{0};
+        float second_power_ratio_db{0};
+        uint32_t second_boundary_distance_bins{0U};
     };
 
     void update_local_carrier(own::span<gr_complex> carrier_vector, float freq) const;

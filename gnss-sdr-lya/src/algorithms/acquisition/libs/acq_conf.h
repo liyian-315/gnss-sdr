@@ -53,8 +53,11 @@ public:
     float pfa2{0.0};
     float samples_per_code{0.0};
     float resampler_ratio{1.0};
+    float multipath_min_delay_chips{1.0F};  // exclude the main-peak neighborhood
     float multipath_max_delay_chips{5.0F};  // window (chips) around the main peak to look for a 2nd path
     float multipath_threshold_fraction{0.3F};  // 2nd-peak detection gate as a fraction of the main CFAR threshold
+    float multipath_min_peak_to_noise_db{-1000.0F};  // disabled-compatible default
+    float multipath_max_power_ratio_db{1000.0F};  // disabled-compatible default
 
     uint32_t sampled_ms{1U};
     uint32_t ms_per_code{1U};
@@ -64,6 +67,7 @@ public:
     uint32_t num_doppler_bins_step2{4U};
     uint32_t resampler_latency_samples{0U};
     uint32_t dump_channel{0U};
+    uint32_t multipath_reject_boundary_bins{0U};
     int32_t doppler_max{5000};
     int32_t doppler_min{-5000};
     int32_t doppler_step{500};

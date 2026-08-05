@@ -86,9 +86,30 @@ void Acq_Conf::SetFromConfiguration(const ConfigurationInterface *configuration,
     // Multipath / second-path detection (Stage 1a retrofit): detect and report a
     // second correlation peak in the neighborhood of the main peak.
     multipath_detection = configuration->property(role + ".multipath_detection", multipath_detection);
+    multipath_min_delay_chips = configuration->property(role + ".multipath_min_delay_chips", multipath_min_delay_chips);
     multipath_max_delay_chips = configuration->property(role + ".multipath_max_delay_chips", multipath_max_delay_chips);
     multipath_threshold_fraction = configuration->property(role + ".multipath_threshold_fraction", multipath_threshold_fraction);
+    multipath_min_peak_to_noise_db = configuration->property(role + ".multipath_min_peak_to_noise_db", multipath_min_peak_to_noise_db);
+    multipath_max_power_ratio_db = configuration->property(role + ".multipath_max_power_ratio_db", multipath_max_power_ratio_db);
+    multipath_reject_boundary_bins = configuration->property(role + ".multipath_reject_boundary_bins", multipath_reject_boundary_bins);
     acquire_second_path = configuration->property(role + ".acquire_second_path", acquire_second_path);
+
+    if (multipath_min_delay_chips < 0.0F)
+        {
+            LOG(WARNING) << "Parameter multipath_min_delay_chips cannot be negative. Setting it to 0";
+            multipath_min_delay_chips = 0.0F;
+        }
+    if (multipath_max_delay_chips <= multipath_min_delay_chips)
+        {
+            LOG(WARNING) << "Parameter multipath_max_delay_chips must exceed multipath_min_delay_chips. "
+                         << "Setting it to " << multipath_min_delay_chips + 1.0F;
+            multipath_max_delay_chips = multipath_min_delay_chips + 1.0F;
+        }
+    if (multipath_threshold_fraction < 0.0F)
+        {
+            LOG(WARNING) << "Parameter multipath_threshold_fraction cannot be negative. Setting it to 0";
+            multipath_threshold_fraction = 0.0F;
+        }
 
     if (pfa <= 0.0)
         {

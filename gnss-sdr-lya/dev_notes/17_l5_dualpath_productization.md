@@ -125,4 +125,13 @@ Doppler 写入 `Gnss_Synchro`。每个 Channel 有独立 FSM、acquisition、tra
 - WSL 全量链接生成 `build-wsl-codex/src/main/gnss-sdr`，`--version` 正常；
 - 独立 C++ 断言冒烟测试通过。GNU Radio/gtest 完整测试和 NUC/B210 行为测试尚未执行，不能据此标记硬件验收通过。
 
+### 2026-08-05 / 第二峰质量门禁
+
+- 新增最小/最大延迟、局部峰噪比、主次峰最大功率比和搜索窗边界保护配置；
+- 第二峰仍需通过原有相对 CFAR 门限，所有门禁为逻辑与关系；
+- 局部噪声采用同 Doppler、有效延迟搜索区间内功率中位数；
+- acquisition 日志与可选 MAT dump 增加上述诊断量；
+- 库级新增门限默认保持旧行为，产品配置必须显式给出经离线数据校准的数值，禁止把暂定值写成已验证阈值。
+- 独立门禁断言测试通过；WSL/CMake Release 主程序完整重编译并链接通过。尚未执行历史 IQ 文件回放，因此产品阈值仍处于待标定状态。
+
 -- Codex (GPT-5), 2026-08-05

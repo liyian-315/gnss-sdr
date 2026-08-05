@@ -21,6 +21,7 @@
 
 #include "pcps_acquisition.h"
 #include "acquisition_path_selector.h"
+#include "second_peak_gate.h"
 #include "GLONASS_L1_L2_CA.h"  // for GLONASS_PRN
 #include "MATH_CONSTANTS.h"    // for TWO_PI
 #include "gnss_frequencies.h"
@@ -40,6 +41,7 @@
 #include <iostream>
 #include <limits>
 #include <map>
+#include <vector>
 
 #if USE_GLOG_AND_GFLAGS
 #include <glog/logging.h>
@@ -320,7 +322,11 @@ void pcps_acquisition::log_acquisition(const AcquisitionResult& result) const
             DLOG(INFO) << "  2nd path: code phase " << result.index_time2
                        << ", doppler " << result.doppler2
                        << ", peak_ratio(1st/2nd) " << result.peak_ratio
-                       << ", test_stat2 " << result.test_statistics2;
+                       << ", test_stat2 " << result.test_statistics2
+                       << ", delay_chips " << result.second_delay_chips
+                       << ", peak_to_noise_db " << result.second_peak_to_noise_db
+                       << ", main_to_second_db " << result.second_power_ratio_db
+                       << ", boundary_distance_bins " << result.second_boundary_distance_bins;
         }
 }
 
@@ -354,7 +360,8 @@ void pcps_acquisition::send_positive_acquisition(const AcquisitionResult& result
             LOG(INFO) << "  MULTIPATH " << d_gnss_synchro->System << " " << d_gnss_synchro->PRN
                       << ": 2nd path at " << second_chips << " chips (main " << main_chips
                       << " chips, delta " << (second_chips - main_chips) << " chips), "
-                      << "main/2nd power ratio " << 10.0F * std::log10(result.peak_ratio + 1.0e-9F) << " dB, "
+                      << "main/2nd power ratio " << result.second_power_ratio_db << " dB, "
+                      << "peak/noise " << result.second_peak_to_noise_db << " dB, "
                       << "2nd Doppler " << result.doppler2 << " Hz";
         }
 
@@ -424,6 +431,10 @@ void pcps_acquisition::dump_results(const AcquisitionResult& result)
                     write_matlab_var<1>("acq_doppler_hz_2", static_cast<float>(result.doppler2), matfp, dims_1d);
                     write_matlab_var<1>("test_statistic_2", result.test_statistics2, matfp, dims_1d);
                     write_matlab_var<1>("peak_ratio", result.peak_ratio, matfp, dims_1d);
+                    write_matlab_var<1>("second_delay_chips", result.second_delay_chips, matfp, dims_1d);
+                    write_matlab_var<1>("second_peak_to_noise_db", result.second_peak_to_noise_db, matfp, dims_1d);
+                    write_matlab_var<1>("second_power_ratio_db", result.second_power_ratio_db, matfp, dims_1d);
+                    write_matlab_var<1>("second_boundary_distance_bins", result.second_boundary_distance_bins, matfp, dims_1d);
                 }
 
             if (d_acq_parameters.make_2_steps)
@@ -572,20 +583,15 @@ void pcps_acquisition::find_second_peak(AcquisitionResult& result)
                 }
         }
 
-    // Search for a second peak in the SAME Doppler bin, within a +/- window around the
-    // main peak (a second path is a delayed replica of the same satellite, so it stays
-    // close in code phase and shares the Doppler), excluding the +/-1 chip main lobe.
-    // The neighborhood constraint (plus non-coherent integration) keeps the search from
-    // latching onto noise side-peaks far from the main peak.
+    // Search in the same Doppler bin. Delay and boundary gates prevent the
+    // strongest eligible noise bin from silently becoming path1.
     const auto fft_size = static_cast<int32_t>(d_effective_fft_size);
-    const int32_t exclude = static_cast<int32_t>(d_samplesPerChip);
-    int32_t window = static_cast<int32_t>(std::round(d_acq_parameters.multipath_max_delay_chips * static_cast<float>(d_samplesPerChip)));
-    if (window <= exclude)
-        {
-            window = exclude + 1;
-        }
+    const int32_t min_delay = static_cast<int32_t>(std::round(d_acq_parameters.multipath_min_delay_chips * static_cast<float>(d_samplesPerChip)));
+    const int32_t window = static_cast<int32_t>(std::round(d_acq_parameters.multipath_max_delay_chips * static_cast<float>(d_samplesPerChip)));
 
     std::copy(d_magnitude_grid[index_doppler].data(), d_magnitude_grid[index_doppler].data() + d_effective_fft_size, d_tmp_buffer.data());
+    std::vector<float> eligible_magnitudes;
+    eligible_magnitudes.reserve(static_cast<size_t>(2 * std::max(0, window - min_delay)));
     for (int32_t k = 0; k < fft_size; k++)
         {
             int32_t dist = k - static_cast<int32_t>(index_time);  // circular distance to the main peak
@@ -598,28 +604,60 @@ void pcps_acquisition::find_second_peak(AcquisitionResult& result)
                     dist += fft_size;
                 }
             const int32_t adist = std::abs(dist);
-            if (adist <= exclude || adist > window)
+            if (adist <= min_delay || adist > window)
                 {
                     d_tmp_buffer[k] = 0.0;
                 }
+            else
+                {
+                    eligible_magnitudes.push_back(d_tmp_buffer[k]);
+                }
+        }
+
+    if (eligible_magnitudes.empty())
+        {
+            result.has_second_peak = false;
+            return;
         }
 
     volk_gnsssdr_32f_index_max_32u(&tmp_index, d_tmp_buffer.data(), d_effective_fft_size);
     const float second_magnitude = d_tmp_buffer[tmp_index];
 
-    result.has_second_peak = (second_magnitude > 0.0F);
+    const auto median_it = eligible_magnitudes.begin() + eligible_magnitudes.size() / 2;
+    std::nth_element(eligible_magnitudes.begin(), median_it, eligible_magnitudes.end());
+    const float local_noise_median = *median_it;
+
+    int32_t second_distance = static_cast<int32_t>(tmp_index) - static_cast<int32_t>(index_time);
+    if (second_distance > fft_size / 2)
+        {
+            second_distance -= fft_size;
+        }
+    else if (second_distance < -fft_size / 2)
+        {
+            second_distance += fft_size;
+        }
+    const uint32_t second_abs_distance = static_cast<uint32_t>(std::abs(second_distance));
+
     result.index_time2 = tmp_index;
     result.doppler2 = -static_cast<int32_t>(d_doppler_max) + d_doppler_center + static_cast<int32_t>(d_doppler_step) * static_cast<int32_t>(index_doppler);
     result.peak_ratio = (second_magnitude > std::numeric_limits<float>::epsilon()) ? (grid_maximum / second_magnitude) : 0.0F;
     result.test_statistics2 = (d_input_power > std::numeric_limits<float>::epsilon()) ? (second_magnitude / d_input_power) : 0.0F;
-    // Flag a genuine second path when its strength clears a fraction of the main CFAR
-    // detection threshold. A second path is inherently weaker than the main peak, so the
-    // full main-peak threshold would be too strict; a fraction of it still sits well above
-    // the noise floor (single-path in-window maxima are just noise -> low test_statistics2).
-    // The fraction is configurable (multipath_threshold_fraction). CFAR mode only (pfa > 0);
-    // in non-CFAR mode d_input_power is not refreshed, so test_statistics2 (and the flag) stay 0.
-    const float second_gate = d_acq_parameters.multipath_threshold_fraction * get_threshold();
-    result.has_second_peak = (second_magnitude > 0.0F) && (result.test_statistics2 > second_gate);
+    result.second_delay_chips = static_cast<float>(second_abs_distance) / static_cast<float>(d_samplesPerChip);
+    result.second_power_ratio_db = 10.0F * std::log10(std::max(result.peak_ratio, std::numeric_limits<float>::epsilon()));
+    result.second_peak_to_noise_db = 10.0F * std::log10(second_magnitude / std::max(local_noise_median, std::numeric_limits<float>::epsilon()));
+    result.second_boundary_distance_bins = static_cast<uint32_t>(std::max(0, window - static_cast<int32_t>(second_abs_distance)));
+
+    const SecondPeakGateConfig gate_config{
+        d_acq_parameters.multipath_threshold_fraction,
+        d_acq_parameters.multipath_min_peak_to_noise_db,
+        d_acq_parameters.multipath_max_power_ratio_db,
+        d_acq_parameters.multipath_reject_boundary_bins};
+    const SecondPeakMetrics metrics{
+        result.test_statistics2,
+        result.second_power_ratio_db,
+        result.second_peak_to_noise_db,
+        result.second_boundary_distance_bins};
+    result.has_second_peak = second_magnitude > 0.0F && second_peak_passes_gate(gate_config, metrics, get_threshold());
 }
 
 
