@@ -9,13 +9,15 @@ if(USE_CMAKE_TARGET_SOURCES)
     add_library(observables_libs STATIC)
     target_sources(observables_libs
         PRIVATE
+            dual_path_pair_manager.cc
             obs_conf.cc
         PUBLIC
+            dual_path_pair_manager.h
             obs_conf.h
     )
 else()
-    source_group(Headers FILES obs_conf.h)
-    add_library(observables_libs obs_conf.cc obs_conf.h)
+    source_group(Headers FILES dual_path_pair_manager.h obs_conf.h)
+    add_library(observables_libs dual_path_pair_manager.cc dual_path_pair_manager.h obs_conf.cc obs_conf.h)
 endif()
 
 target_link_libraries(observables_libs

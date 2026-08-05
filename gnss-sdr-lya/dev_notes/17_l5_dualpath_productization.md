@@ -134,4 +134,13 @@ Doppler 写入 `Gnss_Synchro`。每个 Channel 有独立 FSM、acquisition、tra
 - 库级新增门限默认保持旧行为，产品配置必须显式给出经离线数据校准的数值，禁止把暂定值写成已验证阈值。
 - 独立门禁断言测试通过；WSL/CMake Release 主程序完整重编译并链接通过。尚未执行历史 IQ 文件回放，因此产品阈值仍处于待标定状态。
 
+### 2026-08-05 / Commit 3：双路径质量状态机核心
+
+- 新增与 GNU Radio 解耦的 `DualPathPairManager`，键为 system/signal/PRN；
+- 状态包含 `SEARCHING/CANDIDATE/RELIABLE/DEGRADED/NO_SECOND_SOURCE/LOST`；
+- 以接收时间、CN0、Doppler 差、连续确认数和伪距差滑窗 MAD 共同判定可靠性；
+- 保存伪距差、两路 CN0 和两路 Doppler 的滑窗中位数/MAD；
+- 第二径从 LOST 恢复时单独累计 reacquisition count，并清空旧统计窗；
+- 独立 C++ 状态转换冒烟测试通过。当前尚未接入 Hybrid Observables，也未形成产品 stdout/CSV。
+
 -- Codex (GPT-5), 2026-08-05
