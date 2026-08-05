@@ -9,6 +9,22 @@
 
 ---
 
+## 2026-08-05 - Codex - 冻结 GPS L5 Dual-Path Receiver v1 产品范围
+
+从研究分支 `research/multipath-correlator-fit` 的
+`5271ccb8d21ccaf53bbfdfaf0b3c89ecb541b5c0` 创建产品分支
+`product/l5-dualpath-receiver-v1`。v1 只承诺捕获面已有明显分离峰的同 PRN
+双源持续跟踪、原生 C++ 状态/观测输出、path1 独立重捕和无大 dump 长跑；
+不承诺亚码片、阵列、运动超相关、三路以上或 path1 进入 PVT。
+
+审计确认普通 path1 acquisition 已以 `has_second_peak` 为成功条件，但
+bit-transition 分支仍可能绕过该门；现有配对输出也只按 PRN/path 瞬时匹配，
+缺少 system/signal/time、持久状态、稳定滤波和重捕计数。完整风险、提交顺序和
+验收标准见 `17_l5_dualpath_productization.md`。在 NUC/B210 实测完成前不得标为
+`REALTIME VALIDATED` 或 release candidate。
+
+-- Codex (GPT-5), 2026-08-05
+
 ## 2026-08-04 - Codex - Review of the static space-delay skeleton
 
 Reproduced `python3 dev_notes/sim/fit_space_delay_twosource.py --self-test` at

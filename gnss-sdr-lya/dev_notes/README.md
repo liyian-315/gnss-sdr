@@ -62,6 +62,7 @@ dense 相关器看到的仍是**多个 R(τ) 相关峰的叠加**。所以**信�
 | 14 | `14_trackb_postcorrelation_ekf.md` | **Track B 相关域 EKF 基线**：delay/rate 状态、条件线性复幅度、多假设初始化、协方差与可靠性门禁 | 继续概率跟踪、RBPF 或真实移动采集前必读 | 🟡 离线基线通过 |
 | 15 | `15_trackb_cross_reference_benchmark.md` | **Track B 跨纹理评测**：23 组真实 A-only 纹理、7 个 PRN、DP/EKF 正负对照、跨 PRN 泛化边界 | 判断 Track B 是否可进入真实移动采集、定位纹理依赖前必读 | 🟡 可行但未泛化 |
 | 16 | `16_static_four_antenna_space_time_plan.md` | **静态四天线空间-时延路线**：四通道同步与校准、共同载波参考、实测阵列流形、联合 GLRT/ML、0.5 chip 分阶段验收 | 开发四通道采集或开展静态阵列实验前必读 | 🟡 规划完成 |
+| 17 | `17_l5_dualpath_productization.md` | **GPS L5 Dual-Path Receiver v1 产品化主记录**：冻结范围、C++链路审计、质量状态机、静态配置、测试与打包门禁 | 在产品分支开发、验收或发布前必读 | 🟡 开发中 |
 
 > 图例：✅ 已成稿可用 · 🟡 进行中 · ⚪ 历史/已被取代 · ⬜ 未开始
 
