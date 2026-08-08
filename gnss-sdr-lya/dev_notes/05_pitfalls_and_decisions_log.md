@@ -9,6 +9,54 @@
 
 ---
 
+## 2026-08-08 - Claude - L5 Dual-Path Receiver v1 独立审查裁决：BLOCK_RELEASE
+
+对 `product/l5-dualpath-receiver-v1`（`6eedc51aa`，基线 `5271ccb8d`）做独立审查，
+完整报告见 `18_l5_dualpath_product_review.md`。
+
+**先更正一处事实**：交给审查的"Codex 产品提交 `5271ccb8d`"实际是**研究基线**
+`research/multipath-correlator-fit` 的 HEAD，真正的产品提交是 `6eedc51aa`。
+
+**裁决：BLOCK_RELEASE**，三条 BLOCKING：
+
+1. `DualPathPairManager::update()` 只遍历当前历元出现的 key，两路**同时**失联时记录被冻结
+   （state / consecutive_good / 全部滑窗 / pair_start_time_s）。失联结束后**第一个历元**
+   就直接重发 `RELIABLE`，带着失联前的滑窗、把失联时长算进 `track_age_s`、
+   `reacquisition_count` 仍是 0。而 PVT 时钟修正会对所有通道
+   `d_gnss_synchro_history->clear()`，**每次时钟修正都会触发这个场景**——是常规工况不是边角。
+2. 出厂 `l5_singlepath_negative_control.conf` 是 `count=1 / signal_paths=1 /
+   multipath_detection=false`，**结构上不可能产生 path1**，`NO_SECOND_SOURCE` 恒真；
+   且省略了全部 `dual_path_*` 门限、回落到最宽松的库默认值。必过的单源假警测试
+   **用现有交付物无法执行**。
+3. 发布包构建于 WSL2 Ubuntu 24.04（`build-info.txt`），不是文档规定的 NUC/conda 或 RK3588；
+   100 个动态依赖全指向宿主 `/lib/x86_64-linux-gnu/`，无依赖说明；
+   `.sha256` 里写的是构建机绝对路径，接收方 `sha256sum -c` 必然失败
+   （摘要本身我手工比对过是对的）；README 链接的 `tests/README.md` 未打进包。
+
+**主要 MAJOR**（详见 `18` §6）：`multipath_threshold_fraction` 从库默认 0.3 改到 **0.12**
+（放宽 2.5 倍），方向与 `08` Step 2 的标定流程（0.25→0.35→0.5 直到单路 `has2≈0`）相反，
+而 Step 2 从未执行；`max_dwells` 会改变第二峰门限含义且每 dwell 独立判决；
+搜索窗边界保护只防外边界不防主瓣裙边；延迟门限按 `ceil` 后的整数 samples-per-chip 量化，
+`1.25 chip` 实际生效约 **60 m**（偏大 64%），`KNOWN_LIMITATIONS` 第 4 条据此需要改写；
+`check_runtime.sh` 用 `grep -i overflow` 做长跑门禁，但 B210 走的
+`gr::uhd::usrp_source` 溢出时只打裸 `O`，全仓无任何 UHD 路径打印 `overflow`
+——"30 分钟无 overflow"可能在持续溢出下通过。
+
+**应当肯定**：产品范围冻结与宣传边界处理得很克制，无任何越界声称，`CODE COMPLETE`
+标签诚实；path1 回退主峰这个最危险的缺陷**已真正修掉**（`select_acquisition_path` +
+`invalidate_second_path_synchro`，四种组合有单测）；运行不依赖 Python 已实打实做到。
+
+**本次未执行**（无 Linux/工具链/回放数据/B210）：任何编译、单元测试运行、文件回放、
+实时长跑、发布包启动测试。**因此本产品目前不存在任何可引用的产品级验证证据，
+产品最小已验证距离 = 无。**
+
+**代码改动**：仅在 `dual_path_pair_manager_test.cc` 加两个用例——
+`KeepsSeparatePrnsFromCrossPairing`（补多 PRN 不交叉配对的覆盖空白）和
+`DISABLED_TotalOutageMustNotRepublishStaleReliable`（BLOCKING-1 的修复规格，
+当前必然失败故先 DISABLED）。未写任何平行算法。
+
+-- Claude (Opus 5), 2026-08-08
+
 ## 2026-08-05 - Codex - 冻结 GPS L5 Dual-Path Receiver v1 产品范围
 
 从研究分支 `research/multipath-correlator-fit` 的
