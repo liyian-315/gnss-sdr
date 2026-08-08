@@ -116,3 +116,67 @@ TEST(DualPathPairManager, SuddenDelayJumpDegradesReliablePair)
     EXPECT_EQ(status.state, DualPathState::DEGRADED);
     EXPECT_EQ(status.window_samples, 1U);
 }
+
+TEST(DualPathPairManager, KeepsSeparatePrnsFromCrossPairing)
+{
+    DualPathPairConfig config;
+    config.reliable_confirmations = 1U;
+    DualPathPairManager manager(config);
+
+    auto other_primary = make_observation(0U, 2000.0);
+    other_primary.key.prn = 20U;
+    auto other_second = make_observation(1U, 2075.0);
+    other_second.key.prn = 20U;
+
+    const auto statuses = manager.update({make_observation(0U, 1000.0), make_observation(1U, 1060.0),
+        other_primary, other_second});
+    ASSERT_EQ(statuses.size(), 2U);
+    EXPECT_EQ(statuses[0].key.prn, 18U);
+    EXPECT_DOUBLE_EQ(statuses[0].delta_m, 60.0);
+    EXPECT_EQ(statuses[1].key.prn, 20U);
+    EXPECT_DOUBLE_EQ(statuses[1].delta_m, 75.0);
+
+    // PRN 20 keeps only its second path: it must not borrow the PRN 18 primary.
+    other_second.pseudorange_m = 2076.0;
+    const auto follow_up = manager.update({make_observation(0U, 1001.0), make_observation(1U, 1061.0), other_second});
+    ASSERT_EQ(follow_up.size(), 2U);
+    EXPECT_DOUBLE_EQ(follow_up[0].delta_m, 60.0);
+    EXPECT_EQ(follow_up[1].key.prn, 20U);
+    EXPECT_FALSE(follow_up[1].primary_valid);
+    EXPECT_NE(follow_up[1].state, DualPathState::RELIABLE);
+}
+
+// REVIEW 2026-08-08 (see dev_notes/18_l5_dualpath_product_review.md, BLOCKING-1).
+// update() only visits keys present in the current epoch. When both paths of a PRN
+// disappear together the record is never revisited, so state, consecutive_good and the
+// rolling windows freeze. This happens in normal operation: a PVT clock correction calls
+// d_gnss_synchro_history->clear() on every channel, so every PRN vanishes for several
+// epochs. The first epoch after the gap is then republished as RELIABLE carrying a
+// pre-gap delta window, a track_age_s spanning the outage, and reacquisition_count=0.
+// Required fix: age records out when they are absent from an update (or drive them with
+// an explicit "no observation" tick), then re-enter CANDIDATE with cleared windows and a
+// fresh pair_start_time_s. Drop the DISABLED_ prefix once that lands.
+TEST(DualPathPairManager, DISABLED_TotalOutageMustNotRepublishStaleReliable)
+{
+    DualPathPairConfig config;
+    config.reliable_confirmations = 3U;
+    config.window_size = 8U;
+    DualPathPairManager manager(config);
+
+    for (int i = 0; i < 5; i++)
+        {
+            const double time_s = 1.0 + 0.1 * static_cast<double>(i);
+            manager.update({make_observation(0U, 1000.0 + i, time_s), make_observation(1U, 1060.0 + i, time_s)});
+        }
+
+    // The PRN produces no observation at all for a minute.
+    for (int i = 0; i < 10; i++)
+        {
+            manager.update({});
+        }
+
+    const auto status = manager.update({make_observation(0U, 5000.0, 61.0), make_observation(1U, 5060.0, 61.0)}).front();
+    EXPECT_NE(status.state, DualPathState::RELIABLE);
+    EXPECT_LE(status.window_samples, 1U);
+    EXPECT_LT(status.track_age_s, 1.0);
+}
