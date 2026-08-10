@@ -65,6 +65,7 @@ dense 相关器看到的仍是**多个 R(τ) 相关峰的叠加**。所以**信�
 | 17 | `17_l5_dualpath_productization.md` | **GPS L5 Dual-Path Receiver v1 产品化主记录**：冻结范围、C++链路审计、质量状态机、静态配置、测试与打包门禁 | 在产品分支开发、验收或发布前必读 | 🟡 开发中 |
 | 18 | `18_l5_dualpath_product_review.md` | **L5 Dual-Path v1 独立审查报告**：BLOCK_RELEASE 裁决、3 条 BLOCKING（失联后假 RELIABLE / 负对照配置无效 / 发布包目标机不符）、10 条 MAJOR 与精确修改要求、证据-宣传对照表 | 修复产品分支或再次提交发布前必读 | ✅ 冻结 |
 | 19 | `19_l5_dualpath_release_blocking_fix_round1.md` | **L5 Dual-Path v1 发布阻断修复 Round 1**：B-1/B-2/B-3 根因与修复、NUC `run_tests`、单/双源回放、发布包自校验和剩余验证缺口 | Claude 第二轮审查或继续产品验收前必读 | 🟡 CODE_COMPLETE |
+| 21 | `21_tunnel_das_balance_tool.md` | **隧道 DAS 双端覆盖测量与功率配平工具**：测点输入、END_A/END_B 物理身份关联、`TUNNEL_DAS_STATUS` 实时输出、中点 UNRESOLVED 边界、单测与集成编译结果 | 现场做隧道双端覆盖测量或改身份判据前必读 | 🟡 待射频实测 |
 
 > 图例：✅ 已成稿可用 · 🟡 进行中 · ⚪ 历史/已被取代 · ⬜ 未开始
 
