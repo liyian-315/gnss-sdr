@@ -1,6 +1,6 @@
 # GPS L5 Dual-Path Receiver v1 - Release Blocking Fix Round 1
 
-Date: 2026-08-10  
+Date: 2026-08-10
 Author: Codex (GPT-5)
 
 ## Scope and baseline
@@ -139,5 +139,5 @@ The three review BLOCKING defects are fixed and their local/NUC test entrances a
 2. no replayable 200-220 m or long-distance raw IQ on the NUC;
 3. no 30-minute B210 single/dual-source, path1 off/on, overflow, and reacquisition run.
 
-Current product level: **CODE_COMPLETE**.  
+Current product level: **CODE_COMPLETE**.
 Not claimed: `OFFLINE_VALIDATED`, `REALTIME_VALIDATED`, or RC1.
