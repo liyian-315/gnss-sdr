@@ -16,6 +16,10 @@ echo "git_sha=$(git -C "$ROOT" rev-parse HEAD)"
 [[ -f "$REPLAY_CONF" ]] || fail "missing replay configuration"
 
 for conf in "$B210_CONF" "$REPLAY_CONF"; do
+    first_property_line="$(grep -nEm1 '^[A-Za-z0-9_-]+\.' "$conf" | cut -d: -f1)"
+    section_line="$(grep -nEm1 '^\[GNSS-SDR\]$' "$conf" | cut -d: -f1)"
+    [[ -n "$section_line" && -n "$first_property_line" && "$section_line" -lt "$first_property_line" ]] ||
+        fail "$conf has active properties before [GNSS-SDR]"
     require_line "$conf" '^Tunnel\.enable=true$'
     require_line "$conf" '^Tunnel\.length_m='
     require_line "$conf" '^Tunnel\.measurement_position_m='
