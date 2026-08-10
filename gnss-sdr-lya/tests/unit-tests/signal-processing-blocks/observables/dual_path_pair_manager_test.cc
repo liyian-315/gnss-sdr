@@ -53,7 +53,10 @@ TEST(DualPathPairManager, TracksIndependentLossAndReacquisition)
     EXPECT_EQ(manager.update({make_observation(0U, 1000.0), make_observation(1U, 1060.0)}).front().state, DualPathState::RELIABLE);
     manager.update({make_observation(0U, 1001.0)});
     EXPECT_EQ(manager.update({make_observation(0U, 1002.0)}).front().state, DualPathState::LOST);
-    const auto status = manager.update({make_observation(0U, 1003.0), make_observation(1U, 1063.0)}).front();
+    auto status = manager.update({make_observation(0U, 1003.0), make_observation(1U, 1063.0)}).front();
+    EXPECT_EQ(status.state, DualPathState::CANDIDATE);
+    EXPECT_EQ(status.reacquisition_count, 1U);
+    status = manager.update({make_observation(0U, 1004.0), make_observation(1U, 1064.0)}).front();
     EXPECT_EQ(status.state, DualPathState::RELIABLE);
     EXPECT_EQ(status.reacquisition_count, 1U);
 }
@@ -156,7 +159,7 @@ TEST(DualPathPairManager, KeepsSeparatePrnsFromCrossPairing)
 // Required fix: age records out when they are absent from an update (or drive them with
 // an explicit "no observation" tick), then re-enter CANDIDATE with cleared windows and a
 // fresh pair_start_time_s. Drop the DISABLED_ prefix once that lands.
-TEST(DualPathPairManager, DISABLED_TotalOutageMustNotRepublishStaleReliable)
+TEST(DualPathPairManager, TotalOutageMustNotRepublishStaleReliable)
 {
     DualPathPairConfig config;
     config.reliable_confirmations = 3U;
@@ -179,4 +182,62 @@ TEST(DualPathPairManager, DISABLED_TotalOutageMustNotRepublishStaleReliable)
     EXPECT_NE(status.state, DualPathState::RELIABLE);
     EXPECT_LE(status.window_samples, 1U);
     EXPECT_LT(status.track_age_s, 1.0);
+}
+
+TEST(DualPathPairManager, SecondPathOutageAndReacquisitionUseFreshGeneration)
+{
+    DualPathPairConfig config;
+    config.reliable_confirmations = 3U;
+    config.lost_confirmations = 3U;
+    config.report_interval_s = 1.0;
+    config.second_path_freshness_limit_s = 3.0;
+    DualPathPairManager manager(config);
+
+    DualPathPairStatus status;
+    for (int i = 0; i < 3; i++)
+        {
+            const double time_s = 1.0 + static_cast<double>(i);
+            status = manager.update({make_observation(0U, 1000.0 + i, time_s),
+                make_observation(1U, 1060.0 + i, time_s)}).front();
+        }
+    ASSERT_EQ(status.state, DualPathState::RELIABLE);
+    ASSERT_EQ(status.window_samples, 3U);
+
+    status = manager.update({make_observation(0U, 1003.0, 4.0)}).front();
+    EXPECT_EQ(status.state, DualPathState::DEGRADED);
+    EXPECT_TRUE(status.primary_valid);
+    EXPECT_FALSE(status.second_valid);
+    EXPECT_DOUBLE_EQ(status.primary_pseudorange_m, 1003.0);
+
+    status = manager.update({make_observation(0U, 1004.0, 5.0)}).front();
+    EXPECT_EQ(status.state, DualPathState::DEGRADED);
+    status = manager.update({make_observation(0U, 1005.0, 6.0)}).front();
+    EXPECT_EQ(status.state, DualPathState::LOST);
+    EXPECT_TRUE(status.primary_valid);
+    EXPECT_FALSE(status.second_valid);
+    EXPECT_EQ(status.window_samples, 0U);
+    EXPECT_DOUBLE_EQ(status.second_pseudorange_m, 0.0);
+    EXPECT_DOUBLE_EQ(status.delta_m, 0.0);
+    EXPECT_DOUBLE_EQ(status.delta_median_m, 0.0);
+
+    status = manager.update({make_observation(0U, 1006.0, 7.0)}).front();
+    EXPECT_EQ(status.state, DualPathState::LOST);
+    EXPECT_EQ(status.reacquisition_count, 0U);
+
+    status = manager.update({make_observation(0U, 1007.0, 8.0),
+        make_observation(1U, 1067.0, 8.0)}).front();
+    EXPECT_EQ(status.state, DualPathState::CANDIDATE);
+    EXPECT_EQ(status.window_samples, 1U);
+    EXPECT_EQ(status.reacquisition_count, 1U);
+    EXPECT_LT(status.track_age_s, 0.1);
+
+    status = manager.update({make_observation(0U, 1008.0, 9.0),
+        make_observation(1U, 1068.0, 9.0)}).front();
+    EXPECT_EQ(status.state, DualPathState::CANDIDATE);
+    EXPECT_EQ(status.reacquisition_count, 1U);
+    status = manager.update({make_observation(0U, 1009.0, 10.0),
+        make_observation(1U, 1069.0, 10.0)}).front();
+    EXPECT_EQ(status.state, DualPathState::RELIABLE);
+    EXPECT_EQ(status.window_samples, 3U);
+    EXPECT_EQ(status.reacquisition_count, 1U);
 }

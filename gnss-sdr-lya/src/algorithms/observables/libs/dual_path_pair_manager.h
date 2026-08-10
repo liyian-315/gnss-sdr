@@ -53,7 +53,9 @@ struct DualPathPairConfig
     uint32_t reliable_confirmations{5U};
     uint32_t no_second_confirmations{3U};
     uint32_t lost_confirmations{5U};
+    double report_interval_s{1.0};
     double max_time_difference_s{0.050};
+    double second_path_freshness_limit_s{5.0};
     double min_primary_cn0_db_hz{0.0};
     double min_second_cn0_db_hz{0.0};
     double max_doppler_difference_hz{1000000.0};
@@ -80,6 +82,8 @@ struct DualPathPairStatus
     double second_doppler_hz{0.0};
     double doppler_delta_hz{0.0};
     double track_age_s{0.0};
+    double primary_age_s{0.0};
+    double second_age_s{0.0};
     double delta_m{0.0};
     double delta_median_m{0.0};
     double delta_mad_m{0.0};
@@ -110,6 +114,12 @@ private:
         uint32_t reacquisition_count{0U};
         bool has_seen_second{false};
         double pair_start_time_s{0.0};
+        double last_primary_valid_receiver_time_s{0.0};
+        double last_second_valid_receiver_time_s{0.0};
+        double last_primary_valid_report_time_s{0.0};
+        double last_second_valid_report_time_s{0.0};
+        bool has_valid_primary{false};
+        bool has_valid_second{false};
         std::deque<double> deltas_m;
         std::deque<double> primary_cn0_db_hz;
         std::deque<double> second_cn0_db_hz;
@@ -119,6 +129,7 @@ private:
 
     DualPathPairConfig d_config;
     std::map<DualPathKey, PairRecord> d_records;
+    double d_report_time_s{0.0};
 };
 
 #endif  // GNSS_SDR_DUAL_PATH_PAIR_MANAGER_H

@@ -67,7 +67,9 @@ DualPathPairConfig make_dual_path_pair_config(const Obs_Conf& conf)
     config.reliable_confirmations = conf.dual_path_reliable_confirmations;
     config.no_second_confirmations = conf.dual_path_no_second_confirmations;
     config.lost_confirmations = conf.dual_path_lost_confirmations;
+    config.report_interval_s = static_cast<double>(conf.dual_path_interval_ms) / 1000.0;
     config.max_time_difference_s = conf.dual_path_max_time_difference_s;
+    config.second_path_freshness_limit_s = conf.dual_path_second_path_freshness_limit_s;
     config.min_primary_cn0_db_hz = conf.dual_path_min_primary_cn0_db_hz;
     config.min_second_cn0_db_hz = conf.dual_path_min_second_cn0_db_hz;
     config.max_doppler_difference_hz = conf.dual_path_max_doppler_difference_hz;

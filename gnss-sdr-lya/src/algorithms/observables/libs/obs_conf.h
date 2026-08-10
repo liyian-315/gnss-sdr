@@ -44,6 +44,7 @@ public:
     uint32_t dual_path_reliable_confirmations{5U};
     uint32_t dual_path_no_second_confirmations{3U};
     uint32_t dual_path_lost_confirmations{5U};
+    double dual_path_second_path_freshness_limit_s{5.0};
     double dual_path_max_time_difference_s{0.050};
     double dual_path_min_primary_cn0_db_hz{0.0};
     double dual_path_min_second_cn0_db_hz{0.0};

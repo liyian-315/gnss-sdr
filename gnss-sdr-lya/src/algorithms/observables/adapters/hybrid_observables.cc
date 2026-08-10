@@ -57,6 +57,7 @@ HybridObservables::HybridObservables(const ConfigurationInterface* configuration
     conf.dual_path_reliable_confirmations = configuration->property(role + ".dual_path_reliable_confirmations", conf.dual_path_reliable_confirmations);
     conf.dual_path_no_second_confirmations = configuration->property(role + ".dual_path_no_second_confirmations", conf.dual_path_no_second_confirmations);
     conf.dual_path_lost_confirmations = configuration->property(role + ".dual_path_lost_confirmations", conf.dual_path_lost_confirmations);
+    conf.dual_path_second_path_freshness_limit_s = configuration->property(role + ".dual_path_second_path_freshness_limit_s", conf.dual_path_second_path_freshness_limit_s);
     conf.dual_path_max_time_difference_s = configuration->property(role + ".dual_path_max_time_difference_s", conf.dual_path_max_time_difference_s);
     conf.dual_path_min_primary_cn0_db_hz = configuration->property(role + ".dual_path_min_primary_cn0_db_hz", conf.dual_path_min_primary_cn0_db_hz);
     conf.dual_path_min_second_cn0_db_hz = configuration->property(role + ".dual_path_min_second_cn0_db_hz", conf.dual_path_min_second_cn0_db_hz);
