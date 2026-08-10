@@ -48,7 +48,7 @@ struct TunnelSiteConfig
     //! PROVISIONAL gate values: not calibrated against field measurements yet.
     double identity_max_error_m{75.0};
     double identity_margin_m{50.0};
-    uint32_t identity_confirm_epochs{5U};
+    int32_t identity_confirm_epochs{5};
     uint32_t prn{0U};
     std::string end_a_name{"END_A"};
     std::string end_b_name{"END_B"};

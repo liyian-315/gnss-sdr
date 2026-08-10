@@ -83,6 +83,8 @@ TEST(TunnelEndAssociation, RejectsInvalidFieldConfiguration)
     config = site_at_300m();
     config.identity_confirm_epochs = 0U;
     EXPECT_FALSE(validate_tunnel_site_config(config).empty());
+    config.identity_confirm_epochs = -1;
+    EXPECT_FALSE(validate_tunnel_site_config(config).empty());
     config = site_at_300m();
     config.identity_max_error_m = 0.0;
     EXPECT_FALSE(validate_tunnel_site_config(config).empty());

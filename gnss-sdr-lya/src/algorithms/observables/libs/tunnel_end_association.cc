@@ -103,7 +103,7 @@ std::string validate_tunnel_site_config(const TunnelSiteConfig& config)
         {
             return "Tunnel.identity_margin_m must be finite and >= 0";
         }
-    if (config.identity_confirm_epochs < 1U)
+    if (config.identity_confirm_epochs < 1)
         {
             return "Tunnel.identity_confirm_epochs must be >= 1";
         }
@@ -231,7 +231,8 @@ std::vector<TunnelEndStatus> TunnelEndAssociation::update(const std::vector<Dual
                             record.has_assignment = true;
                             record.confirm_count++;
                             const bool pair_reliable = pair.state == DualPathState::RELIABLE;
-                            record.identity = (pair_reliable && record.confirm_count >= d_config.identity_confirm_epochs) ?
+                            record.identity = (pair_reliable && d_config.identity_confirm_epochs > 0 &&
+                                                  record.confirm_count >= static_cast<uint32_t>(d_config.identity_confirm_epochs)) ?
                                                   TunnelIdentityState::RELIABLE :
                                                   TunnelIdentityState::CANDIDATE;
                         }
