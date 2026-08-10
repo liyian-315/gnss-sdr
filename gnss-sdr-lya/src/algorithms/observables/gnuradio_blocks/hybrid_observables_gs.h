@@ -21,6 +21,7 @@
 #define GNSS_SDR_HYBRID_OBSERVABLES_GS_H
 
 #include "dual_path_pair_manager.h"
+#include "tunnel_end_association.h"
 #include "gnss_block_interface.h"
 #include "gnss_time.h"  // for timetags produced by Tracking
 #include "obs_conf.h"
@@ -89,6 +90,7 @@ private:
 
     Obs_Conf d_conf;
     DualPathPairManager d_dual_path_pair_manager;
+    TunnelEndAssociation d_tunnel_end_association;
 
     std::unique_ptr<Gnss_circular_deque<Gnss_Synchro>> d_gnss_synchro_history;  // Tracking observable history
 

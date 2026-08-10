@@ -79,8 +79,23 @@ DualPathPairConfig make_dual_path_pair_config(const Obs_Conf& conf)
     return config;
 }
 
-std::string signal_id(const Gnss_Synchro& observation)
+TunnelSiteConfig make_tunnel_site_config(const Obs_Conf& conf)
 {
+    TunnelSiteConfig config;
+    config.enable = conf.tunnel_enable;
+    config.length_m = conf.tunnel_length_m;
+    config.measurement_position_m = conf.tunnel_measurement_position_m;
+    config.end_a_fixed_delay_m = conf.tunnel_end_a_fixed_delay_m;
+    config.end_b_fixed_delay_m = conf.tunnel_end_b_fixed_delay_m;
+    config.identity_max_error_m = conf.tunnel_identity_max_error_m;
+    config.identity_margin_m = conf.tunnel_identity_margin_m;
+    config.identity_confirm_epochs = conf.tunnel_identity_confirm_epochs;
+    config.end_a_name = conf.tunnel_end_a_name;
+    config.end_b_name = conf.tunnel_end_b_name;
+    return config;
+}
+
+std::string signal_id(const Gnss_Synchro& observation){
     std::string signal;
     if (observation.Signal[0] != '\0')
         {
@@ -108,6 +123,7 @@ hybrid_observables_gs::hybrid_observables_gs(const Obs_Conf &conf_)
           gr::io_signature::make(conf_.nchannels_out, conf_.nchannels_out, sizeof(Gnss_Synchro))),
       d_conf(conf_),
       d_dual_path_pair_manager(make_dual_path_pair_config(conf_)),
+      d_tunnel_end_association(make_tunnel_site_config(conf_)),
       d_dump_filename(conf_.dump_filename),
       d_smooth_filter_M(static_cast<double>(conf_.smoothing_factor)),
       d_T_rx_step_s(static_cast<double>(conf_.observable_interval_ms) / 1000.0),
@@ -126,6 +142,14 @@ hybrid_observables_gs::hybrid_observables_gs(const Obs_Conf &conf_)
     if (d_conf.dual_path_interval_ms == 0U)
         {
             d_conf.dual_path_interval_ms = d_conf.observable_interval_ms;
+        }
+
+    if (d_conf.tunnel_enable)
+        {
+            // Field banner: the operator must be able to confirm the site parameters
+            // that were actually loaded before trusting any END_A / END_B output.
+            std::cout << format_tunnel_das_banner(d_tunnel_end_association.config()) << '\n';
+            LOG(INFO) << format_tunnel_das_banner(d_tunnel_end_association.config());
         }
 
     // PVT input message port
@@ -396,6 +420,16 @@ void hybrid_observables_gs::report_dual_path_observables(const std::vector<Gnss_
                     d_dual_path_csv_file << format_dual_path_csv_v1(status) << '\n';
                 }
             d_dual_path_csv_file.flush();
+        }
+
+    // Tunnel DAS layer: maps the already-computed paths onto the two physical ends.
+    // It is the field operator's primary display and writes no files.
+    if (d_conf.tunnel_enable)
+        {
+            for (const auto& tunnel_status : d_tunnel_end_association.update(statuses))
+                {
+                    std::cout << format_tunnel_das_status_v1(tunnel_status) << '\n';
+                }
         }
 }
 
@@ -1097,7 +1131,7 @@ int hybrid_observables_gs::general_work(int noutput_items __attribute__((unused)
                 {
                     detect_cycle_slips(epoch_data, d_Rx_clock_buffer.front());
                 }
-            if ((d_conf.stdout || d_conf.dual_path_csv) && n_valid > 0)
+            if ((d_conf.stdout || d_conf.dual_path_csv || d_conf.tunnel_enable) && n_valid > 0)
                 {
                     d_T_stdout_report_timer_ms += d_T_rx_step_ms;
                     if (d_T_stdout_report_timer_ms >= d_conf.dual_path_interval_ms)
