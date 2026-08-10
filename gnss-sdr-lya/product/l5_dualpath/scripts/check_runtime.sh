@@ -27,6 +27,15 @@ if grep -Eq '^Tracking_L5\.dense_correlator_dump=true' "$config"; then
     echo "ERROR: dense correlator dump must be disabled in a product config" >&2
     exit 1
 fi
+if [[ $(basename "$config") == "l5_singlepath_negative_control.conf" ]]; then
+    negative_required=("Channels_L5.count=2" "Channels_L5.signal_paths=2" "Channels.in_acquisition=2" "Channel0.signal_path=0" "Channel1.signal_path=1" "Acquisition_L5.multipath_detection=true")
+    for setting in "${negative_required[@]}"; do
+        grep -Fqx "$setting" "$config" || { echo "ERROR: negative control bypasses dual-path logic: missing $setting" >&2; exit 1; }
+    done
+    primary_pn=$(sed -n 's/^Channel0\.satellite=//p' "$config")
+    second_pn=$(sed -n 's/^Channel1\.satellite=//p' "$config")
+    [[ -n $primary_pn && $primary_pn == "$second_pn" ]] || { echo "ERROR: negative-control channels must use the same PRN" >&2; exit 1; }
+fi
 
 echo "Configuration safety checks: PASS"
 if [[ $run_seconds -eq 0 ]]; then
