@@ -1,6 +1,6 @@
 # 隧道 DAS 双端覆盖测量与功平配平工具 v1
 
-状态：**CODE COMPLETE。单元测试通过、与 GNSS-SDR 主链路编译通过；尚未做 B210 双端实测。**
+状态：**SOFTWARE READY FOR HARDWARE VALIDATION。Release 完整构建、35 项产品回归测试和配置预检通过；尚未做 B210 双端实测。**
 
 隧道 A、B 两端同时转发同一颗 GPS L5 卫星、同一 PRN、同一频点。
 工作人员带 USRP B210 + 接收天线 + NUC 走到隧道内某个已知测点，启动 GNSS-SDR，
@@ -32,7 +32,7 @@
 启动时会先打印一行站点回执，**先确认它和现场一致再看数据**：
 
 ```
-TUNNEL_DAS position_m=300.0 length_m=1000.0 end_a_name=END_A end_b_name=END_B end_a_fixed_delay_m=0.0 end_b_fixed_delay_m=0.0 expected_delta_b_minus_a_m=400.0
+TUNNEL_DAS_CONFIG length_m=1000.0 position_m=300.0 distance_to_a_m=300.0 distance_to_b_m=700.0 end_a_name=END_A end_b_name=END_B end_a_fixed_delay_m=0.0 end_b_fixed_delay_m=0.0 expected_delta_b_minus_a_m=400.0 prn=18
 ```
 
 ---

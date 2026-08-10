@@ -1943,3 +1943,38 @@ Decision:
 - treat target-host tests, negative controls, and clean-directory package verification as evidence, not a successful compile alone.
 
 The code blockers are closed, but existing dual-source 30 s IQ loses tracking before a positive product status is established. Product level remains `CODE_COMPLETE`, not `OFFLINE_VALIDATED`. See `19_l5_dualpath_release_blocking_fix_round1.md`.
+
+## 2026-08-10 - Codex - Tunnel product time follows report ticks, not valid observations
+
+The tunnel product output timer was gated by `n_valid > 0`. During a complete
+PRN outage, neither `DualPathPairManager::update({})` nor
+`TunnelEndAssociation::update()` ran, even though PairManager already knew how
+to age a known record to `LOST`.
+
+Decision:
+
+- advance the product state path on every configured report tick;
+- expose `CANDIDATE` and `DEGRADED` in the frozen status `state` field;
+- publish no formal A/B measurements while identity is not reliable;
+- reject invalid tunnel geometry at startup instead of silently clamping it;
+- keep hardware validation separate from deterministic software evidence.
+
+The full software handoff and exact remaining hardware gate are recorded in
+`22_tunnel_das_software_completion.md`.
+
+## 2026-08-10 - Codex - GNSS-SDR INI properties require an active section
+
+The first B210 and replay product configurations placed their editable field
+parameters before `[GNSS-SDR]`. The parser ignored those properties; replay
+therefore used the default `./example_capture.dat` even though a filename was
+visibly present in the file.
+
+Decision:
+
+- put `[GNSS-SDR]` before every active property, including the editable block;
+- verify configurations with the real `gnss-sdr` binary, not grep alone;
+- make preflight reject any active property before `[GNSS-SDR]`.
+
+The corrected replay configuration prints the exact site banner and completes
+a construction smoke test. Invalid geometry prints `TUNNEL_CONFIG_ERROR` and
+disables Tunnel output.
