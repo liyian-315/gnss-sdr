@@ -36,7 +36,7 @@ mkdir -p "$stage/bin" "$stage/conf" "$stage/scripts" "$stage/tests" "$stage/LICE
 cp "$binary" "$stage/bin/gnss-sdr"
 cp "$product_dir"/conf/*.conf "$stage/conf/"
 cp "$product_dir"/README_CN.md "$product_dir"/README_EN.md "$product_dir"/CHANGELOG.md "$product_dir"/KNOWN_LIMITATIONS.md "$product_dir"/RUNTIME_REQUIREMENTS.md "$product_dir"/VERSION "$stage/"
-cp "$script_dir/check_runtime.sh" "$script_dir/check_status_log.sh" "$script_dir/verify_release.sh" "$stage/scripts/"
+cp "$script_dir/check_runtime.sh" "$script_dir/check_status_log.sh" "$script_dir/run_file_replay_validation.sh" "$script_dir/verify_release.sh" "$stage/scripts/"
 cp "$product_dir/tests/README.md" "$product_dir/tests/replay_manifest.example.csv" "$stage/tests/"
 cp -a "$root/LICENSES/." "$stage/LICENSES/"
 git -C "$root" rev-parse HEAD > "$stage/git-commit.txt"

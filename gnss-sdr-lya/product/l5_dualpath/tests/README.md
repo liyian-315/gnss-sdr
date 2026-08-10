@@ -21,6 +21,14 @@ Copy `replay_manifest.example.csv` to an external data directory, replace every 
 
 For every row report primary/second lock rate, RELIABLE fraction, false reliable fraction, delta median/MAD, successful reacquisition count, expected delay/error, and PASS/MARGINAL/UNRESOLVED. No threshold is final until both positive and negative controls pass.
 
+Run an external 20 Msps interleaved-int16 capture without editing the source tree:
+
+```bash
+bash scripts/run_file_replay_validation.sh ./bin/gnss-sdr conf/l5_dualpath_file_replay.conf /data/capture.sc16 18 /tmp/replay-prn18
+```
+
+Append `--single-source-negative` for a capture known to contain only one source. The generated config, receiver log, CSV, and summary stay in the selected output directory.
+
 ## Layer 3: realtime B210
 
 Run single source for 30 minutes, dual source for 30 minutes, stop/restart source B, vary path power ratio, restart GNSS-SDR, and restart the simulator. Record overflow, CPU, RSS, log growth, state fractions, and reacquisitions. A single-source run must not contain sustained RELIABLE path1.
