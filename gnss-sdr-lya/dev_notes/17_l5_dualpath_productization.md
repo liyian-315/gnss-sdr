@@ -155,6 +155,16 @@ Doppler 写入 `Gnss_Synchro`。每个 Channel 有独立 FSM、acquisition、tra
 
 -- Codex (GPT-5), 2026-08-05
 
+## 2026-08-10 - Release Blocking Fix Round 1
+
+Claude review `50b1752f1adabb143c68d0a5ecc94655a4d485c2` was read from the pushed review branch. B-1 stale-path freshness/generation semantics, B-2 the executable full-logic single-source negative control, and B-3 target-NUC self-verifying packaging are implemented.
+
+The registered NUC `run_tests` target was built with `ENABLE_UNIT_TESTING=ON`; 29 release-relevant DualPath, Acquisition, and Observables tests ran and passed. A real A-only PRN28 replay passed the negative gate. Existing 60/90 m dual-source captures lost tracking before producing product observables, while a 30 m capture correctly remained `SEARCHING`; therefore positive offline validation is still missing.
+
+Current level remains `CODE_COMPLETE`. Full evidence and exact commands are in `19_l5_dualpath_release_blocking_fix_round1.md`.
+
+-- Codex (GPT-5), 2026-08-10
+
 ### 2026-08-05 / Product regression and packaging close-out
 
 - The online quality manager now rejects equal pseudoranges, weak path1 CN0,

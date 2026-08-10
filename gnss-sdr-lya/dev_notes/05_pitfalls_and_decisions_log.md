@@ -1929,3 +1929,17 @@ The minimal screen fixes high CN0 and -6 dB power ratio, then tests
 `0/0.5/1.0 chip` against `0/10/30/60 deg` before any full boundary campaign.
 The complete plan and stop rules are in
 `16_static_four_antenna_space_time_plan.md`.
+
+## 2026-08-10 - Codex - Product state must advance when path1 is silent
+
+The product manager previously updated only PRNs present in the current observables epoch. A total path1 outage therefore froze stale `RELIABLE` evidence and could mix pre-loss and post-reacquisition samples.
+
+Decision:
+
+- advance every known pair on every report tick, including no-observation ticks;
+- require current, fresh, time-aligned path0 and path1 observations for `RELIABLE`;
+- publish `N/A` for formal path1 measurements after `LOST` while preserving path0;
+- clear the statistical generation on loss and force reacquisition through `CANDIDATE`;
+- treat target-host tests, negative controls, and clean-directory package verification as evidence, not a successful compile alone.
+
+The code blockers are closed, but existing dual-source 30 s IQ loses tracking before a positive product status is established. Product level remains `CODE_COMPLETE`, not `OFFLINE_VALIDATED`. See `19_l5_dualpath_release_blocking_fix_round1.md`.
