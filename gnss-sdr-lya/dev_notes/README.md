@@ -61,7 +61,8 @@ dense 相关器看到的仍是**多个 R(τ) 相关峰的叠加**。所以**信�
 | 13 | `13_trackb_moving_trajectory_prototype.md` | **Track B 移动接收机轨迹原型**：几何驱动双源生成、delay-Doppler 候选、物理连续性轨迹提取、faithful synthetic 正负对照 | 继续移动场景算法或设计真实移动采集前必读 | 🟡 原型通过 |
 | 14 | `14_trackb_postcorrelation_ekf.md` | **Track B 相关域 EKF 基线**：delay/rate 状态、条件线性复幅度、多假设初始化、协方差与可靠性门禁 | 继续概率跟踪、RBPF 或真实移动采集前必读 | 🟡 离线基线通过 |
 | 15 | `15_trackb_cross_reference_benchmark.md` | **Track B 跨纹理评测**：23 组真实 A-only 纹理、7 个 PRN、DP/EKF 正负对照、跨 PRN 泛化边界 | 判断 Track B 是否可进入真实移动采集、定位纹理依赖前必读 | 🟡 可行但未泛化 |
-| 16 | `16_static_four_antenna_space_time_plan.md` | **静态四天线空间-时延路线**：四通道同步与校准、共同载波参考、实测阵列流形、联合 GLRT/ML、0.5 chip 分阶段验收 | 开发四通道采集或开展静态阵列实验前必读 | 🟡 规划完成 |
+| 16 | `16_static_four_antenna_space_time_plan.md` | **静态四天线空间-时延路线**：四通道同步与校准、共同载波参考、实测阵列流形、联合 GLRT/ML、0.5 chip 分阶段验收 | 开发四通道采集或开展静态阵列实验前必读 | ⚪ 方法论保留·硬件方案被 `19` 取代 |
+| 19 | `19_y790s_8ch_uca_space_delay_plan.md` | **Y790s 八通道 + 八元 UCA 空间-时延计划**：圆阵方向模型、路线P(MUSIC对照)/路线R(主算法)、2/3/4源可辨识性、Gate 0–6、8通道数据规范、厂家接口清单、证据等级纪律 | 开展 Y790s 采购/八通道开发/阵列实验前必读 | 🟡 规划完成 |
 
 > 图例：✅ 已成稿可用 · 🟡 进行中 · ⚪ 历史/已被取代 · ⬜ 未开始
 

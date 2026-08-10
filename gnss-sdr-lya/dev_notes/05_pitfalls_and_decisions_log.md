@@ -1865,3 +1865,29 @@ The minimal screen fixes high CN0 and -6 dB power ratio, then tests
 `0/0.5/1.0 chip` against `0/10/30/60 deg` before any full boundary campaign.
 The complete plan and stop rules are in
 `16_static_four_antenna_space_time_plan.md`.
+
+## 2026-08-10 Claude — 阵列路线升级:四元 ULA → Y790s 八元 UCA(新文档 19)
+
+**决策**:静态空间-时延路线的目标硬件从"原生四通道 + 四元 λ/2 ULA"升级为
+**Y790s 八通道同步 SDR + 八元均匀圆阵(UCA, 半径≈16.2 cm@L5)**;新分支
+`research/y790s-8ch-space-delay`(基线 `research/multipath-correlator-fit`
+@ `5271ccb8d`)。完整计划、Gate 0–6、数据规范、厂家接口清单见
+`19_y790s_8ch_uca_space_delay_plan.md`;doc 16 保留为方法论出处,不覆盖。
+
+**保留不变**:dense 复相关导出、Phase A 实测核、A/B-only faithful 纹理、
+texture-aware GLRT、varpro ML、四态置信 + 不可靠拒绝输出、单源负对照、
+MMV 逐块 nuisance、`(B, M, K)` 数据形状(M 从 2/4 扩到 8)。
+
+**关键技术改动**:①导向模型从 ULA `sin θ` 一维升级为任意阵元位置
+`a_m = exp(j·2π/λ·p_m·u(az,el))`,UCA 无前后模糊但有 ±el 镜像、el 弱观测;
+②UCA 无平移不变性,ULA 空间平滑不可照搬,路线 P 须走 Davies beamspace
+(|h|≤3, 7 维)再平滑;③共参考纪律扩到 8 通道:ch0(或和波束)单一 NCO
+开环施加全部 8 路,禁止各通道独立 PLL。
+
+**能力承诺分级**:2 源 0.5 chip = 主目标(G3);3 源 = 有条件扩展(G5,
+成对 Δaz≥40°、CN0≥48);4 源 = v1 只检测不承诺分离。理论 M>L 不是论据,
+条件数(μ_joint 成对矩阵 + 流形误差地板)才是。
+
+**证据等级纪律重申**:现有 0.1 chip RELIABLE 自测 = [理想仿真] + 特别有利
+几何(2026-08-04 评审),禁止表述为八元阵真实能力;所有 Y790s 相关结论在
+G0 实测前一律标 [Y790s未验证],厂家纸面指标不作数。
