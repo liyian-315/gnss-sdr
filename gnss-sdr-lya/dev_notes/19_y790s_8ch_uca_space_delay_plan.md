@@ -5,6 +5,7 @@
 **Baseline:** `research/multipath-correlator-fit` @ `5271ccb8d`
 **Branch:** `research/y790s-8ch-space-delay`
 **取代关系:** 本文是 `16_static_four_antenna_space_time_plan.md`（四元 ULA 计划）的升级，不覆盖 16；16 保留为历史与方法论出处。
+**状态:** **v1 冻结（2026-08-10）**。冻结后仅允许：追加 Gate 实测结果引用、以及被真实 Gate 数据推翻假设时的定点修订；不再进行架构性重写。
 
 ---
 
@@ -140,7 +141,7 @@ y[b,m,k] = Σ_{l=0..L-1} c_l[b] · â_m(az_l, el_l) · R(τ_k − τ_l) + n[b,m,
 
 **Kronecker 可分性检查（模型有效性门）**：`q = a ⊗ r` 假设空间响应与延迟响应完全可分。G1 每个角度点直接测得的 8×K 复模板本身就是**实测联合 space-delay 模板** `q_meas(az, τ)`;每次校准/流形更新后必须比较可分离重构 `â(az)⊗r(τ)` 与 `q_meas` 的残差(阵元间频响差异、近场/支架散射都会破坏可分性)。失配显著(门限由 T3 扰动仿真标定)时,主算法**允许直接使用 `q_meas` 插值作为模板**,μ_joint 改由联合模板直接计算,μ_spatial×μ_temporal 分解退化为诊断量——不强迫空间与时间完全可分。
 
-- **H1..H4 模型选择**：现骨架 H1/H2 的 `improvement_db` 门限法推广到嵌套序列 H1⊂H2⊂H3⊂H4；每升一阶需 GLRT 改善过 CN0 条件化门限 **且** BIC/evidence 净改善（惩罚 3 个几何参数 + B 个复幅度/源）；新源与已有任一源的成对 μ_joint > mu_max 时该阶直接 UNRESOLVED,不硬加源。
+- **H1..H4 模型选择**：现骨架 H1/H2 的 `improvement_db` 门限法推广到嵌套序列 H1⊂H2⊂H3⊂H4；每升一阶需 GLRT 改善过 CN0 条件化门限 **且** BIC/evidence 净改善——第一阶段 az-only,参数计数按**每源 2 个几何参数(az, τ),复 nuisance 幅度按每源每块 2 个实参数**计;**BIC 只作辅助 score,最终模型阶门限由负对照数据(单源/真 2 源)标定**,不由信息准则单独裁决；新源与已有任一源的成对 μ_joint > mu_max 时该阶直接 UNRESOLVED,不硬加源。
 - **varpro ML**：外层几何 (az, el, τ) 逐源坐标下降 + 局部细化,内层逐块幅度线性 LS（现有 `_residual` 直接复用,设计矩阵 (M·K)×L=248×L,B 块批量 pinv）。
 - **MSBL/SAGE**：只作 H3/H4 的粗初始化与局部精修,在 H2 真实门（G3）通过之前不投入。
 - **path association**：跨历元块把 (az, el, τ, power) 关联成路径轨迹,复用 Track B 的一致性思想（延迟连续性 + 幅度平滑 + 支撑共享）。
@@ -180,12 +181,12 @@ y[b,m,k] = Σ_{l=0..L-1} c_l[b] · â_m(az_l, el_l) · R(τ_k − τ_l) + n[b,m,
 
 ### 8 元、3 源
 
-- **理论**：DOF 充足;三源成对 μ 矩阵中最坏的一对决定条件数;ML 搜索空间 9 维几何,varpro+坐标下降可行。
+- **理论**：DOF 充足;三源成对 μ 矩阵中最坏的一对决定条件数;ML 搜索空间 6 维几何(az-only,每源 az+τ),varpro+坐标下降可行。
 - **工程推荐**：**有条件可行,G5 前不承诺**。以下为 **provisional target（初始试验几何,非承诺）**：三源成对 Δaz ≥ ~40°、成对 μ_joint ≤ ~0.9、功率两两差 ≤ 10 dB、CN0 ≥ 48 dB-Hz(弱源余量);真实边界由 G5 实验决定。风险集中在模型阶选择：H2 vs H3 的 GLRT 改善量在第三源弱/近时与 path0 纹理残差同量级(doc12 的 30 dB 墙教训在高阶复现)。验收必须含"真 2 源被 H3 误报为 3 源"的负对照。路线 P 在 3 相干源下 beamspace 平滑后已很勉强,只作旁证。
 
 ### 8 元、4 源
 
-- **理论**：参数计数上 M>L 仍成立,理想条件下可辨识;但四源成对 μ 全部良好的几何在室内 DAS 布设中概率低,12 维几何搜索 + 4B 幅度的 evidence 比较对纹理误差极敏感。
+- **理论**：参数计数上 M>L 仍成立,理想条件下可辨识;但四源成对 μ 全部良好的几何在室内 DAS 布设中概率低,8 维几何搜索(az-only) + 每块 4 个复幅度的 evidence 比较对纹理误差极敏感。
 - **工程推荐**：**v1 不承诺分离**。只承诺:检测"≥3 源"并对第 4 源输出 MARGINAL/UNRESOLVED 及粗 (az, τ);把 4 源可靠分离列为 G5 之后的研究问题。理由:流形误差地板 + 同码相干下,第 4 个（通常最弱的）源的 GLRT 改善预计常态落入门限灰区;硬输出违反"不可靠时拒绝输出"的项目铁律。
 
 **结论一句话**：**"4 源"是本项目 v1 的工程研究范围上限,不是 8 阵元的理论源数上限**——理论源数上限取决于有效阵列维数(校准/去相干后)、源间相干性与所用算法,此处不下定论。v1 首要目标 = 2 源(initial test envelope 见上),3 源为有条件扩展目标,4 源仅检测不承诺分离;各档真实边界一律由 Gate 实验决定。
@@ -199,12 +200,14 @@ y[b,m,k] = Σ_{l=0..L-1} c_l[b] · â_m(az_l, el_l) · R(τ_k − τ_l) + n[b,m,
 **主设计（离线优先,与现骨架/dense 导出兼容）**：
 
 1. 一次同步采集 8 路原始 IQ（共钟共触发,G0 保证）;
-2. 在**参考通道 ch0** 上做标准 acquisition + tracking（现有 GNSS-SDR 链路不动）;
-3. 把 ch0 的码相位/载波 NCO 假设（dense dump 记录里已含 `rem_code_phase_chips/carrier_phase_step_rad` 等全部重建字段,doc11 格式）**开环施加**到全部 8 路原始流,各路只做混频+相关,不闭环;
-4. 每历元产出 `8×K` 复 dense 向量（K=31,网格沿用 `-1.5:0.1:1.5`）;
-5. 施加实测频域校准 `G_m(f)`（G0 产物）;
+2. **施加 G0 实测电子通道校准 `G_m(f)` 于 raw IQ**（主规范,见下"校准约定";线性系统下等效的相关域实现只是实现细节,逻辑位置一律在共参考相关之前）;
+3. 在**参考通道 ch0**（已校准流）上做标准 acquisition + tracking（现有 GNSS-SDR 链路不动）;
+4. 把 ch0 的码相位/载波 NCO 假设（dense dump 记录里已含 `rem_code_phase_chips/carrier_phase_step_rad` 等全部重建字段,doc11 格式）**开环施加**到全部 8 路已校准流,各路只做混频+相关,不闭环;
+5. 每历元产出 `8×K` 复 dense 向量（K=31,网格沿用 `-1.5:0.1:1.5`）;
 6. 不取模,保持逐历元/短块 **MMV 形式** `y[b,m,k]`：跨块共享 (az, τ) 支撑,逐块复幅度独立（吸收残余共模相位/钟漂）;**默认不做块内长时间相干平均**,仅当 G0/G1 实测证明相位稳定后,相干积分才作为可选增强模式;
 7. 一源~四源模型比较（§4）。
+
+**校准约定（主规范,只选一种,已定）**：本项目采用 **electronics-calibrated** 为唯一主规范——`G_m(f)` 原则上在 raw IQ/共参考相关之前应用;G1 的 manifold 与联合模板 `q_meas` 均为**电子校准后**的量,只含天线/互耦/几何/散射响应,并绑定 `calibration_id`。例外情形:若某实验用未校准 raw 构建 `q_meas`（raw-chain-inclusive）,则电子响应已被 `q_meas` 吸收,**禁止随后对同一数据或模板再次施加 `G_m(f)` 重复校准**;此类模板必须在 `meta_json` 标注 `calibration_convention: "raw-chain-inclusive"`,且不得与主规范模板混用于同一次估计。
 
 为什么保留空间相位：所有通道用**同一个**本地载波/码复本,阵元 m 相对 ch0 的到达相位差 `exp(j·2π/λ·(p_m−p_0)·u)` 原封不动落在该通道相关值的复相位上;逐块 nuisance 幅度只吸收全阵共模项,不吸收阵元间差分项。
 
@@ -233,37 +236,37 @@ y[b,m,k] = Σ_{l=0..L-1} c_l[b] · â_m(az_l, el_l) · R(τ_k − τ_l) + n[b,m,
 ### G1 单源实测圆阵流形 [Y790s未验证]
 
 - **输入**：G0 PASS 的整套装置 + 8 元 UCA 支架 + 单模拟器 A-only OTA,受控/低反射环境。
-- **操作**：转台或移动源覆盖 az 网格 **0:30:330°**(12 点),俯仰取单一标称装置 el(第一阶段只验收 az,§2.2;可选加测第二档 el 仅作诊断,不进验收),每点 ≥3 次 30 s;每点存 8×K 复模板(即实测联合 space-delay 模板 `q_meas`)、协方差、校准 ID、几何照片/量测;插值误差评估决定是否加密到 15°。
+- **操作**：转台或移动源覆盖 az 网格 **0:30:330°**(12 点),俯仰取单一标称装置 el(第一阶段只验收 az,§2.2;可选加测第二档 el 仅作诊断,不进验收),每点 ≥3 次 30 s;每点存 8×K 复模板(即实测联合 space-delay 模板 `q_meas`)、协方差、校准 ID、几何照片/量测;插值误差评估决定是否加密到 15°。**主 manifold 优先在稳定、足够远的受控几何建立**——近距源会产生随距离变化的近场流形(量级参考 Fraunhofer 2D²/λ≈0.8 m@L5/0.32 m 孔径),近场条件须另测并在 meta 标注 `manifold_regime`;实际源位置/距离与阵列姿态记入 metadata(§8)。
 - **正对照**：任一网格点重复 3 次,模板复一致性;理想导向律作形状 sanity（只比趋势不作真值）。
 - **负对照**：同一角度换极化/换天线个体,验证差异被流形吸收还是超限。
 - **输出**：`manifold_<ID>.npz`（§8 格式）+ 流形质量报告（逐点 SNR、重复性、与理想式偏差 ε 图、μ_spatial(Δaz) 实测曲线、**Kronecker 可分性残差报告**(§4)）。
 - **指标**：逐点重复复误差 ε_rep;插值误差 ε_int;实测 μ_spatial(Δaz=30°) 值。
-- **PASS**：ε_rep < 5%(向量范数比);ε_int < 8%;μ_spatial(30°) ≤ 0.9(否则 G3 的 30° 包线要改)。
+- **PASS**：以下均为 **provisional diagnostics（暂定诊断值,非最终标准）**——ε_rep < 5%(向量范数比)、ε_int < 8%、μ_spatial(30°) ≤ 0.9(否则 G3 的 30° 试验几何要改);**最终容许流形误差由 T3 敏感性扫描(ε→0.5-chip 分离性能)反推后修订本节**。
 - **MARGINAL**：ε 5–10% → 加密网格/改支架再测。
 - **STOP/REDESIGN**：ε > 10% 或跨日不可复现 → 互耦建模/机械重设计,不得带病进 G2。
 
 ### G2 两源 0-delay 空间分离 [Y790s未验证]
 
-- **输入**：两模拟器同 PRN、**延迟差 0 chip**、不同方向(首选实测 μ_spatial 最低的一对角),等功率与 -6 dB 两档,CN0≈52。
-- **操作**：每条件 ≥5 次 30 s;跑 H1 vs H2(空间轴唯一判别力);沿用现有 `fit` 四态输出。
+- **输入**：两模拟器同 PRN、**延迟差 0 chip**、不同方向(首选实测 μ_spatial 最低的一对角),等功率与 -6 dB 两档,CN0≈52;双模拟器**优先共享 10 MHz/PPS**,并记录实测相对 Doppler——独立模拟器钟频漂不得被当作空间分离证据(doc15 教训)。
+- **操作**：每条件 3–5 次 30 s(screening 样本量);跑 H1 vs H2(空间轴唯一判别力);沿用现有 `fit` 四态输出;**每个关键双源 session 执行 A-only → B-only → A+B 三段基线纪律**,用 A-only/B-only 实测延迟辅助定义接收端真值(§8 truth 字段),不只记模拟器设定。
 - **正对照**：Δaz 取最优角对(μ_spatial 最低)。
-- **负对照**：①单源(A-only) ≥5 次——H2 检出率即虚警率;②两源**同方向**(同一喇叭/相邻角)——必须 UNRESOLVED。
-- **输出**：`block` 格式数据 + 判定 CSV(state, improvement_db, μ 三件套, cond)。
-- **指标**：P_D、P_FA、az 误差、UNRESOLVED 正确率。
-- **PASS**：P_D ≥ 90%(Δaz≥30° 档)、P_FA ≤ 5%、同方向负对照 100% 不出 RELIABLE。
-- **MARGINAL**：P_D 70–90% → 查校准时效/流形插值,复测一轮。
-- **STOP/REDESIGN**：P_D < 70% 或 P_FA > 10% → 空间轴本身不成立,回 G0/G1 找根因;**禁止**跳过 G2 直接做 0.5 chip(doc16 原则)。
+- **负对照**：①单源(A-only) ≥5 次——H2 检出率即虚警率;②两源**同方向**(同一喇叭/相邻角)——必须 UNRESOLVED,这是本计划**严格不可辨负对照**(Δτ=0 + 同空间签名)。
+- **输出**：`snapshot` 格式数据 + 判定 CSV(state, improvement_db, μ 三件套, cond)。
+- **指标**：screening 阶段记录检出/虚警计数、az 误差、UNRESOLVED 正确率;**每条件 3–5 次只支持 SCREEN PASS/FAIL,不得据此宣称 P_D≥90% 或 P_FA≤5%**。
+- **SCREEN PASS**：Δaz≥30° 档全部 run 检出两源、单源对照零虚警、同方向对照不出 RELIABLE → 放行后续 Gate。P_D≥90%/P_FA≤5% 保留为正式 **validation** 目标:正式样本量(含二项置信区间规划)在进入实测 validation 前另行确定并写入报告。
+- **MARGINAL**：个别 run 漏检/误检 → 查校准时效/流形插值,复测一轮。
+- **STOP/REDESIGN**：多数 run 失败或虚警频发 → 空间轴本身不成立,回 G0/G1 找根因;**禁止**跳过 G2 直接做 0.5 chip(doc16 原则)。
 
 ### G3 两源 0.5-chip 空间-时延联合分离（核心研究目标） [Y790s未验证]
 
-- **输入**：两模拟器,Δτ ∈ {0, 0.5, 1.0} chip × Δaz ∈ {0, 10, 30, 60°},功率 -6 dB,CN0≈52(继承 doc16 最小筛查设计),每条件 3 次 + 单源对照。
-- **操作**：路线 R 全链路(实测核+实测流形+H1/H2 GLRT+varpro);路线 P 平行跑作对照;先用 faithful 纹理 + 流形扰动仿真预演全部条件(见 §9 Codex 任务),实测只验证仿真预测。
+- **输入**：两模拟器,Δτ ∈ {0, 0.5, 1.0} chip × Δaz ∈ {0, 10, 30, 60°},功率 -6 dB,CN0≈52(继承 doc16 最小筛查设计),每条件 3 次 + 单源对照;双模拟器优先共 10 MHz/PPS,记录实测相对 Doppler。
+- **操作**：路线 R 全链路(实测核+实测流形+H1/H2 GLRT+varpro);路线 P 平行跑作对照;先用 faithful 纹理 + 流形扰动仿真预演全部条件(见 §9 Codex 任务),实测只验证仿真预测;每关键 session 执行 A-only/B-only/A+B 三段基线纪律(接收端真值定义,§8 truth 字段)。
 - **正对照**：Δτ=0.5, Δaz=60°(最有利)。
-- **负对照**：①单源;②Δaz=0(纯时延,应回落到单天线的墙:UNRESOLVED/NO_SECOND);③faithful 纹理阴性集。
+- **负对照**：①单源;②Δaz=0 作 **spatial-degeneracy control**——要求 8 通道相对单通道**不得凭空间轴获得虚假增益**(H1→H2 改善量须与单通道基线同量级),不强制结果必须 UNRESOLVED,因为大延迟差(如 1.0 chip)凭时间轴合法可分;严格不可辨负对照保留在 G2 的 Δτ=0+同空间签名;③faithful 纹理阴性集。
 - **输出**：判定 CSV + delay/az 误差表 + 与仿真预测对照报告。
-- **指标**：doc16 验收沿用——P_D ≥ 90%,P_FA ≤ 5%,**delay RMSE ≤ 0.1 chip**,amp 比误差,az 误差,UNRESOLVED 正确率;附加 doc15 纪律:延迟接近真值 ≠ 成功,须幅度+残差改善+条件数同过。
-- **PASS**：Δaz ≥ 30° 档全指标达标 → **对外可宣称"2 源 0.5 chip 亚码片分离 [Y790s实测]"**。
-- **MARGINAL**：仅 60° 档达标 → 包线照实收窄,不改指标凑数。
+- **指标**：screening 记录 delay/az 误差、检出/虚警计数、UNRESOLVED 正确率;附加 doc15 纪律:延迟接近真值 ≠ 成功,须幅度+残差改善+条件数同过。**delay RMSE ≤ 0.1 chip、P_D ≥ 90%、P_FA ≤ 5% 是正式 validation 目标,不是每条件 3 次 screening 的判据。**
+- **SCREEN PASS**：Δaz ≥ 30° 档各条件全部 run 正确检出、误差量级达标、负对照干净 → 启动正式 validation(样本量与置信区间预先确定并报告);**"2 源 0.5 chip 亚码片分离 [Y790s实测]"的对外宣称只能在 validation 通过后作出**。
+- **MARGINAL**：仅 60° 档干净 → 试验几何照实收窄,不改指标凑数。
 - **STOP/REDESIGN**：30/60° 都不过而 G2 曾过 → 时延轴引入的纹理失配是根因,回纹理感知 GLRT 扩展,不加新优化器。
 
 ### G4 angle-delay separability map [Y790s未验证]
@@ -308,10 +311,18 @@ y[b,m,k] = Σ_{l=0..L-1} c_l[b] · â_m(az_l, el_l) · R(τ_k − τ_l) + n[b,m,
   "gain_db": [g0,...,g7], "antenna_mapping": ["RX0:elem0",...],
   "calibration_id": "calib_20260810a", "array_xyz_m": [[x,y,z]x8],
   "wavelength_m": 0.2548, "array_orientation_note": "...",
-  "simulator": {"units": 2, "shared_10mhz": true, "settings": "..."},
+  "simulator": {"units": 2, "shared_10mhz": true, "settings": "...",
+                 "measured_relative_doppler_hz": null},
   "prn": 28, "signal": "L5I",
-  "truth": {"az_deg": [...], "el_deg": [...], "delay_chips": [...],
-             "power_db": [...]} ,
+  "truth": {"az_deg": [...], "el_deg": [...],
+             "simulator_delay_chips": [...], "power_db": [...],
+             "rf_feed_info": "馈线/线缆长度与损耗", "source_xyz_m": [[x,y,z]],
+             "source_range_m": [...], "geometry_note": "...",
+             "expected_received_relative_delay_chips": [...],
+             "aonly_bonly_baseline_ids": ["...", "..."]},
+  "array_attitude_deg": {"yaw": 0, "pitch": 0, "roll": 0},
+  "manifold_regime": "far-field|near-field",
+  "calibration_convention": "electronics-calibrated|raw-chain-inclusive",
   "capture_utc": "...", "operator": "...", "evidence_level": "Y790s|B210|faithful|ideal"
 }
 ```
@@ -320,10 +331,11 @@ y[b,m,k] = Σ_{l=0..L-1} c_l[b] · â_m(az_l, el_l) · R(τ_k − τ_l) + n[b,m,
 
 1. **raw**：`<prefix>_8ch.dat` 交织 sc16,布局 `[sample][channel]`(channel-interleaved,若 SDK 给平面布局则 sidecar 注明 `layout: planar`);sidecar `<prefix>_8ch.json` 含上表 + `layout/scale/start_sample_time`。
 2. **post-correlation dense**：npz 键 `dense`(complex64, **[epoch, channel, tap]** = (E, 8, 31))、`taps`(chips)、`epoch_meta`(sample_counter/tow_ms/cn0 per epoch,继承 doc11 记录头字段)、`meta_json`。单通道旧格式 (E, K) 视为 M=1 特例,读取器统一。
-3. **block**：npz 键 `dense_blocks` **[block, epoch_in_block, channel, tap]**、`block_len_epochs`、`taps`、`meta_json`。估计器按 **MMV 形式**消费:`y[b,m,k]` 逐块复幅度独立、跨块共享 (az, τ) 支撑,block 粒度可细至单历元——形状 `(B, M, K)` 与现 `fit_space_delay_twosource.py` **完全一致**,零改动接入。**块内相干平均不是默认行为**:仅当 G0/G1 实测证明相位稳定后作为可选模式启用,且须在 `meta_json` 标注 `coherent_avg` 与积分长度。
-4. **manifold**：npz 键 `az_deg`(A,), `el_deg`(Ev,), `response`(complex64, **[az, el, channel]**), `response_cov`, `n_runs`, `meta_json`(含 calibration_id 绑定)。插值器输出 `a(az,el)` (8,) 复向量。
-5. **kernel**：不变——Phase A CSV `tap_chips,coherent_re,coherent_im,mag_mean,mag_std`。
-6. **calibration**：npz 键 `freq_hz`, `G`(complex, [channel, freq]), `ref_channel=0`, `meta_json`。
+3. **snapshot（主估计输入）**：npz 键 `Y`(complex64, **[snapshot, channel, tap]** = (B, M, K))、`taps`(chips)、`block_id`(int, (B,) 快拍→分组映射,无分组则全 0)、`meta_json`——形状与现 `fit_space_delay_twosource.py` **完全一致**,零改动接入。**不设 `[block, epoch_in_block, channel, tap]` 四维主格式**:需要 block 语义时一律由 `block_id[snapshot]` 描述,主估计输入维度不变。**禁止隐式相干平均**:任何跨历元相干积分必须显式生成新文件、在 `meta_json` 标注 `coherent_avg` 与积分长度,且仅在 G0/G1 相位稳定实证后允许。
+4. **manifold**：npz 键 `az_deg`(A,), `el_deg`(Ev,;第一阶段 Ev=1), `response`(complex64, **[az, el, channel]**), `response_cov`, `n_runs`, `meta_json`(必含 `calibration_id` 与 `calibration_convention`,§6)。插值器输出 `a(az)` (8,) 复向量。
+5. **joint template（实测联合模板）**：npz 键 `joint_response`(complex64, **[az, channel, tap]**,第一阶段 az-only)、`az_deg`、`taps`(chips)、`meta_json`(必含 `calibration_id`、`manifold_id`、`calibration_convention`)。后续 el 扩展时升维为 `[az, el, channel, tap]`,不改既有键名。
+6. **kernel**：不变——Phase A CSV `tap_chips,coherent_re,coherent_im,mag_mean,mag_std`。
+7. **calibration**：npz 键 `freq_hz`, `G`(complex, [channel, freq]), `ref_channel=0`, `meta_json`。
 
 命名：`<yyyymmdd>_<gate>_<prn>_<condition>_<runN>` 前缀贯穿 raw/dense/block/判定 CSV,靠 `calibration_id` 与 `manifold_id` 外键关联。
 

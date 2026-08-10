@@ -1907,3 +1907,26 @@ T3 的 0.5-chip 敏感性仿真反推;④block 层默认保持 MMV `y[b,m,k]`(�
 target,非工程承诺,真实边界由 Gate 实验决定;⑨G5 注明 3/4 源真值生成硬件
 待设计(现仅两套模拟器),不构成 G0–G4 前期依赖。总体结构(证据等级、G2 不过
 禁 G3、路线 P=comparator、路线 R=主算法)不变。
+
+## 2026-08-10 Claude — doc 19 冻结为 v1(第二轮数据/实验规范修正)
+
+按用户评审完成冻结前最后一轮定点修正(不动路线 P/R、Gate 顺序与研究目标):
+①校准约定二选一定为 **electronics-calibrated** 主规范:G_m(f) 原则上在
+raw IQ/共参考相关之前应用,G1 manifold/q_meas 均为电子校准后量;raw-chain-
+inclusive 为标注例外,禁止二次校准、禁止与主规范混用;②主估计输入统一为
+`Y[snapshot, channel, tap]=(B,M,K)` + `block_id[snapshot]` 分组,废除
+[block, epoch_in_block, M, K] 四维主格式,禁止隐式相干平均;③§8 新增实测
+联合模板格式 `joint_response[az, channel, tap]`(az-only,绑 calibration_id/
+manifold_id);④truth metadata 扩展:simulator_delay、馈线信息、source_xyz、
+距离几何、expected_received_relative_delay,G2/G3 关键 session 执行
+A-only/B-only/A+B 三段基线纪律定义接收端真值;⑤G2/G3 拆 screening 与
+validation:3–5 次只出 SCREEN PASS/FAIL,P_D≥90%/P_FA≤5% 为 validation
+目标,样本量+置信区间预先确定,0.5 chip 对外宣称须 validation 通过;⑥G1 的
+5%/8%/μ≤0.9 全标 provisional diagnostics,最终由 T3 敏感性扫描反推;
+⑦G3 Δaz=0 改称 spatial-degeneracy control(查空间轴虚假增益,不强制
+UNRESOLVED),严格不可辨负对照留在 G2 同签名条件;⑧az-only 下 H1..H4 参数
+计数改为每源 2 几何参数+每块每源 2 实参数,BIC 仅辅助 score,阶门限由负对照
+标定;⑨metadata 增源位置/阵列姿态/距离与近场提示(2D²/λ≈0.8 m),主 manifold
+建在足够远受控几何;⑩G2/G3 双模拟器优先共 10 MHz/PPS 并记录实测相对
+Doppler,防独立钟漂冒充空间分离证据。**doc 19 自此冻结为 v1**:仅追加 Gate
+实测引用,或被真实 Gate 数据推翻假设时定点修订,不再架构性重写。
