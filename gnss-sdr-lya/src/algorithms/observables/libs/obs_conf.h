@@ -34,6 +34,8 @@ public:
 
     std::string dump_filename{"obs_dump.dat"};
     std::string dual_path_csv_filename{"dual_path_status.csv"};
+    std::string tunnel_end_a_name{"END_A"};
+    std::string tunnel_end_b_name{"END_B"};
     int32_t smoothing_factor{0};
     uint32_t nchannels_in{0U};
     uint32_t nchannels_out{0U};
@@ -52,6 +54,15 @@ public:
     double dual_path_min_abs_delta_m{1.0};
     double dual_path_max_delta_jump_m{1000000.0};
     double dual_path_max_delta_mad_m{1000000.0};
+    // Tunnel DAS dual-end coverage/balance tool. Disabled unless Tunnel.enable=true.
+    double tunnel_length_m{0.0};
+    double tunnel_measurement_position_m{0.0};
+    double tunnel_end_a_fixed_delay_m{0.0};
+    double tunnel_end_b_fixed_delay_m{0.0};
+    double tunnel_identity_max_error_m{75.0};
+    double tunnel_identity_margin_m{50.0};
+    uint32_t tunnel_identity_confirm_epochs{5U};
+    bool tunnel_enable{false};
     bool enable_carrier_smoothing{false};
     bool always_output_gs{false};
     bool stdout{false};
