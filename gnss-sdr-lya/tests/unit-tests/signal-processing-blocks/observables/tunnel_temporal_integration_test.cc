@@ -165,6 +165,10 @@ TEST(TunnelTemporalIntegration, Scenario5EmptyEpochsAdvanceStateInsteadOfFreezin
     EXPECT_EQ(status.pair_state, DualPathState::DEGRADED);
     status = product.tick({});
     EXPECT_EQ(status.pair_state, DualPathState::LOST);
+    status = product.tick({});
+    EXPECT_EQ(status.pair_state, DualPathState::LOST);
+    status = product.tick({});
+    EXPECT_EQ(status.pair_state, DualPathState::LOST);
     EXPECT_EQ(status.identity, TunnelIdentityState::UNKNOWN);
     EXPECT_FALSE(status.path0_valid);
     EXPECT_FALSE(status.path1_valid);
@@ -177,19 +181,21 @@ TEST(TunnelTemporalIntegration, Scenario6ReappearanceStartsFreshCandidateGenerat
     settle(product, 5);
     product.tick({});
     product.tick({});
+    product.tick({});
+    product.tick({});
     auto status = product.tick({});
     ASSERT_EQ(status.pair_state, DualPathState::LOST);
 
-    status = product.tick(both(9.0, 21000000.0));
+    status = product.tick(both(11.0, 21000000.0));
     EXPECT_EQ(status.pair_state, DualPathState::CANDIDATE);
     EXPECT_EQ(status.identity, TunnelIdentityState::CANDIDATE);
     EXPECT_FALSE(status.ends_valid);
     EXPECT_EQ(status.reacquisition_count, 1U);
 
-    status = product.tick(both(10.0, 21000001.0));
+    status = product.tick(both(12.0, 21000001.0));
     EXPECT_EQ(status.pair_state, DualPathState::CANDIDATE);
     EXPECT_EQ(status.reacquisition_count, 1U);
-    status = product.tick(both(11.0, 21000002.0));
+    status = product.tick(both(13.0, 21000002.0));
     EXPECT_EQ(status.pair_state, DualPathState::RELIABLE);
     EXPECT_EQ(status.identity, TunnelIdentityState::RELIABLE);
     EXPECT_EQ(status.reacquisition_count, 1U);

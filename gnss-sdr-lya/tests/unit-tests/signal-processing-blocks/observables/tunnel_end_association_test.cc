@@ -231,8 +231,14 @@ TEST(TunnelEndAssociation, SecondEndLossClearsFormalResult)
     EXPECT_FALSE(status.ends_valid);
     EXPECT_DOUBLE_EQ(status.end_b_cn0_db_hz, 0.0);
     const std::string line = format_tunnel_das_status_v1(status);
-    EXPECT_NE(line.find("state=LOST"), std::string::npos) << line;
-    EXPECT_NE(line.find("end_b_cn0_db_hz=N/A"), std::string::npos) << line;
+    EXPECT_EQ(line,
+        "TUNNEL_DAS_STATUS version=1 position_m=300.0 prn=18 state=LOST identity=UNKNOWN "
+        "end_a_path=N/A end_b_path=N/A end_a_cn0_db_hz=N/A end_b_cn0_db_hz=N/A "
+        "cn0_delta_a_minus_b_db=N/A end_a_pseudorange_m=N/A end_b_pseudorange_m=N/A "
+        "pseudorange_delta_b_minus_a_m=N/A expected_delta_b_minus_a_m=400.0 "
+        "delta_residual_m=N/A end_a_doppler_hz=N/A end_b_doppler_hz=N/A "
+        "path0_cn0_db_hz=45.00 path1_cn0_db_hz=N/A identity_error_m=N/A "
+        "identity_margin_m=N/A identity_confirm=0 reacquisition_count=0");
 }
 
 TEST(TunnelEndAssociation, AsymmetricFixedDelaysShiftExpectedDelta)
