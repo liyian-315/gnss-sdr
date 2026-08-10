@@ -78,6 +78,7 @@ private:
 #include "unit-tests/signal-processing-blocks/acquisition/second_peak_gate_test.cc"
 #include "unit-tests/signal-processing-blocks/observables/dual_path_pair_manager_test.cc"
 #include "unit-tests/signal-processing-blocks/observables/dual_path_status_formatter_test.cc"
+#include "unit-tests/signal-processing-blocks/observables/tunnel_end_association_test.cc"
 #if EXTRA_TESTS
 #include "unit-tests/signal-processing-blocks/acquisition/acq_performance_test.cc"
 #include "unit-tests/signal-processing-blocks/tracking/tracking_pull-in_test.cc"
@@ -94,6 +95,7 @@ private:
 #include "unit-tests/signal-processing-blocks/acquisition/second_peak_gate_test.cc"
 #include "unit-tests/signal-processing-blocks/observables/dual_path_pair_manager_test.cc"
 #include "unit-tests/signal-processing-blocks/observables/dual_path_status_formatter_test.cc"
+#include "unit-tests/signal-processing-blocks/observables/tunnel_end_association_test.cc"
 #include "unit-tests/arithmetic/code_generation_test.cc"
 #include "unit-tests/arithmetic/complex_carrier_test.cc"
 #include "unit-tests/arithmetic/conjugate_test.cc"
