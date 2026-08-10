@@ -56,6 +56,13 @@ bash scripts/check_runtime.sh ./bin/gnss-sdr conf/l5_dualpath_b210_20msps.conf -
 bash product/l5_dualpath/scripts/build_release.sh
 ```
 
+发布包是面向 NUC/x86_64 当前动态依赖环境的构建，不是静态可移植包。生成后必须执行：
+
+```bash
+sha256sum -c dist/l5-dualpath-v1.0.0-x86_64.tar.gz.sha256
+bash product/l5_dualpath/scripts/verify_release.sh dist/l5-dualpath-v1.0.0-x86_64.tar.gz
+```
+
 产物位于 `dist/`。在实时 B210 验收完成前，脚本生成 `code-complete` 包，不生成或宣称 `v1.0.0-rc1`。
 
-详细限制见 [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)，测试协议见 [tests/README.md](tests/README.md)。
+详细限制见 [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)，运行依赖见 [RUNTIME_REQUIREMENTS.md](RUNTIME_REQUIREMENTS.md)，测试协议见产品源码目录中的 `tests/README.md`。

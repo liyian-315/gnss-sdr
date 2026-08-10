@@ -26,4 +26,11 @@ Build from the source root with:
 bash product/l5_dualpath/scripts/build_release.sh
 ```
 
-See [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) and [tests/README.md](tests/README.md) before interpreting results.
+The bundle targets the NUC/x86_64 host and its current dynamic runtime; it is not a static portable build. Verify both checksum layers after packaging:
+
+```bash
+sha256sum -c dist/l5-dualpath-v1.0.0-x86_64.tar.gz.sha256
+bash product/l5_dualpath/scripts/verify_release.sh dist/l5-dualpath-v1.0.0-x86_64.tar.gz
+```
+
+See [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md), [RUNTIME_REQUIREMENTS.md](RUNTIME_REQUIREMENTS.md), and the source-tree `tests/README.md` before interpreting results.

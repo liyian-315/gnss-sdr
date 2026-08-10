@@ -6,7 +6,7 @@ The repository contains code and test orchestration, not raw IQ. Raw captures st
 
 Required cases are implemented for path1 no-fallback, second-peak gates, key/time pairing, equal pseudoranges, weak CN0, Doppler mismatch, stable median/MAD, sudden delay jump, path1 loss/recovery, state transitions, and exact output formatting.
 
-The current WSL build was configured without the monolithic GNSS-SDR test target, so the four focused GoogleTest suites were compiled and run directly (16 tests total). The target NUC build must still enable and run the registered project test targets before release-candidate status.
+The release-blocking fix round must configure the target NUC with `-DENABLE_UNIT_TESTING=ON`, build the registered `run_tests` target, and execute the DualPath, Acquisition, and Observables regression suites. Directly compiling individual test files is not accepted as release evidence.
 
 ## Layer 2: file replay
 
