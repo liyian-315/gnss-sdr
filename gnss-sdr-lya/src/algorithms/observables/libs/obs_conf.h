@@ -62,6 +62,7 @@ public:
     double tunnel_identity_max_error_m{75.0};
     double tunnel_identity_margin_m{50.0};
     uint32_t tunnel_identity_confirm_epochs{5U};
+    uint32_t tunnel_prn{0U};
     bool tunnel_enable{false};
     bool enable_carrier_smoothing{false};
     bool always_output_gs{false};

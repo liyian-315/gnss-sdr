@@ -77,6 +77,7 @@ HybridObservables::HybridObservables(const ConfigurationInterface* configuration
     conf.tunnel_identity_max_error_m = configuration->property("Tunnel.identity_max_error_m", conf.tunnel_identity_max_error_m);
     conf.tunnel_identity_margin_m = configuration->property("Tunnel.identity_margin_m", conf.tunnel_identity_margin_m);
     conf.tunnel_identity_confirm_epochs = configuration->property("Tunnel.identity_confirm_epochs", conf.tunnel_identity_confirm_epochs);
+    conf.tunnel_prn = configuration->property("Channel0.satellite", conf.tunnel_prn);
     conf.enable_carrier_smoothing = configuration->property(role + ".enable_carrier_smoothing", conf.enable_carrier_smoothing);
     conf.always_output_gs = configuration->property("PVT.an_output_enabled", conf.always_output_gs) || configuration->property(role + ".always_output_gs", conf.always_output_gs);
     conf.enable_E6 = configuration->property("PVT.use_e6_for_pvt", conf.enable_E6);

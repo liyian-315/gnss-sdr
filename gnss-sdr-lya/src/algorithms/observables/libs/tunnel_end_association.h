@@ -49,6 +49,7 @@ struct TunnelSiteConfig
     double identity_max_error_m{75.0};
     double identity_margin_m{50.0};
     uint32_t identity_confirm_epochs{5U};
+    uint32_t prn{0U};
     std::string end_a_name{"END_A"};
     std::string end_b_name{"END_B"};
 };
@@ -61,6 +62,9 @@ struct TunnelSiteConfig
  *   expected = (d_B + delay_B) - (d_A + delay_A)
  */
 double tunnel_expected_delta_b_minus_a_m(const TunnelSiteConfig& config);
+
+//! Empty on success; otherwise a field-specific reason suitable for TUNNEL_CONFIG_ERROR.
+std::string validate_tunnel_site_config(const TunnelSiteConfig& config);
 
 struct TunnelEndStatus
 {
@@ -135,7 +139,7 @@ private:
 //! Stable one-line field output for the tunnel operator. Rendering only.
 std::string format_tunnel_das_status_v1(const TunnelEndStatus& status);
 
-//! Startup banner: TUNNEL_DAS position_m=... length_m=...
+//! Startup banner: TUNNEL_DAS_CONFIG length_m=... position_m=...
 std::string format_tunnel_das_banner(const TunnelSiteConfig& config);
 
 #endif  // GNSS_SDR_TUNNEL_END_ASSOCIATION_H

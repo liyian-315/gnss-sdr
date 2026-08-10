@@ -8,6 +8,7 @@
 #include "tunnel_end_association.h"
 #include <algorithm>
 #include <cmath>
+#include <cmath>
 #include <iomanip>
 #include <locale>
 #include <sstream>
@@ -37,10 +38,16 @@ const char* tunnel_field_state_name(const TunnelEndStatus& status)
             return "NO_SECOND_SOURCE";
         case DualPathState::SEARCHING:
             return "SEARCHING";
+        case DualPathState::CANDIDATE:
+            return "CANDIDATE";
+        case DualPathState::DEGRADED:
+            return "DEGRADED";
+        case DualPathState::RELIABLE:
+            return status.identity == TunnelIdentityState::RELIABLE ? "RELIABLE" : "UNRESOLVED";
         default:
             break;
         }
-    return status.identity == TunnelIdentityState::RELIABLE ? "RELIABLE" : "UNRESOLVED";
+    return "UNRESOLVED";
 }
 }  // namespace
 
@@ -65,11 +72,46 @@ double tunnel_expected_delta_b_minus_a_m(const TunnelSiteConfig& config)
     return (distance_to_b_m + config.end_b_fixed_delay_m) - (distance_to_a_m + config.end_a_fixed_delay_m);
 }
 
+std::string validate_tunnel_site_config(const TunnelSiteConfig& config)
+{
+    if (!config.enable)
+        {
+            return {};
+        }
+    if (!std::isfinite(config.length_m) || config.length_m <= 0.0)
+        {
+            return "Tunnel.length_m must be finite and > 0";
+        }
+    if (!std::isfinite(config.measurement_position_m) ||
+        config.measurement_position_m < 0.0 || config.measurement_position_m > config.length_m)
+        {
+            return "Tunnel.measurement_position_m must be within [0, Tunnel.length_m]";
+        }
+    if (!std::isfinite(config.end_a_fixed_delay_m))
+        {
+            return "Tunnel.end_a_fixed_delay_m must be finite";
+        }
+    if (!std::isfinite(config.end_b_fixed_delay_m))
+        {
+            return "Tunnel.end_b_fixed_delay_m must be finite";
+        }
+    if (!std::isfinite(config.identity_max_error_m) || config.identity_max_error_m <= 0.0)
+        {
+            return "Tunnel.identity_max_error_m must be finite and > 0";
+        }
+    if (!std::isfinite(config.identity_margin_m) || config.identity_margin_m < 0.0)
+        {
+            return "Tunnel.identity_margin_m must be finite and >= 0";
+        }
+    if (config.identity_confirm_epochs < 1U)
+        {
+            return "Tunnel.identity_confirm_epochs must be >= 1";
+        }
+    return {};
+}
+
 TunnelEndAssociation::TunnelEndAssociation(TunnelSiteConfig config) : d_config(std::move(config))
 {
-    d_config.identity_confirm_epochs = std::max(1U, d_config.identity_confirm_epochs);
-    d_config.identity_max_error_m = std::max(0.0, d_config.identity_max_error_m);
-    d_config.identity_margin_m = std::max(0.0, d_config.identity_margin_m);
     if (d_config.end_a_name.empty())
         {
             d_config.end_a_name = "END_A";
@@ -223,14 +265,17 @@ std::string format_tunnel_das_banner(const TunnelSiteConfig& config)
 {
     std::ostringstream stream;
     stream.imbue(std::locale::classic());
-    stream << "TUNNEL_DAS"
-           << " position_m=" << std::fixed << std::setprecision(1) << config.measurement_position_m
-           << " length_m=" << config.length_m
+    stream << "TUNNEL_DAS_CONFIG"
+           << " length_m=" << std::fixed << std::setprecision(1) << config.length_m
+           << " position_m=" << config.measurement_position_m
+           << " distance_to_a_m=" << config.measurement_position_m
+           << " distance_to_b_m=" << config.length_m - config.measurement_position_m
            << " end_a_name=" << config.end_a_name
            << " end_b_name=" << config.end_b_name
            << " end_a_fixed_delay_m=" << config.end_a_fixed_delay_m
            << " end_b_fixed_delay_m=" << config.end_b_fixed_delay_m
-           << " expected_delta_b_minus_a_m=" << tunnel_expected_delta_b_minus_a_m(config);
+           << " expected_delta_b_minus_a_m=" << tunnel_expected_delta_b_minus_a_m(config)
+           << " prn=" << config.prn;
     return stream.str();
 }
 

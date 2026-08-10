@@ -90,6 +90,7 @@ TunnelSiteConfig make_tunnel_site_config(const Obs_Conf& conf)
     config.identity_max_error_m = conf.tunnel_identity_max_error_m;
     config.identity_margin_m = conf.tunnel_identity_margin_m;
     config.identity_confirm_epochs = conf.tunnel_identity_confirm_epochs;
+    config.prn = conf.tunnel_prn;
     config.end_a_name = conf.tunnel_end_a_name;
     config.end_b_name = conf.tunnel_end_b_name;
     return config;
@@ -146,10 +147,21 @@ hybrid_observables_gs::hybrid_observables_gs(const Obs_Conf &conf_)
 
     if (d_conf.tunnel_enable)
         {
-            // Field banner: the operator must be able to confirm the site parameters
-            // that were actually loaded before trusting any END_A / END_B output.
-            std::cout << format_tunnel_das_banner(d_tunnel_end_association.config()) << '\n';
-            LOG(INFO) << format_tunnel_das_banner(d_tunnel_end_association.config());
+            const std::string config_error = validate_tunnel_site_config(d_tunnel_end_association.config());
+            if (!config_error.empty())
+                {
+                    const std::string message = "TUNNEL_CONFIG_ERROR " + config_error + "; Tunnel output disabled";
+                    std::cerr << message << '\n';
+                    LOG(ERROR) << message;
+                    d_conf.tunnel_enable = false;
+                }
+            else
+                {
+                    // Field banner: the operator must be able to confirm the site parameters
+                    // that were actually loaded before trusting any END_A / END_B output.
+                    std::cout << format_tunnel_das_banner(d_tunnel_end_association.config()) << '\n';
+                    LOG(INFO) << format_tunnel_das_banner(d_tunnel_end_association.config());
+                }
         }
 
     // PVT input message port
@@ -1131,7 +1143,10 @@ int hybrid_observables_gs::general_work(int noutput_items __attribute__((unused)
                 {
                     detect_cycle_slips(epoch_data, d_Rx_clock_buffer.front());
                 }
-            if ((d_conf.stdout || d_conf.dual_path_csv || d_conf.tunnel_enable) && n_valid > 0)
+            // Product state advances on the report clock, not only when GNSS
+            // observations happen to be valid. An empty report is the explicit
+            // evidence that lets PairManager age a stale pair to DEGRADED/LOST.
+            if (d_conf.stdout || d_conf.dual_path_csv || d_conf.tunnel_enable)
                 {
                     d_T_stdout_report_timer_ms += d_T_rx_step_ms;
                     if (d_T_stdout_report_timer_ms >= d_conf.dual_path_interval_ms)

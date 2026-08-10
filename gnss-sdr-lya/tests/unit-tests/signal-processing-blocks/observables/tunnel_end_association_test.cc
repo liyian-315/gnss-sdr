@@ -68,6 +68,42 @@ TEST(TunnelEndAssociation, ExpectedDeltaFollowsPositionAndFixedDelays)
     EXPECT_DOUBLE_EQ(tunnel_expected_delta_b_minus_a_m(midpoint), 0.0);
 }
 
+TEST(TunnelEndAssociation, RejectsInvalidFieldConfiguration)
+{
+    auto config = site_at_300m();
+    EXPECT_TRUE(validate_tunnel_site_config(config).empty());
+
+    config.length_m = 0.0;
+    EXPECT_FALSE(validate_tunnel_site_config(config).empty());
+    config = site_at_300m();
+    config.measurement_position_m = -1.0;
+    EXPECT_FALSE(validate_tunnel_site_config(config).empty());
+    config.measurement_position_m = 1001.0;
+    EXPECT_FALSE(validate_tunnel_site_config(config).empty());
+    config = site_at_300m();
+    config.identity_confirm_epochs = 0U;
+    EXPECT_FALSE(validate_tunnel_site_config(config).empty());
+    config = site_at_300m();
+    config.identity_max_error_m = 0.0;
+    EXPECT_FALSE(validate_tunnel_site_config(config).empty());
+    config = site_at_300m();
+    config.identity_margin_m = -1.0;
+    EXPECT_FALSE(validate_tunnel_site_config(config).empty());
+}
+
+TEST(TunnelEndAssociation, StartupBannerFreezesFieldConfigurationContract)
+{
+    auto config = site_at_300m();
+    config.prn = 18U;
+    config.end_a_fixed_delay_m = 50.0;
+    config.end_b_fixed_delay_m = 120.0;
+    EXPECT_EQ(format_tunnel_das_banner(config),
+        "TUNNEL_DAS_CONFIG length_m=1000.0 position_m=300.0 distance_to_a_m=300.0 "
+        "distance_to_b_m=700.0 end_a_name=END_A end_b_name=END_B "
+        "end_a_fixed_delay_m=50.0 end_b_fixed_delay_m=120.0 "
+        "expected_delta_b_minus_a_m=470.0 prn=18");
+}
+
 TEST(TunnelEndAssociation, IdentifiesEndsFromMeasurementPosition)
 {
     TunnelEndAssociation association(site_at_300m());
