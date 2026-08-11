@@ -1,0 +1,21 @@
+{
+  "array_id": "actual_4elem_dualfeed_v0",
+  "status": "PLACEHOLDER: awaiting vendor/measured element XYZ. DO NOT assume ULA/UCA/square geometry.",
+  "n_elements": 4,
+  "wavelength_m": 0.2548,
+  "array_xyz_m": null,
+  "user_input_required": ["array_xyz_m (4x3, measured or vendor drawing)", "element boresight orientation", "feed geometry / polarization note"],
+  "rx_mapping": [
+    {"rx_channel": 0, "element_id": 0, "feed_id": "A"},
+    {"rx_channel": 1, "element_id": 0, "feed_id": "B"},
+    {"rx_channel": 2, "element_id": 1, "feed_id": "A"},
+    {"rx_channel": 3, "element_id": 1, "feed_id": "B"},
+    {"rx_channel": 4, "element_id": 2, "feed_id": "A"},
+    {"rx_channel": 5, "element_id": 2, "feed_id": "B"},
+    {"rx_channel": 6, "element_id": 3, "feed_id": "A"},
+    {"rx_channel": 7, "element_id": 3, "feed_id": "B"},
+    {"_comment": "rx_mapping above is a GUESS for structure illustration only - confirm actual wiring with vendor before first capture"}
+  ],
+  "spatial_channels_default_feed": "A",
+  "notes": "feed dimension is storage-only (doc19 s13.3). Algorithms process 4 spatial elements using one primary feed each; the second feed is archived raw. No polarization processing in scope."
+}
