@@ -1,11 +1,14 @@
 {
   "array_id": "actual_4elem_dualfeed_v0",
   "status": "PLACEHOLDER: awaiting vendor/measured element XYZ. DO NOT assume ULA/UCA/square geometry.",
+  "hardware_topology": "PENDING VENDOR CONFIRMATION: dual feed does NOT automatically mean 8 independent capturable RF outputs; may be 8ch or 4ch (feeds combined internally)",
+  "user_confirmed": false,
+  "fail_fast": "Any simulation or real-data processing MUST error out while user_confirmed is false. Never silently use the guessed rx_mapping below.",
   "n_elements": 4,
   "wavelength_m": 0.2548,
   "array_xyz_m": null,
-  "user_input_required": ["array_xyz_m (4x3, measured or vendor drawing)", "element boresight orientation", "feed geometry / polarization note"],
-  "rx_mapping": [
+  "user_input_required": ["array_xyz_m (4x3, measured or vendor drawing)", "element boresight orientation", "feed geometry / polarization note", "actual rx wiring (rx_mapping)", "independent RF output count (8 or 4)"],
+  "rx_mapping_UNCONFIRMED_GUESS": [
     {"rx_channel": 0, "element_id": 0, "feed_id": "A"},
     {"rx_channel": 1, "element_id": 0, "feed_id": "B"},
     {"rx_channel": 2, "element_id": 1, "feed_id": "A"},
@@ -13,9 +16,8 @@
     {"rx_channel": 4, "element_id": 2, "feed_id": "A"},
     {"rx_channel": 5, "element_id": 2, "feed_id": "B"},
     {"rx_channel": 6, "element_id": 3, "feed_id": "A"},
-    {"rx_channel": 7, "element_id": 3, "feed_id": "B"},
-    {"_comment": "rx_mapping above is a GUESS for structure illustration only - confirm actual wiring with vendor before first capture"}
+    {"rx_channel": 7, "element_id": 3, "feed_id": "B"}
   ],
-  "spatial_channels_default_feed": "A",
-  "notes": "feed dimension is storage-only (doc19 s13.3). Algorithms process 4 spatial elements using one primary feed each; the second feed is archived raw. No polarization processing in scope."
+  "spatial_channels_default_feed": "PLACEHOLDER-ONLY: no experimental/algorithmic default. If 8 independent outputs exist, first captures save ALL raw channels; A/B or combination is decided only after vendor feed definition and measured comparison.",
+  "notes": "feed dimension is storage-only (doc19 s13.3). Algorithms process 4 spatial elements; the non-selected feed is archived raw. No polarization processing in scope."
 }

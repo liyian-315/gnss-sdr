@@ -1947,3 +1947,17 @@ ULA/UCA/方阵,新增 sim/array_configs/actual_4elem_dualfeed_placeholder.json
 T2 8-UCA Monte Carlo 缩减为非核心;⑥20 天窗口目标改写为"尽快支持真实采集
 数据验真":窗口内优先采带完整 metadata 的 raw(G0→缩减版 G1→G2/G3
 screening),离线分析窗口后继续;⑦Y790s SDK 实现不启动,待厂家资料+单独任务。
+
+## 2026-08-11 Claude — v1.1 物理事实纠正 + 硬件未确认项标注(定点修订)
+
+①纠正 §13 场景注记:DAS 发射天线间距 30–40 m **不得等价为接收端相对延迟**
+——接收端 Δτ 由 DAS 分布链路延迟差、发射天线到阵列的几何传播距离差与 RF
+链路延迟共同决定,接收机居中时 40 m 间距的自由空间路径差可接近 0;30–40 m
+仅是发射点布设信息,实际 Δτ/Δaz 分布须现场 A-only/B-only 基线实测。
+②"4 阵元双馈 = 8 路 RF"改标 **hardware topology pending vendor
+confirmation**:双馈不自动等于 8 个独立可采 RF 输出,确认前同时准备 8 路/
+4 路两种拓扑。③`spatial_channels_default_feed=A` 降为纯 placeholder,非实验
+或算法默认;若确有 8 路独立输出,首批采集保存全部 raw,feed 取舍待厂家定义
++实测比较。④placeholder rx_mapping 改名 `rx_mapping_UNCONFIRMED_GUESS`,
+加 `user_confirmed: false`;程序在用户未填实际 mapping 前必须 fail-fast,
+禁止静默使用猜测。其余 v1.1 内容保持冻结,不启动新算法与 SDK 实现。
