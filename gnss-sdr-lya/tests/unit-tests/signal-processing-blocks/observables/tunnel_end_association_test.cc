@@ -89,8 +89,13 @@ TEST(TunnelEndAssociation, RejectsInvalidFieldConfiguration)
     config.identity_max_error_m = 0.0;
     EXPECT_FALSE(validate_tunnel_site_config(config).empty());
     config = site_at_300m();
+    config.identity_margin_m = 0.0;
+    EXPECT_EQ(validate_tunnel_site_config(config),
+        "Tunnel.identity_margin_m must be finite and > 0");
+    config = site_at_300m();
     config.identity_margin_m = -1.0;
-    EXPECT_FALSE(validate_tunnel_site_config(config).empty());
+    EXPECT_EQ(validate_tunnel_site_config(config),
+        "Tunnel.identity_margin_m must be finite and > 0");
 }
 
 TEST(TunnelEndAssociation, StartupBannerFreezesFieldConfigurationContract)

@@ -230,3 +230,82 @@ TEST(TunnelTemporalIntegration, Scenario10PositionChangeReversesExpectedDeltaAft
     EXPECT_DOUBLE_EQ(tunnel_expected_delta_b_minus_a_m(site(300.0)), 400.0);
     EXPECT_DOUBLE_EQ(tunnel_expected_delta_b_minus_a_m(site(700.0)), -400.0);
 }
+
+namespace tunnel_temporal_test
+{
+//! Exactly the thresholds shipped in product/tunnel_das/conf/gps_l5_tunnel_dual_end_b210.conf.
+DualPathPairConfig field_pair_config()
+{
+    DualPathPairConfig config;
+    config.window_size = 15U;
+    config.reliable_confirmations = 5U;
+    config.no_second_confirmations = 3U;
+    config.lost_confirmations = 5U;
+    config.report_interval_s = 1.0;
+    config.second_path_freshness_limit_s = 5.0;
+    config.max_time_difference_s = 0.05;
+    config.min_primary_cn0_db_hz = 20.0;
+    config.min_second_cn0_db_hz = 15.0;
+    config.max_doppler_difference_hz = 500.0;
+    config.min_abs_delta_m = 10.0;
+    config.max_delta_jump_m = 100.0;
+    config.max_delta_mad_m = 25.0;
+    return config;
+}
+
+TunnelSiteConfig field_site()
+{
+    auto config = site(300.0);
+    config.identity_confirm_epochs = 5;
+    return config;
+}
+}  // namespace tunnel_temporal_test
+
+TEST(TunnelTemporalIntegration, FieldConfigPathSwapKeepsPhysicalEndsThroughLostGeneration)
+{
+    using namespace tunnel_temporal_test;
+    DualPathPairManager manager(field_pair_config());
+    TunnelEndAssociation association(field_site());
+
+    TunnelEndStatus status;
+    const auto tick = [&](const std::vector<DualPathObservation>& observations) {
+        const auto tunnel = association.update(manager.update(observations));
+        EXPECT_FALSE(tunnel.empty());
+        status = tunnel.front();
+    };
+
+    for (int epoch = 1; epoch <= 5; ++epoch)
+        {
+            tick(both(static_cast<double>(epoch)));
+        }
+    ASSERT_EQ(status.identity, TunnelIdentityState::RELIABLE);
+    ASSERT_TRUE(status.end_a_is_path0);
+    ASSERT_DOUBLE_EQ(status.end_a_pseudorange_m, 20000000.0);
+
+    // Reversing delta by 800 m exceeds the shipped 100 m jump gate. The old
+    // generation must age through DEGRADED and LOST before the swap is accepted.
+    for (int epoch = 6; epoch <= 9; ++epoch)
+        {
+            tick(both(static_cast<double>(epoch), 20000400.0, -400.0, 39.0, 42.0));
+            EXPECT_EQ(status.pair_state, DualPathState::DEGRADED) << "epoch " << epoch;
+            EXPECT_EQ(status.identity, TunnelIdentityState::UNKNOWN);
+            EXPECT_FALSE(status.ends_valid);
+        }
+    tick(both(10.0, 20000400.0, -400.0, 39.0, 42.0));
+    ASSERT_EQ(status.pair_state, DualPathState::LOST);
+
+    for (int epoch = 11; epoch <= 14; ++epoch)
+        {
+            tick(both(static_cast<double>(epoch), 20000400.0, -400.0, 39.0, 42.0));
+            EXPECT_EQ(status.pair_state, DualPathState::CANDIDATE) << "epoch " << epoch;
+            EXPECT_FALSE(status.ends_valid);
+        }
+    tick(both(15.0, 20000400.0, -400.0, 39.0, 42.0));
+    EXPECT_EQ(status.pair_state, DualPathState::RELIABLE);
+    EXPECT_EQ(status.identity, TunnelIdentityState::RELIABLE);
+    EXPECT_FALSE(status.end_a_is_path0);
+    EXPECT_DOUBLE_EQ(status.end_a_pseudorange_m, 20000000.0);
+    EXPECT_DOUBLE_EQ(status.end_b_pseudorange_m, 20000400.0);
+    EXPECT_DOUBLE_EQ(status.pseudorange_delta_b_minus_a_m, 400.0);
+    EXPECT_EQ(status.reacquisition_count, 1U);
+}

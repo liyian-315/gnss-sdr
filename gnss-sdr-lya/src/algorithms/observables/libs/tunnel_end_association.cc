@@ -99,9 +99,9 @@ std::string validate_tunnel_site_config(const TunnelSiteConfig& config)
         {
             return "Tunnel.identity_max_error_m must be finite and > 0";
         }
-    if (!std::isfinite(config.identity_margin_m) || config.identity_margin_m < 0.0)
+    if (!std::isfinite(config.identity_margin_m) || config.identity_margin_m <= 0.0)
         {
-            return "Tunnel.identity_margin_m must be finite and >= 0";
+            return "Tunnel.identity_margin_m must be finite and > 0";
         }
     if (config.identity_confirm_epochs < 1)
         {
