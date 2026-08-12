@@ -1,0 +1,16 @@
+{
+  "reviewed_sha": "fa6c6c641b56120b765a10ee899098371d81fc7b",
+  "evidence": "ideal_simulation_diagnostic",
+  "realizations": 200,
+  "thresholds": {
+    "detect_db": 3.0,
+    "reliable_db": 6.0,
+    "mu_max": 0.98,
+    "status": "PROVISIONAL"
+  },
+  "monte_carlo_seed_rule": "900000 + condition_index*N + realization",
+  "grid_scan": "one-axis-at-a-time: delay step 0.1 during angle scan; angle step 10 during delay scan",
+  "local_refinement": "Nelder-Mead initialized only from observation-selected coarse H1",
+  "holdout": "first 6 snapshots select support; last 6 freeze support and refit amplitudes",
+  "reproduce": "python dev_notes/sim/diagnose_h1_h2_false_positive.py --output-dir <dir> --realizations 200"
+}

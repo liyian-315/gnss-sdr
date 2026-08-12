@@ -141,6 +141,14 @@ def _residual(Y, X):
     return float(np.sum(np.abs(resid) ** 2)), C
 
 
+def residual_improvement_db(res_h1, res_h2, reference_energy):
+    """Stable H1/H2 residual ratio, including the exact-fit numerical boundary."""
+    numerical_zero = 100.0 * np.finfo(np.float64).eps * max(reference_energy, 1.0)
+    if res_h1 <= numerical_zero:
+        return 0.0
+    return float(10.0 * np.log10(res_h1 / max(res_h2, numerical_zero)))
+
+
 def fit(dense, taps, ktaps, kernel, n_ant, spacing_wl, chip_m,
         angle_grid=None, tau1_grid=None, tau0=0.0,
         detect_db=3.0, reliable_db=6.0, mu_max=0.98,
@@ -194,7 +202,8 @@ def fit(dense, taps, ktaps, kernel, n_ant, spacing_wl, chip_m,
                            _array_steering(th1, n_ant, spacing_wl, array_xyz_m, wavelength_m))
     mu_temporal = coherence(kernel_vec(ta0, taps, ktaps, kernel), kernel_vec(ta1, taps, ktaps, kernel))
     cond = float(np.linalg.cond(np.column_stack([q0, q1])))
-    improvement_db = 10.0 * np.log10(res_h1 / max(res_h2, 1e-30))
+    improvement_db = residual_improvement_db(res_h1, res_h2,
+                                              float(np.sum(np.abs(Y) ** 2)))
     ratio_db = 20.0 * np.log10(np.median(np.abs(C[:, 1]) / (np.abs(C[:, 0]) + 1e-30)) + 1e-30)
 
     if improvement_db < detect_db:
