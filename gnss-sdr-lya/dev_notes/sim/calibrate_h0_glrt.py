@@ -37,9 +37,10 @@ def run(args):
     else:
         pos_wl = h12.ula_xyz(args.n_antennas, 0.5)
     az_grid = np.arange(args.az_min, args.az_max + 0.1, args.az_step)
-    tau_grid = np.arange(-0.25, 1.51, 0.1)
+    tau_grid = np.round(np.arange(-0.75, 1.5001, 0.1), 4)
 
-    stats = []
+    stats, states = [], {"ONE_SOURCE": 0, "TWO_SOURCE": 0, "UNRESOLVED": 0}
+    cache = {}
     for t in range(args.n_trials):
         true_manifold = h12.IdealManifold(pos_wl)
         if args.manifold_error > 0:  # generation uses perturbed array, fit uses ideal
@@ -56,9 +57,11 @@ def run(args):
         sc = h12.synth(true_manifold, taps, taps, kernel,
                        [(az, tau, 1.0)], args.n_blocks, args.noise_sigma, rng)
         r = h12.fit_h1h2(sc, taps, taps, kernel, h12.IdealManifold(pos_wl), 29.3,
-                         az_grid=az_grid, tau_grid=tau_grid, refine_sweeps=2)
+                         az_grid=az_grid, tau_grid=tau_grid, refine_sweeps=2,
+                         cache=cache)
         stats.append(r["improvement_db"])
-        if (t + 1) % 10 == 0:
+        states[r["state"]] += 1
+        if (t + 1) % 50 == 0:
             print("  trial %d/%d ..." % (t + 1, args.n_trials))
 
     stats = np.array(stats)
@@ -72,8 +75,12 @@ def run(args):
         n_blocks=args.n_blocks, noise_sigma=args.noise_sigma,
         manifold_error=args.manifold_error, pfa_target=args.pfa,
         improvement_db_percentiles=q,
+        improvement_db_max=float(np.max(stats)),
+        state_counts=states,
+        two_source_false_alarm_fraction=states["TWO_SOURCE"] / max(args.n_trials, 1),
         provisional_detect_db_at_pfa=thr,
-        note="evidence level: ideal simulation (+manifold perturbation if set)")
+        note="evidence level: ideal simulation (+manifold perturbation if set); "
+             "simulation-derived provisional")
     print(json.dumps(out, indent=2))
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:

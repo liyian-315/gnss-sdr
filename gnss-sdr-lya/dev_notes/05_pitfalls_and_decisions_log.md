@@ -2011,3 +2011,25 @@ placeholder config fail-fast 生效)与 `sim/calibrate_h0_glrt.py`(H0 仿真
 预标定:理想流形 95 分位 0.05 dB,5% 流形误差 1.28 dB——量化了为何必须真实
 单源重标定)。均为 [理想仿真] 证据等级。未实现 MUSIC/MVDR/平滑/CAF/SAGE/
 H3H4/SDK/停车场实验。
+
+## 2026-08-12 Claude — H1/H2 结构性修复(doc 23),verdict PASS_WITH_LIMITATIONS
+
+针对 Codex CONTINUOUS_REFINEMENT_REVIEW_BLOCK 五项确认问题完成修复
+(起点 04a1a4c89):①H2 coarse 改为 (az0,tau0,az1,tau1) 完全独立双源搜索
+(闭式投影能量全库向量化),H1 只作诊断+可选种子,锚定删除——压力场景
+delay MAE 0.0967→0.0014 chip,基准 0.5/30/-6 的 0.418 偏差问题消除
+(MAE 0.082→0.0016);②top-K=5 去重 multi-start,每起点 seed/refined/
+residual/status 全审计,实测 start 间 spread 最高 19 dB;③删除 delay-only
+collision:零延迟 60/90/120° 18/18 TWO_SOURCE(pre-fix 全被误杀),180°
+ULA endfire 空间签名恒等,正确拒报;④三态语义:3–6 dB 一律 UNRESOLVED
+(marginal_evidence),MARGINAL 不再算 TWO_SOURCE;⑤MeasuredManifold 13 项
+加固单测(排序/唯一/有限/形状/通道/全零/360° wrap 连续 0.0009/扇区外
+报错/禁 3-D 静默切片)。
+
+**新坑**:coarse 投影能量交叉项共轭写反(Re(G·conj(S)) 应为 Re(G·S)),
+μ≈0 时不显形,高相干对被高估→coarse 选中退化对。教训:闭式投影公式必须
+先对若干 μ 值与直接 LS 残差数值对拍再上量。
+
+H0 500 ideal + 500 5%失配:0/1000 TWO_SOURCE 虚警,max 0.064/2.545 dB,
+multi-start 未抬尾。全部 [理想仿真],门限仍 PROVISIONAL。报告 doc 23;
+允许进入 measured-kernel/faithful-texture(待单独下达)。

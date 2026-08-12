@@ -1,0 +1,26 @@
+{
+  "purpose": "H0 GLRT simulation PRE-calibration (development only)",
+  "provisional": true,
+  "must_not_replace": "real single-source negative-control calibration (doc19 s14.2)",
+  "n_trials": 500,
+  "n_antennas": 4,
+  "n_blocks": 24,
+  "noise_sigma": 0.05,
+  "manifold_error": 0.0,
+  "pfa_target": 0.05,
+  "improvement_db_percentiles": {
+    "50": 0.04172752960638976,
+    "90": 0.05073621401552346,
+    "95": 0.05393263180845547,
+    "99": 0.058456090740675835
+  },
+  "improvement_db_max": 0.06362311701027003,
+  "state_counts": {
+    "ONE_SOURCE": 500,
+    "TWO_SOURCE": 0,
+    "UNRESOLVED": 0
+  },
+  "two_source_false_alarm_fraction": 0.0,
+  "provisional_detect_db_at_pfa": 0.05393263180845547,
+  "note": "evidence level: ideal simulation (+manifold perturbation if set); simulation-derived provisional"
+}
