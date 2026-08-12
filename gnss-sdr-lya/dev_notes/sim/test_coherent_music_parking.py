@@ -49,6 +49,34 @@ class CoherentMusicParkingTest(unittest.TestCase):
         second = sim.steering_ula(20.0, 4)
         self.assertAlmostEqual(sim.normalized_coherence(first, second), 1.0)
 
+    def test_phase_mode_transform_approximates_virtual_ula(self):
+        transform, modes = sim.phase_mode_transform(8)
+        actual = transform @ sim.steering_from_positions(
+            sim.uca_positions(8), 37.0
+        )
+        expected = np.exp(1j * modes * np.radians(37.0))
+        self.assertGreater(sim.normalized_coherence(actual, expected), 0.95)
+
+    def test_eight_element_uca_fbss_recovers_coherent_sources(self):
+        rng = np.random.default_rng(4)
+        transmitters = np.array([[-10.0, 0.0], [10.0, 0.0]])
+        result = sim.simulate_uca_position(
+            np.array([0.0, 5.0]), transmitters, 8, rng,
+            snr_db=30.0, relative_phase_rad=0.7
+        )
+        self.assertTrue(result["phase_mode_supported"])
+        self.assertTrue(sim.match_circular_doa(
+            result["bearings_deg"], result["fbss_music_peaks_deg"]
+        ))
+
+    def test_four_element_uca_has_too_few_phase_modes_for_two_source_fbss(self):
+        rng = np.random.default_rng(5)
+        transmitters = np.array([[-10.0, 0.0], [10.0, 0.0]])
+        result = sim.simulate_uca_position(
+            np.array([0.0, 5.0]), transmitters, 4, rng
+        )
+        self.assertFalse(result["phase_mode_supported"])
+
 
 if __name__ == "__main__":
     unittest.main()

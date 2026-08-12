@@ -11,6 +11,27 @@
 
 ## 2026-08-12 - Codex - Coherent MUSIC reproduction and parking-array first pass
 
+### 2026-08-12 补充：停车场圆阵 PM-FBSS 对比
+
+按 20 m 双 DAS 停车场几何补齐圆阵算法链：Bartlett、原始 UCA 直接 MUSIC、
+相位模态变换后的 FBSS-MVDR，以及 PM-FBSS-MUSIC。空间平滑是协方差预处理，
+不是独立 DOA 估计器；“不用 MUSIC”组因此使用 MVDR。
+
+40 次随机相位 Monte Carlo 显示：四阵元圆阵仅有 3 个可靠相位模态，无法在两源
+FBSS 后同时保留噪声子空间，故不应强行运行；八阵元在接收机位于两发射天线之间的
+两个代表点上，PM-FBSS-MVDR/MUSIC 均为 100%，原始 Bartlett/直接 MUSIC 为
+57--62%/45--50%。侧方位置 PM-FBSS 仍低至 0--15%，原因是有限阵元相位模态截断和
+模态混叠造成阵列流形失配，不能靠放松峰值阈值解决。两源从接收机看来同方向时，
+空间域严格不可分，统一记为 0%，修复了早期评分把重合真值误算为成功的问题。
+
+决策：四通道优先用于 2x2 平面阵和联合空间-时延原型；若采用圆阵相位模态平滑，
+从八阵元起验证，但当前不能冻结最终阵元数。下一步先加入校准残差、互耦/近场模型，
+再比较 2x2 与 UCA，并接入 dense correlator 做每路 DOA-延迟联合估计。
+
+详细公式、结果和运行命令见 `23_coherent_music_spatial_smoothing_reproduction.md`。
+
+-- Codex (GPT-5), 2026-08-12
+
 The parking-garage target is two useful same-code DAS transmitters separated by
 20 m. Conventional MUSIC was verified to fail for fully coherent paths because
 the source covariance, and therefore the signal subspace, collapses from rank

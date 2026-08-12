@@ -28,6 +28,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.special import jv
 from scipy.signal import find_peaks
 
 
@@ -101,6 +102,36 @@ def coherent_snapshots(
     return clean + noise
 
 
+def coherent_snapshots_from_manifold(
+    manifold,
+    amplitudes,
+    n_snapshots,
+    snr_db,
+    rng,
+    correlation=1.0,
+):
+    """Generate snapshots for an already constructed array manifold."""
+    manifold = np.asarray(manifold, dtype=complex)
+    amplitudes = np.asarray(amplitudes, dtype=complex)
+    n_sources = manifold.shape[1]
+    common = (
+        rng.standard_normal(n_snapshots) + 1j * rng.standard_normal(n_snapshots)
+    ) / np.sqrt(2.0)
+    independent = (
+        rng.standard_normal((n_sources, n_snapshots))
+        + 1j * rng.standard_normal((n_sources, n_snapshots))
+    ) / np.sqrt(2.0)
+    rho = float(np.clip(correlation, 0.0, 1.0))
+    sources = np.sqrt(rho) * common[None, :] + np.sqrt(1.0 - rho) * independent
+    clean = manifold @ (amplitudes[:, None] * sources)
+    signal_power = float(np.mean(np.abs(clean) ** 2))
+    noise_power = signal_power / (10.0 ** (snr_db / 10.0))
+    noise = np.sqrt(noise_power / 2.0) * (
+        rng.standard_normal(clean.shape) + 1j * rng.standard_normal(clean.shape)
+    )
+    return clean + noise
+
+
 def covariance(samples):
     return samples @ samples.conj().T / samples.shape[1]
 
@@ -141,6 +172,56 @@ def music_spectrum(covariance_matrix, n_sources, angle_grid_deg, manifold=None):
     return spectrum, eigenvalues
 
 
+def bartlett_spectrum(covariance_matrix, manifold):
+    """Conventional beam-scanning spectrum; it does not use eigenspaces."""
+    numerator = np.real(
+        np.sum(manifold.conj() * (covariance_matrix @ manifold), axis=0)
+    )
+    denominator = np.sum(abs(manifold) ** 2, axis=0) ** 2
+    spectrum = np.maximum(numerator / np.maximum(denominator, 1e-15), 0.0)
+    return spectrum / max(float(np.max(spectrum)), 1e-15)
+
+
+def mvdr_spectrum(covariance_matrix, manifold, diagonal_loading=1e-3):
+    """Capon/MVDR spectrum using a diagonally loaded covariance inverse."""
+    dimension = covariance_matrix.shape[0]
+    loading = diagonal_loading * np.real(np.trace(covariance_matrix)) / dimension
+    inverse = np.linalg.pinv(covariance_matrix + loading * np.eye(dimension))
+    denominator = np.real(np.sum(manifold.conj() * (inverse @ manifold), axis=0))
+    spectrum = 1.0 / np.maximum(denominator, 1e-15)
+    return spectrum / max(float(np.max(spectrum)), 1e-15)
+
+
+def phase_mode_transform(n_elements, adjacent_spacing_wl=0.5, mode_order=None):
+    """Transform a UCA into contiguous phase modes forming a virtual ULA.
+
+    For a UCA steering vector, Jacobi-Anger expansion gives mode n as
+    j**n J_n(kr) exp(j n theta). Dividing out the Bessel coefficient leaves
+    the Vandermonde term exp(j n theta), on which spatial smoothing is valid.
+    """
+    if mode_order is None:
+        # Two-source processing needs five contiguous modes. Retaining still
+        # higher modes on a small UCA increases finite-element mode aliasing.
+        mode_order = min((n_elements - 1) // 2, 2)
+    modes = np.arange(-mode_order, mode_order + 1)
+    if len(modes) > n_elements:
+        raise ValueError("number of retained phase modes exceeds array channels")
+    radius_wl = adjacent_spacing_wl / (2.0 * np.sin(np.pi / n_elements))
+    kr = 2.0 * np.pi * radius_wl
+    element_angles = 2.0 * np.pi * np.arange(n_elements) / n_elements
+    coefficients = (1j ** modes) * jv(modes, kr)
+    if np.min(abs(coefficients)) < 1e-3:
+        raise ValueError("phase-mode Bessel coefficient is too close to zero")
+    transform = np.exp(1j * np.outer(modes, element_angles)) / n_elements
+    transform /= coefficients[:, None]
+    return transform, modes
+
+
+def virtual_ula_manifold(angle_grid_deg, dimension):
+    theta = np.radians(np.asarray(angle_grid_deg, dtype=float))
+    return np.exp(1j * np.outer(np.arange(dimension), theta))
+
+
 def principal_eigenvector_spectrum(covariance_matrix, angle_grid_deg):
     """Wang et al. (2014), Eq. (12): estimate only the strongest LOS DOA."""
     hermitian = 0.5 * (covariance_matrix + covariance_matrix.conj().T)
@@ -171,6 +252,34 @@ def strongest_peaks(angle_grid_deg, spectrum, count, minimum_separation_deg=3.0)
         peaks = np.asarray(selected, dtype=int)
     peaks = peaks[np.argsort(spectrum[peaks])[::-1]][:count]
     return np.sort(angle_grid_deg[peaks])
+
+
+def strongest_circular_peaks(
+    angle_grid_deg, spectrum, count, minimum_separation_deg=5.0
+):
+    """Local-maximum selection on a periodic 0..360 degree scan grid."""
+    grid_step = float(np.median(np.diff(angle_grid_deg)))
+    distance = max(1, int(round(minimum_separation_deg / grid_step)))
+    extended = np.concatenate([spectrum, spectrum, spectrum])
+    peaks, _ = find_peaks(extended, distance=distance)
+    peaks = peaks[(peaks >= len(spectrum)) & (peaks < 2 * len(spectrum))]
+    peaks %= len(spectrum)
+    order = peaks[np.argsort(spectrum[peaks])[::-1]]
+    selected = []
+    for candidate in order:
+        angle = float(angle_grid_deg[candidate])
+        if all(circular_angle_difference(angle, old) >= minimum_separation_deg for old in selected):
+            selected.append(angle)
+        if len(selected) == count:
+            break
+    if len(selected) < count:
+        for candidate in np.argsort(spectrum)[::-1]:
+            angle = float(angle_grid_deg[candidate])
+            if all(circular_angle_difference(angle, old) >= minimum_separation_deg for old in selected):
+                selected.append(angle)
+            if len(selected) == count:
+                break
+    return np.sort(np.asarray(selected))
 
 
 def estimated_signal_rank(eigenvalues, max_sources, noise_multiplier=5.0):
@@ -341,6 +450,110 @@ def circular_angle_difference(first_deg, second_deg):
     return abs((first_deg - second_deg + 180.0) % 360.0 - 180.0)
 
 
+def match_circular_doa(truth_deg, estimate_deg, tolerance_deg=5.0):
+    """Match two unordered circular DOAs under the best permutation."""
+    truth = np.asarray(truth_deg, dtype=float)
+    estimate = np.asarray(estimate_deg, dtype=float)
+    if len(truth) != 2 or len(estimate) != 2:
+        return False
+    if circular_angle_difference(truth[0], truth[1]) < tolerance_deg:
+        return False
+    direct = max(
+        circular_angle_difference(truth[0], estimate[0]),
+        circular_angle_difference(truth[1], estimate[1]),
+    )
+    swapped = max(
+        circular_angle_difference(truth[0], estimate[1]),
+        circular_angle_difference(truth[1], estimate[0]),
+    )
+    return min(direct, swapped) <= tolerance_deg
+
+
+def simulate_uca_position(
+    receiver_xy,
+    transmitters_xy,
+    n_elements,
+    rng,
+    snr_db=15.0,
+    source_ratio_db=-6.0,
+    relative_phase_rad=0.0,
+):
+    """Compare UCA Bartlett, direct MUSIC, and phase-mode FBSS methods."""
+    bearings = np.mod(
+        [bearing_from_receiver(receiver_xy, tx) for tx in transmitters_xy], 360.0
+    )
+    positions = uca_positions(n_elements, 0.5)
+    source_manifold = np.column_stack(
+        [steering_from_positions(positions, angle) for angle in bearings]
+    )
+    amplitudes = [
+        1.0,
+        10.0 ** (source_ratio_db / 20.0) * np.exp(1j * relative_phase_rad),
+    ]
+    samples = coherent_snapshots_from_manifold(
+        source_manifold, amplitudes, 2048, snr_db, rng, correlation=1.0
+    )
+    raw = covariance(samples)
+    grid = np.arange(0.0, 360.0, 1.0)
+    scan_manifold = np.column_stack(
+        [steering_from_positions(positions, angle) for angle in grid]
+    )
+    bartlett = bartlett_spectrum(raw, scan_manifold)
+    direct_music, raw_eigenvalues = music_spectrum(
+        raw, 2, grid, manifold=scan_manifold
+    )
+
+    result = {
+        "bearings_deg": bearings.tolist(),
+        "spatial_coherence": normalized_coherence(
+            source_manifold[:, 0], source_manifold[:, 1]
+        ),
+        "raw_rank": estimated_signal_rank(raw_eigenvalues, 2),
+        "grid": grid,
+        "bartlett_spectrum": bartlett,
+        "direct_music_spectrum": direct_music,
+        "bartlett_peaks_deg": strongest_circular_peaks(grid, bartlett, 2).tolist(),
+        "direct_music_peaks_deg": strongest_circular_peaks(
+            grid, direct_music, 2
+        ).tolist(),
+    }
+
+    transform, modes = phase_mode_transform(n_elements)
+    virtual_dimension = len(modes)
+    # At least two translated subarrays and a noise-subspace dimension are
+    # required for a meaningful two-source FBSS-MUSIC estimate.
+    subarray_size = virtual_dimension - 1
+    result["phase_mode_dimension"] = virtual_dimension
+    result["phase_mode_subarray_size"] = subarray_size
+    result["phase_mode_supported"] = bool(subarray_size > 2)
+    if not result["phase_mode_supported"]:
+        return result
+
+    virtual_covariance = transform @ raw @ transform.conj().T
+    smooth = forward_backward_spatial_smoothing(
+        virtual_covariance, subarray_size
+    )
+    virtual_manifold = virtual_ula_manifold(grid, subarray_size)
+    fbss_music, smooth_eigenvalues = music_spectrum(
+        smooth, 2, grid, manifold=virtual_manifold
+    )
+    fbss_mvdr = mvdr_spectrum(smooth, virtual_manifold)
+    result.update(
+        {
+            "fbss_rank": estimated_signal_rank(smooth_eigenvalues, 2),
+            "fbss_music_spectrum": fbss_music,
+            "fbss_mvdr_spectrum": fbss_mvdr,
+            "fbss_music_peaks_deg": strongest_circular_peaks(
+                grid, fbss_music, 2
+            ).tolist(),
+            "fbss_mvdr_peaks_deg": strongest_circular_peaks(
+                grid, fbss_mvdr, 2
+            ).tolist(),
+        }
+    )
+    return result
+
+
 def parking_grid(transmitters_xy, x_values, y_values, element_xy_wl):
     coherence = np.full((len(y_values), len(x_values)), np.nan)
     angle_separation = np.full_like(coherence, np.nan)
@@ -508,6 +721,151 @@ def run_parking_study(output_dir, rng, tx_separation_m):
     }
 
 
+def run_uca_method_comparison(output_dir, seed, tx_separation_m):
+    """Compare circular-array estimators at representative parking positions."""
+    transmitters = np.array(
+        [[-tx_separation_m / 2.0, 0.0], [tx_separation_m / 2.0, 0.0]]
+    )
+    representative = {
+        "between_center": np.array([0.0, 0.0]),
+        "between_offset": np.array([0.0, 5.0]),
+        "outside_left": np.array([-20.0, 0.0]),
+        "beside_tx0": np.array([-10.0, 5.0]),
+        "far_side": np.array([0.0, 20.0]),
+    }
+    element_counts = [4, 6, 8]
+    trials = 40
+    rows = []
+    example_spectra = {}
+    for n_elements in element_counts:
+        for position_index, (name, receiver) in enumerate(representative.items()):
+            successes = {"bartlett": 0, "direct_music": 0, "fbss_music": 0, "fbss_mvdr": 0}
+            example = None
+            for trial in range(trials):
+                local_rng = np.random.default_rng(
+                    seed + n_elements * 100000 + position_index * 1000 + trial
+                )
+                phase = local_rng.uniform(-np.pi, np.pi)
+                result = simulate_uca_position(
+                    receiver,
+                    transmitters,
+                    n_elements,
+                    local_rng,
+                    snr_db=15.0,
+                    source_ratio_db=-6.0,
+                    relative_phase_rad=phase,
+                )
+                truth = result["bearings_deg"]
+                successes["bartlett"] += match_circular_doa(
+                    truth, result["bartlett_peaks_deg"]
+                )
+                successes["direct_music"] += match_circular_doa(
+                    truth, result["direct_music_peaks_deg"]
+                )
+                if result["phase_mode_supported"]:
+                    successes["fbss_music"] += match_circular_doa(
+                        truth, result["fbss_music_peaks_deg"]
+                    )
+                    successes["fbss_mvdr"] += match_circular_doa(
+                        truth, result["fbss_mvdr_peaks_deg"]
+                    )
+                if trial == 0:
+                    example = result
+            rows.append(
+                {
+                    "elements": n_elements,
+                    "position": name,
+                    "x_m": receiver[0],
+                    "y_m": receiver[1],
+                    "bearing0_deg": example["bearings_deg"][0],
+                    "bearing1_deg": example["bearings_deg"][1],
+                    "bearing_separation_deg": circular_angle_difference(
+                        *example["bearings_deg"]
+                    ),
+                    "spatial_coherence": example["spatial_coherence"],
+                    "raw_rank": example["raw_rank"],
+                    "phase_mode_dimension": example["phase_mode_dimension"],
+                    "phase_mode_supported": example["phase_mode_supported"],
+                    "bartlett_success": successes["bartlett"] / trials,
+                    "direct_music_success": successes["direct_music"] / trials,
+                    "fbss_music_success": (
+                        successes["fbss_music"] / trials
+                        if example["phase_mode_supported"] else None
+                    ),
+                    "fbss_mvdr_success": (
+                        successes["fbss_mvdr"] / trials
+                        if example["phase_mode_supported"] else None
+                    ),
+                }
+            )
+            if name in ("between_offset", "beside_tx0", "outside_left"):
+                example_spectra[(n_elements, name)] = example
+
+    csv_path = output_dir / "parking_uca_method_comparison.csv"
+    with csv_path.open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+
+    fig, axes = plt.subplots(3, 3, figsize=(15, 11), constrained_layout=True)
+    for row_index, n_elements in enumerate(element_counts):
+        for column_index, name in enumerate(("between_offset", "beside_tx0", "outside_left")):
+            axis = axes[row_index, column_index]
+            result = example_spectra[(n_elements, name)]
+            grid = result["grid"]
+            axis.plot(grid, 10 * np.log10(np.maximum(result["bartlett_spectrum"], 1e-12)), label="Bartlett")
+            axis.plot(grid, 10 * np.log10(np.maximum(result["direct_music_spectrum"], 1e-12)), label="direct MUSIC")
+            if result["phase_mode_supported"]:
+                axis.plot(grid, 10 * np.log10(np.maximum(result["fbss_mvdr_spectrum"], 1e-12)), label="PM-FBSS-MVDR")
+                axis.plot(grid, 10 * np.log10(np.maximum(result["fbss_music_spectrum"], 1e-12)), label="PM-FBSS-MUSIC")
+            else:
+                axis.text(0.03, 0.08, "PM-FBSS unavailable: insufficient modes", transform=axis.transAxes)
+            for truth in result["bearings_deg"]:
+                axis.axvline(truth, color="black", linestyle="--", linewidth=0.8)
+            axis.set_xlim(0, 359)
+            axis.set_ylim(-40, 1)
+            axis.set_title("M=%d, %s" % (n_elements, name))
+            axis.grid(True, alpha=0.25)
+            if row_index == 2:
+                axis.set_xlabel("azimuth (deg)")
+            if column_index == 0:
+                axis.set_ylabel("normalized spectrum (dB)")
+    axes[0, 0].legend(fontsize=8, loc="lower left")
+    spectra_path = output_dir / "parking_uca_method_spectra.png"
+    fig.savefig(spectra_path, dpi=180)
+    plt.close(fig)
+
+    methods = ["bartlett_success", "direct_music_success", "fbss_mvdr_success", "fbss_music_success"]
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4.8), constrained_layout=True)
+    for axis, n_elements in zip(axes, element_counts):
+        subset = [row for row in rows if row["elements"] == n_elements]
+        values = np.array([
+            [np.nan if row[method] is None else row[method] for method in methods]
+            for row in subset
+        ])
+        image = axis.imshow(values, vmin=0, vmax=1, cmap="viridis", aspect="auto")
+        for i in range(values.shape[0]):
+            for j in range(values.shape[1]):
+                label = "N/A" if np.isnan(values[i, j]) else "%.0f%%" % (100 * values[i, j])
+                axis.text(j, i, label, ha="center", va="center", color="white" if np.isnan(values[i, j]) or values[i, j] < 0.55 else "black")
+        axis.set_title("%d-element UCA" % n_elements)
+        axis.set_xticks(range(4), ["Bartlett", "direct\nMUSIC", "FBSS\nMVDR", "FBSS\nMUSIC"])
+        axis.set_yticks(range(len(subset)), [row["position"] for row in subset])
+        fig.colorbar(image, ax=axis, label="two-DOA success rate")
+    success_path = output_dir / "parking_uca_method_success.png"
+    fig.savefig(success_path, dpi=180)
+    plt.close(fig)
+    return {
+        "trials_per_position": trials,
+        "snr_db": 15.0,
+        "source_ratio_db": -6.0,
+        "rows": rows,
+        "csv": str(csv_path),
+        "spectra": str(spectra_path),
+        "success": str(success_path),
+    }
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", default="space_array_reproduction")
@@ -521,10 +879,14 @@ def main():
     paper = run_paper_reproduction(output_dir, rng)
     monte_carlo = run_correlation_monte_carlo(output_dir, args.seed + 1000000)
     parking = run_parking_study(output_dir, rng, args.tx_separation_m)
+    uca_comparison = run_uca_method_comparison(
+        output_dir, args.seed + 2000000, args.tx_separation_m
+    )
     summary = {
         "paper_reproduction": paper,
         "correlation_monte_carlo": monte_carlo,
         "parking_study": parking,
+        "uca_method_comparison": uca_comparison,
     }
     summary_path = output_dir / "summary.json"
     summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -542,6 +904,17 @@ def main():
     fbss_coherent = np.asarray(monte_carlo["fbss_success_rate"])[:, -1]
     print("fully coherent conventional success by SNR:", conventional_coherent.tolist())
     print("fully coherent FBSS success by SNR:", fbss_coherent.tolist())
+    print("UCA method comparison:")
+    for row in uca_comparison["rows"]:
+        print(
+            "  M=%d %-15s sep=%5.1f mu=%.3f Bartlett=%.2f directMUSIC=%.2f FBSS-MVDR=%s FBSS-MUSIC=%s"
+            % (
+                row["elements"], row["position"], row["bearing_separation_deg"],
+                row["spatial_coherence"], row["bartlett_success"],
+                row["direct_music_success"], row["fbss_mvdr_success"],
+                row["fbss_music_success"],
+            )
+        )
     print("wrote", summary_path)
 
 

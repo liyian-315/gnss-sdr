@@ -67,7 +67,7 @@ dense 相关器看到的仍是**多个 R(τ) 相关峰的叠加**。所以**信�
 | 19 | `19_l5_dualpath_release_blocking_fix_round1.md` | **L5 Dual-Path v1 发布阻断修复 Round 1**：B-1/B-2/B-3 根因与修复、NUC `run_tests`、单/双源回放、发布包自校验和剩余验证缺口 | Claude 第二轮审查或继续产品验收前必读 | 🟡 CODE_COMPLETE |
 | 21 | `21_tunnel_das_balance_tool.md` | **隧道 DAS 双端覆盖测量与功率配平工具**：测点输入、END_A/END_B 物理身份关联、`TUNNEL_DAS_STATUS` 实时输出、中点 UNRESOLVED 边界、单测与集成编译结果 | 现场做隧道双端覆盖测量或改身份判据前必读 | 🟡 待射频实测 |
 | 22 | `22_tunnel_das_software_completion.md` | **Tunnel DAS 软件收尾与硬件交接**：空历元时钟根因、掉线/重捕获语义、时序集成测试、配置自检、B210/replay 入口与硬件验收缺口 | 下一次拿到 NUC + B210 + 双端设备前必读 | 🟡 待硬件验证 |
-| 23 | `23_coherent_music_spatial_smoothing_reproduction.md` | **相干 GNSS 的 MUSIC/空间平滑复现报告**：普通 MUSIC 秩亏原因、FBSS 原理、王纯 2014 参数复现、20m 双 DAS 停车场 ULA/UCA 条件图与阵列制作前置规格 | 讨论四阵元阵列、复现相干源 DOA 或冻结停车场阵列规格前必读 | 🟡 仿真首轮完成 |
+| 23 | `23_coherent_music_spatial_smoothing_reproduction.md` | **相干 GNSS 的 MUSIC/空间平滑中文报告**：秩亏与 FBSS 公式、UCA 相位模态改造、20m 双 DAS 停车场 4/6/8 阵元 Bartlett/直接 MUSIC/PM-FBSS-MVDR/MUSIC 对比 | 讨论圆阵、复现相干源 DOA 或冻结停车场阵列规格前必读 | 🟡 圆阵仿真完成，硬件规格未冻结 |
 
 > 图例：✅ 已成稿可用 · 🟡 进行中 · ⚪ 历史/已被取代 · ⬜ 未开始
 
