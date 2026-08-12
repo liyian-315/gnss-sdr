@@ -1990,3 +1990,24 @@ confirmation**:双馈不自动等于 8 个独立可采 RF 输出,确认前同时
 +实测比较。④placeholder rx_mapping 改名 `rx_mapping_UNCONFIRMED_GUESS`,
 加 `user_confirmed: false`;程序在用户未填实际 mapping 前必须 fail-fast,
 禁止静默使用猜测。其余 v1.1 内容保持冻结,不启动新算法与 SDK 实现。
+
+## 2026-08-12 Claude — 固定技术原则(doc19 §14) + continuous H1/H2 + H0 预标定
+
+用户下达七条约束性原则,已写入 doc19 §14:①reference DLL 只定义公共相关
+坐标系零点,非 LOS/DAS truth,延迟一律 relative-to-reference,关键量
+delta_tau;②GLRT 门限保持 PROVISIONAL,最终由真实单源 negative-control
+经验分布定 Pfa 后冻结,仿真只作预标定;③输出必须保留
+ONE_SOURCE/TWO_SOURCE/UNRESOLVED 三态;④主路线固定(校准→参考通道粗跟踪→
+共假设→M×K 快拍→实测流形+实测核→H1/H2 VarPro ML→经验模型阶判定),不依赖
+Doppler 差与 MUSIC;⑤持续支持 array_xyz_m + a_measured(θ) 接口,az-only,
+不提前做 a(θ,r),硬件阶段须验证同 DOA 不同距离的流形稳定性;⑥G0 第一项=
+通道相位稳定性(等功率分路数分钟,测相位/群时延/漂移/重启复现),不过不进
+DOA;⑦评价目标是 P_resolve=f(Δaz,Δτ,ΔP,C/N0) 地图,禁止"已具有 X m 分辨
+能力/预计达到 Y m"式表述。
+
+本轮交付:`sim/fit_space_delay_h1h2.py`(M/XYZ 通用连续细化 H1/H2,自测
+通过:off-grid 0.37 chip→0.368,任意 XYZ 可用,退化/单源正确拒报,
+placeholder config fail-fast 生效)与 `sim/calibrate_h0_glrt.py`(H0 仿真
+预标定:理想流形 95 分位 0.05 dB,5% 流形误差 1.28 dB——量化了为何必须真实
+单源重标定)。均为 [理想仿真] 证据等级。未实现 MUSIC/MVDR/平滑/CAF/SAGE/
+H3H4/SDK/停车场实验。

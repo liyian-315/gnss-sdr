@@ -442,3 +442,23 @@ y[b,m,k] = Σ_{l=0..L-1} c_l[b] · â_m(az_l, el_l) · R(τ_k − τ_l) + n[b,m,
 | 4 物理阵元硬件路线 | 实际 XYZ 的 T3 敏感性、G0–G3 实测、能力包线 | 随 Gate 实测升级 |
 
 两栏并列呈现,任何跨栏引用须显式标注"理论参考,非硬件能力"。
+
+---
+
+## 14. 固定技术原则（2026-08-12,约束性,非新研究方向）
+
+以下七条为后续全部工作的硬约束,与 v1/v1.1 冻结内容并行有效:
+
+1. **参考通道只负责公共粗同步**���reference channel 收到的可能是 DAS1+DAS2+multipath 混合;GNSS-SDR DLL 锁定的 code phase **不解释为 LOS truth、DAS1 truth 或 DAS2 truth**,只定义公共相关坐标系零点。一切路径时延统一表述为 `relative delay w.r.t. the common tracking reference`;两路间真正重要的量是 `delta_tau = tau2 - tau1`。禁止在算法或文档中把 reference DLL delay 当真实路径 delay。
+2. **GLRT/H1-H2 门限最终由真实单源 negative-control 数据标定**。3/6 dB 等继续标 `PROVISIONAL`;不得用简单理论 chi-square 门限作最终实验门限。停车场实验前流程:真实单源数据 → refined H1/H2 → H0 statistic 经验分布 → 固定 false-alarm level → 冻结 threshold → 才用于双源数据。仿真 Monte Carlo 只用于开发与预标定(`calibrate_h0_glrt.py`),不能替代真实单源标定。
+3. **必须保留 UNRESOLVED**。输出至少含 `ONE_SOURCE / TWO_SOURCE / UNRESOLVED` 三态;联合模板高度相干、条件数恶化、参数碰撞或第二源证据不足时输出 UNRESOLVED,不强制 H1/H2 二选一。
+4. **主路线不依赖 Doppler 差,也不依赖 MUSIC 先成功**。主路线固定为:4 阵元同步 IQ → 通道幅相/群时延校准 → reference-channel 粗跟踪 → common code/carrier hypothesis 施加全通道 → M×K 复相关快拍 → 实测流形 a(θ) + 实测 L5 核 R(τ) → joint space-delay H1/H2 VarPro ML → 经验标定的模型阶判定 → DOA/相对延迟/相对功率/置信/UNRESOLVED。MUSIC/MVDR/空间平滑/CAF 只作未来 baseline/辅助。
+5. **空间流形必须允许实测模型**。代码不得假设理想 ULA/UCA;持续支持 `array_xyz_m` 并保留 `a_measured(theta)` 接口(已实现 `MeasuredManifold`)。当前 az-only,不提前实现 `a(theta, r)`;**硬件阶段必须验证:同一 DOA、不同距离下 measured manifold 是否足够稳定**,明显不稳定再决定是否引入 range-dependent manifold。
+6. **硬件阶段最优先验证通道相位稳定性**(G0 第一项):同一 RF 信号等功率分到所有使用的接收通道,连续采集数分钟,校准后测 relative phase / relative group delay / drift / restart repeatability;此项不过,不进入真实 DOA/space-delay 分离。本轮不写 Y790s driver,仅保留此要求。
+7. **最终科研结果不是单独的"最低多少米"**。评价目标是建立 `P_resolve = f(delta_az, delta_tau, delta_power, C/N0)`(即 G4 地图);当前任何 0.5-chip/30° 结果只是 benchmark point。**禁止**写"系统已具有 15 m 真实分辨能力"或"预计一定可以达到 7 m"之类表述。
+
+### 14.1 本轮交付（continuous H1/H2 refinement + H0 simulation calibration）
+
+- `sim/fit_space_delay_h1h2.py` **[理想仿真]**:M/`array_xyz_m` 通用(ULA 仅为位置矩阵特例)、az-only、`MeasuredManifold` npz 接口、粗网格+黄金分割坐标下降连续细化(τ0 一并细化,不再写死 0)、输出 `ONE_SOURCE/TWO_SOURCE/UNRESOLVED`(detail 保留 RELIABLE/MARGINAL/NO_SECOND_SOURCE 映射)、延迟字段全部为 `*_rel_chips`(相对公共跟踪参考)、被拒模型参数输出 N/A、未确认 array config 触发 fail-fast。自测:off-grid 真值 Δτ=0.37 chip 恢复 0.368(网格步长 0.05);任意非规则 4 元 XYZ 可用;同向等功率与单源正确拒报。
+- `sim/calibrate_h0_glrt.py` **[理想仿真]**:H0 单源随机场景 Monte Carlo,输出 improvement_db 经验分位数与给定 Pfa 下的 `provisional_detect_db`。首批结果(M=4 ULA,σ=0.05,24 blocks,40 trials):理想流形 H0 95 分位 ≈ **0.05 dB**;5% 逐元流形误差下 ≈ **1.28 dB**——流形误差把 H0 尾部抬高一个量级以上,真实 path0 纹理(doc12 教训)预计更高,**这正是必须用真实单源数据重标定 3 dB 门限的量化理由**。输出 JSON 自带 `provisional=true / must_not_replace` 字段。
+- 未实现(按指令排除):MUSIC/MVDR/空间平滑/Doppler CAF/SAGE/H3-H4/Y790s SDK/停车场实验。
