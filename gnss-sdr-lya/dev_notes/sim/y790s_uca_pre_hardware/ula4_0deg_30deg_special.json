@@ -1,0 +1,9 @@
+{
+  "evidence": "ideal_simulation",
+  "absolute_az_deg": 0,
+  "delta_az_deg": 30,
+  "mu_spatial": 2.8965310985802004e-16,
+  "condition_number": 1.0000000000000002,
+  "smallest_singular_value": 1.0,
+  "warning": "special orthogonal geometry; not an 8-UCA expectation"
+}

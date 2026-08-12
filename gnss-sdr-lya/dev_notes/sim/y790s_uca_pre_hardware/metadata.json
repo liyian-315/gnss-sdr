@@ -1,0 +1,16 @@
+{
+  "evidence": "ideal_simulation",
+  "seed": 7908,
+  "uca_reference": {
+    "n_elements": 8,
+    "radius_m": 0.162,
+    "wavelength_m": 0.2548,
+    "note": "theoretical reference, not actual hardware geometry"
+  },
+  "absolute_az_deg": "0:5:355",
+  "delta_az_deg": "0:1:180",
+  "kernel_references": [],
+  "measured_texture_status": "NOT_RUN_MISSING_INPUT",
+  "thresholds": "PROVISIONAL",
+  "reproduce": "python dev_notes/sim/analyze_uca_identifiability.py --output-dir <dir> [--kernel <PhaseA.csv> ...] [--run-sensitivity] --seed 7908"
+}

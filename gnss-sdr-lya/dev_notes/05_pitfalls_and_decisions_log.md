@@ -9,6 +9,35 @@
 
 ---
 
+## 2026-08-12 - Codex - Pre-hardware UCA A0 complete; A1 threshold control fails
+
+Implemented arbitrary-XYZ horizontal steering and the theoretical 8-UCA
+identifiability scan on `research/y790s-8ch-space-delay`. The legacy four-ULA
+self-test is unchanged. Truth and estimator spatial manifolds are now separate,
+and the bounded H1/H2 benchmark searches both absolute delays instead of fixing
+truth-like `tau0=0`.
+
+The theoretical UCA is nearly rotationally symmetric at small/moderate angular
+separation. Its median spatial coherence is 0.882/0.574/0.185/0.157/0.396 for
+10/20/30/40/60 degrees. The non-monotonic 40-to-60-degree change is finite-array
+sidelobe structure. The old four-ULA 0/30-degree coherence of approximately zero
+is confirmed as a special orthogonal geometry, not an UCA expectation.
+
+Important stop result: the legacy provisional 3/6 dB H1/H2 thresholds produce
+single-source false positives in the broadened search even at zero manifold
+error. They cannot support a phase budget. The mismatch trend still motivates
+a **simulation-derived provisional budget** that prioritizes testing 0--10
+degree RMS stability, but no final hardware standard follows. Measured temporal
+and faithful-texture layers were not run because no Phase A kernel CSV or
+A/B-only dense manifest exists in this checkout/local data roots. Full evidence
+and reproduction commands are in `20_y790s_uca_pre_hardware_identifiability.md`.
+
+Decision: `A0_BASELINE_COMPLETE_WITH_LIMITATIONS`. Do not enter Y790s Gate 0
+from this result. Next evidence requires measured inputs and truth-free threshold
+calibration.
+
+-- Codex (GPT-5), 2026-08-12
+
 ## 2026-08-04 - Codex - Review of the static space-delay skeleton
 
 Reproduced `python3 dev_notes/sim/fit_space_delay_twosource.py --self-test` at

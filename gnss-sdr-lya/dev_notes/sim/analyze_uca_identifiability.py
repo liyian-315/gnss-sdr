@@ -47,7 +47,17 @@ def spatial_metrics(array_xyz_m, wavelength_m, az0_deg, delta_az_deg):
 
 
 def temporal_coherence(kernel_csv, delta_tau_chips, taps=None):
-    ktaps, kernel = ftp.load_reference_csv(kernel_csv)
+    try:
+        ktaps, kernel = ftp.load_reference_csv(kernel_csv)
+    except ValueError as error:
+        # Some Windows exports add a UTF-8 BOM to the first Phase A column.
+        data = np.genfromtxt(kernel_csv, delimiter=",", names=True,
+                             dtype=None, encoding="utf-8-sig")
+        if not data.dtype.names or "tap_chips" not in data.dtype.names:
+            raise error
+        ktaps = np.atleast_1d(data["tap_chips"]).astype(float)
+        kernel = (np.atleast_1d(data["coherent_re"]).astype(float) +
+                  1j * np.atleast_1d(data["coherent_im"]).astype(float))
     if taps is None:
         taps = ktaps
     r0 = sd.kernel_vec(0.0, taps, ktaps, kernel)
@@ -115,6 +125,22 @@ def plot_spatial(output_dir, rows, summary):
     fig.savefig(os.path.join(output_dir, "uca8_mu_spatial_map.png"), dpi=160)
     plt.close(fig)
 
+    delta = np.array([r["delta_az_deg"] for r in summary])
+    fig, axes = plt.subplots(1, 3, figsize=(12, 3.8))
+    for ax, key, label in zip(axes,
+                              ("mu_spatial", "condition_number", "smallest_singular_value"),
+                              ("mu_spatial", "condition number", "smallest singular value")):
+        for stat in ("min", "median", "max"):
+            ax.plot(delta, [r[key + "_" + stat] for r in summary], label=stat)
+        ax.set(xlabel="delta az (deg)", ylabel=label)
+        ax.grid(True, alpha=0.3)
+    axes[1].set_ylim(1, 20)
+    axes[1].legend()
+    fig.suptitle("[ideal simulation] absolute-bearing envelope")
+    fig.tight_layout()
+    fig.savefig(os.path.join(output_dir, "uca8_spatial_envelopes.png"), dpi=160)
+    plt.close(fig)
+
 
 def plot_joint(output_dir, kernel_label, joint_rows):
     import matplotlib
@@ -143,23 +169,6 @@ def plot_joint(output_dir, kernel_label, joint_rows):
         fig.tight_layout()
         fig.savefig(os.path.join(output_dir, "%s_%s.png" % (safe_label, key)), dpi=160)
         plt.close(fig)
-
-    delta = np.array([r["delta_az_deg"] for r in summary])
-    fig, axes = plt.subplots(1, 3, figsize=(12, 3.8))
-    for ax, key, label in zip(axes,
-                              ("mu_spatial", "condition_number", "smallest_singular_value"),
-                              ("mu_spatial", "condition number", "smallest singular value")):
-        for stat in ("min", "median", "max"):
-            ax.plot(delta, [r[key + "_" + stat] for r in summary], label=stat)
-        ax.set(xlabel="delta az (deg)", ylabel=label)
-        ax.grid(True, alpha=0.3)
-    axes[1].set_ylim(1, 20)
-    axes[1].legend()
-    fig.suptitle("[ideal simulation] absolute-bearing envelope")
-    fig.tight_layout()
-    fig.savefig(os.path.join(output_dir, "uca8_spatial_envelopes.png"), dpi=160)
-    plt.close(fig)
-
 
 def fixed_phase_gain(n_elements, rms_deg, rng):
     phase = np.zeros(n_elements)
@@ -223,7 +232,6 @@ def sensitivity_rows(seed, realizations):
     kernel = ftp.synth_kernel(taps)
     array_xyz_m = uca_xyz()
     rows = []
-    rng = np.random.default_rng(seed)
     cases = []
     for value in PHASE_RMS_DEG:
         cases.append(("fixed_phase_bias", value, "deg_rms"))
@@ -234,6 +242,11 @@ def sensitivity_rows(seed, realizations):
     for kind, level, unit in cases:
         trial_rows = []
         for realization in range(realizations):
+            kind_offset = {"fixed_phase_bias": 10000, "slow_random_walk": 20000,
+                           "amplitude_plus_phase_manifold": 30000}[kind]
+            # Common random numbers: each model reuses one perturbation direction
+            # and one scene/noise realization across levels; only error scale changes.
+            rng = np.random.default_rng(seed + kind_offset + realization)
             if kind == "fixed_phase_bias":
                 gain = fixed_phase_gain(8, level, rng)
             elif kind == "slow_random_walk":
@@ -241,10 +254,10 @@ def sensitivity_rows(seed, realizations):
             else:
                 gain = manifold_gain(8, level, rng)
             result = run_one_a1(array_xyz_m, L5_WAVELENGTH_M, kernel, taps, gain,
-                                seed + len(rows) * 100 + realization)
+                                seed + realization)
             trial_rows.append(result)
             control = run_one_a1(array_xyz_m, L5_WAVELENGTH_M, kernel, taps, gain,
-                                 seed + len(rows) * 100 + realization,
+                                 seed + realization,
                                  single_source=True)
             result["single_source_false_positive"] = control["state"] != "NO_SECOND_SOURCE"
         row = {"evidence": "ideal_simulation", "error_model": kind,
