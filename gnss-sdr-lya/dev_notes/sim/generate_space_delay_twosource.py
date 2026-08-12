@@ -33,11 +33,23 @@ def parse_taps(spec):
     return np.round(np.arange(start, stop + 1e-9, step), 4)
 
 
+def load_array_config(path):
+    with open(path, encoding="utf-8") as fh:
+        config = json.load(fh)
+    if config.get("user_confirmed") is False:
+        raise ValueError("array config is an unconfirmed placeholder")
+    xyz = np.asarray(config["array_xyz_m"], dtype=np.float64)
+    wavelength_m = float(config["wavelength_m"])
+    sd.steering_xyz(xyz, wavelength_m, 0.0)  # validate shape and wavelength
+    return xyz, wavelength_m
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--output", required=True, help="output .npz")
     ap.add_argument("--n-antennas", type=int, default=4, help="ULA elements (2 = single-B210 coherent proof)")
     ap.add_argument("--spacing-wl", type=float, default=0.5, help="element spacing in wavelengths")
+    ap.add_argument("--array-xyz", help="JSON with confirmed array_xyz_m and wavelength_m")
     ap.add_argument("--theta0", type=float, default=0.0, help="path0 direction [deg]")
     ap.add_argument("--theta1", type=float, default=30.0, help="path1 direction [deg]")
     ap.add_argument("--delay-chips", type=float, default=0.5, help="path1 delay (path0 at 0) [chips]")
@@ -51,23 +63,36 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     args = ap.parse_args()
 
+    array_xyz_m = None
+    wavelength_m = 1.0
+    if args.array_xyz:
+        array_xyz_m, wavelength_m = load_array_config(args.array_xyz)
+        if args.n_antennas != 4 and args.n_antennas != len(array_xyz_m):
+            raise ValueError("--n-antennas conflicts with --array-xyz")
+        args.n_antennas = len(array_xyz_m)
+
     taps = parse_taps(args.taps)
     if args.kernel_csv:
         ktaps, kernel = ftp.load_reference_csv(args.kernel_csv)
-        kernel = np.interp(taps, ktaps, kernel.real) + 1j * np.interp(taps, ktaps, kernel.imag)
-    kernel = ftp.synth_kernel(taps) if not args.kernel_csv else kernel
+    else:
+        ktaps = taps
+        kernel = ftp.synth_kernel(taps)
 
     rng = np.random.default_rng(args.seed)
-    dense = sd.synth_dense(taps, taps, kernel, args.n_antennas, args.spacing_wl,
+    dense = sd.synth_dense(taps, ktaps, kernel, args.n_antennas, args.spacing_wl,
                            args.theta0, args.theta1, 0.0, args.delay_chips, args.ratio_db,
-                           args.n_blocks, args.noise_sigma, rng, single_source=args.single_source)
+                           args.n_blocks, args.noise_sigma, rng, single_source=args.single_source,
+                           array_xyz_m=array_xyz_m, wavelength_m=wavelength_m)
 
     truth = dict(theta0=args.theta0, theta1=args.theta1, tau0=0.0, tau1=args.delay_chips,
                  ratio_db=args.ratio_db, chip_m=args.chip_m, single_source=args.single_source)
     meta = dict(n_antennas=args.n_antennas, spacing_wl=args.spacing_wl, chip_m=args.chip_m,
                 noise_sigma=args.noise_sigma, kernel="measured" if args.kernel_csv else "synthetic",
                 truth=truth)
+    if array_xyz_m is not None:
+        meta.update(array_xyz_m=array_xyz_m.tolist(), wavelength_m=wavelength_m)
     np.savez_compressed(args.output, dense=dense.astype(np.complex64), taps=taps,
+                        kernel=kernel.astype(np.complex64), kernel_taps=ktaps,
                         meta_json=json.dumps(meta))
     print("wrote %s  (%d blocks x %d ant x %d taps, %s kernel)"
           % (args.output, dense.shape[0], dense.shape[1], dense.shape[2], meta["kernel"]))
