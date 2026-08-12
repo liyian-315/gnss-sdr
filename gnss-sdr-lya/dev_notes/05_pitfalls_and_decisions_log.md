@@ -9,6 +9,40 @@
 
 ---
 
+## 2026-08-12 - Codex - Coherent MUSIC reproduction and parking-array first pass
+
+The parking-garage target is two useful same-code DAS transmitters separated by
+20 m. Conventional MUSIC was verified to fail for fully coherent paths because
+the source covariance, and therefore the signal subspace, collapses from rank
+two to rank one. More SNR does not restore that missing dimension.
+
+Reproduced the coherent-source portion of Wang et al. (2014): 10-element
+half-wavelength ULA, three overlapping 8-element subarrays, desired path at 30
+degrees and coherent paths at -60/-30/5 degrees. The raw covariance exposed one
+signal dimension; forward-backward spatial smoothing restored four and
+FBSS-MUSIC recovered all four angles. A 2500-trial two-source Monte Carlo showed
+ordinary MUSIC at full coherence achieved only 0--4% across -5 to 15 dB SNR,
+while four-element FBSS achieved 41/86/100/100/100%.
+
+The first 20 m parking geometry map exposed the key ULA limitation: on the line
+between the transmitters, opposite bearings can have identical ULA signatures
+and must be `UNRESOLVED`; outside both transmitters on their common line, even a
+circular array sees the same bearing and angle-only separation is impossible.
+A circular/planar geometry removes the ULA's continuous front/back ambiguity,
+but direct ULA spatial smoothing cannot be copied to a UCA without a beamspace
+or measured-manifold method.
+
+Decision: use a four-element half-wavelength ULA only as the minimum FBSS
+reproduction fixture. Do not freeze the deployment array yet. Evaluate a 2x2
+planar candidate and six/eight-channel circular or rectangular candidates after
+adding near-field/3-D geometry, array rotation, calibration errors, source-count
+growth, and measured-manifold processing. Existing dense space-delay work is
+retained; DOA separation is the front end, not the final per-path tracker.
+
+Details and runnable artifacts: `23_coherent_music_spatial_smoothing_reproduction.md`.
+
+-- Codex (GPT-5), 2026-08-12
+
 ## 2026-08-08 - Claude - L5 Dual-Path Receiver v1 独立审查裁决：BLOCK_RELEASE
 
 对 `product/l5-dualpath-receiver-v1`（`6eedc51aa`，基线 `5271ccb8d`）做独立审查，
