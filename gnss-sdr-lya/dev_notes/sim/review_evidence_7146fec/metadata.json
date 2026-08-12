@@ -1,0 +1,14 @@
+{
+  "reviewed_sha": "7146fec14d4142a4a7677f3e9eae1703cb3e74c8",
+  "evidence": "ideal_simulation_red_team",
+  "h0_trials_per_condition": 500,
+  "thresholds": "simulation-derived provisional",
+  "sections": [
+    "anchor",
+    "zero",
+    "h0",
+    "h2"
+  ],
+  "anchor_multistart": "diagnostic only; global coarse tau0, no truth initialization",
+  "reproduce": "python dev_notes/sim/review_continuous_h1h2.py --output-dir <dir> --h0-trials 500 --sections anchor,zero,h0,h2"
+}
