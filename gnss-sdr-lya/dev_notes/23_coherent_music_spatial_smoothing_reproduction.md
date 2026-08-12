@@ -27,34 +27,34 @@ GNSS 信号。接收机需要保留并分离两路，而不是把第二路当作
 
 设阵列有 `M` 个阵元、空间中有 `K` 路信号：
 
-\[
+$$
 \mathbf{x}(t)=\mathbf{A}\mathbf{s}(t)+\mathbf{n}(t),
 \qquad
 \mathbf{A}=[\mathbf{a}(\theta_1),\ldots,\mathbf{a}(\theta_K)] .
-\]
+$$
 
-- \(\mathbf{x}(t)\)：某个时刻各阵元收到的复数 IQ 向量；
-- \(\mathbf{a}(\theta_k)\)：方向 \(\theta_k\) 在阵列上产生的幅相模式，称为**导向
+- $\mathbf{x}(t)$：某个时刻各阵元收到的复数 IQ 向量；
+- $\mathbf{a}(\theta_k)$：方向 $\theta_k$ 在阵列上产生的幅相模式，称为**导向
   矢量**；
-- \(\mathbf{s}(t)\)：各路源信号；
-- \(\mathbf{n}(t)\)：噪声。
+- $\mathbf{s}(t)$：各路源信号；
+- $\mathbf{n}(t)$：噪声。
 
 阵列协方差矩阵为：
 
-\[
-\mathbf{R}_x=E[\mathbf{x}\mathbf{x}^{H}]
+$$
+\mathbf{R}_x=\mathbb{E}\!\left\{\mathbf{x}\mathbf{x}^{H}\right\}
 =\mathbf{A}\mathbf{R}_s\mathbf{A}^{H}+\sigma^2\mathbf{I} .
-\]
+$$
 
-上标 \(H\) 表示共轭转置，\(\mathbf{R}_s=E[\mathbf{s}\mathbf{s}^H]\) 是源信号
+上标 $H$ 表示共轭转置，$\mathbf{R}_s=\mathbb{E}\!\left\{\mathbf{s}\mathbf{s}^H\right\}$ 是源信号
 协方差矩阵。
 
 ### 2.2 “相干”造成秩亏
 
-若两路源相互独立，\(\mathbf{R}_s\) 通常满秩。若两根 DAS 天线发送同一个波形，
+若两路源相互独立，$\mathbf{R}_s$ 通常满秩。若两根 DAS 天线发送同一个波形，
 第二路只是第一路的复数倍数：
 
-\[
+$$
 s_1(t)=\alpha s_0(t),
 \qquad
 \mathbf{R}_s=P_0
@@ -63,18 +63,18 @@ s_1(t)=\alpha s_0(t),
 \alpha & |\alpha|^2
 \end{bmatrix},
 \qquad \operatorname{rank}(\mathbf{R}_s)=1 .
-\]
+$$
 
 这叫做**相干源**。物理上有两路，统计上却只剩一个独立变化方向，即发生**秩亏**。
 
-MUSIC 将 \(\mathbf{R}_x\) 特征分解成信号子空间 \(\mathbf{E}_s\) 与噪声子空间
-\(\mathbf{E}_n\)，其伪谱为：
+MUSIC 将 $\mathbf{R}_x$ 特征分解成信号子空间 $\mathbf{E}_s$ 与噪声子空间
+$\mathbf{E}_n$，其伪谱为：
 
-\[
+$$
 P_{\mathrm{MUSIC}}(\theta)=
 \frac{1}{\mathbf{a}^H(\theta)\mathbf{E}_n\mathbf{E}_n^H
 \mathbf{a}(\theta)} .
-\]
+$$
 
 真实方向的导向矢量应与噪声子空间正交，因此分母接近零并形成尖峰。但两路完全相干
 时，信号子空间只有一维，MUSIC 无法从一维子空间恢复两根不同的导向矢量。提高 SNR
@@ -88,22 +88,22 @@ P_{\mathrm{MUSIC}}(\theta)=
 
 ### 3.1 线阵的前后向空间平滑
 
-对 `M` 阵元均匀线阵，取长度 `P` 的重叠子阵，共有 \(L=M-P+1\) 个。将每个子阵
+对 `M` 阵元均匀线阵，取长度 `P` 的重叠子阵，共有 $L=M-P+1$ 个。将每个子阵
 的协方差相加：
 
-\[
+$$
 \mathbf{R}_{F}=\frac{1}{L}\sum_{\ell=0}^{L-1}
 \mathbf{J}_{\ell}\mathbf{R}_x\mathbf{J}_{\ell}^{H} .
-\]
+$$
 
-\(\mathbf{J}_{\ell}\) 是截取第 \(\ell\) 个连续子阵的选择矩阵。再加入反向共轭子阵：
+$\mathbf{J}_{\ell}$ 是截取第 $\ell$ 个连续子阵的选择矩阵。再加入反向共轭子阵：
 
-\[
+$$
 \mathbf{R}_{FB}=\frac{1}{2}
 \left(\mathbf{R}_{F}+\mathbf{\Pi}\mathbf{R}_{F}^{*}\mathbf{\Pi}\right),
-\]
+$$
 
-其中 \(\mathbf{\Pi}\) 是把阵元顺序倒过来的交换矩阵。这就是**前后向空间平滑**
+其中 $\mathbf{\Pi}$ 是把阵元顺序倒过来的交换矩阵。这就是**前后向空间平滑**
 （FBSS）。
 
 直观解释是：同一组相干源在不同平移子阵上具有不同空间相位。把这些子阵协方差平均，
@@ -119,35 +119,35 @@ ESPRIT 等估计器。因此本报告将“非 MUSIC 的平滑方案”定义为
 
 ### 3.2 圆阵为什么不能直接切连续子阵
 
-半径为 \(r\) 的均匀圆阵（UCA），第 `m` 个阵元角度为 \(\phi_m\)，远场方位角
-\(\theta\) 的导向矢量为：
+半径为 $r$ 的均匀圆阵（UCA），第 `m` 个阵元角度为 $\phi_m$，远场方位角
+$\theta$ 的导向矢量为：
 
-\[
+$$
 a_m(\theta)=\exp\left[jkr\cos(\theta-\phi_m)\right],
 \qquad k=\frac{2\pi}{\lambda} .
-\]
+$$
 
 相邻圆阵阵元不是线性平移关系，直接截取圆弧子阵并平均，不能得到线阵 FBSS 所需的
 固定相位递推结构。
 
 本仿真采用文献中的**相位模态/波束空间变换**。利用 Jacobi-Anger 展开：
 
-\[
+$$
 e^{jkr\cos(\theta-\phi)}=
 \sum_{n=-\infty}^{\infty}j^nJ_n(kr)e^{jn\theta}e^{-jn\phi},
-\]
+$$
 
-对各阵元做离散圆周傅里叶变换，并除去 \(j^nJ_n(kr)\)：
+对各阵元做离散圆周傅里叶变换，并除去 $j^nJ_n(kr)$：
 
-\[
+$$
 z_n(t)=\frac{1}{M j^nJ_n(kr)}
 \sum_{m=0}^{M-1}x_m(t)e^{jn\phi_m}
 \approx\sum_q c_q(t)e^{jn\theta_q} .
-\]
+$$
 
-- \(n\)：相位模态编号；
-- \(J_n(\cdot)\)：第一类 Bessel 函数；
-- \(e^{jn\theta}\)：转换后按 `n` 递推的 Vandermonde 结构。
+- $n$：相位模态编号；
+- $J_n(\cdot)$：第一类 Bessel 函数；
+- $e^{jn\theta}$：转换后按 `n` 递推的 Vandermonde 结构。
 
 转换后的模态序列可视为**虚拟均匀线阵**，再对它执行 FBSS。这就是本报告中的
 `PM-FBSS`。ION 2014 的圆阵 GNSS 工作也明确采用 beamspace transformation 与
@@ -157,11 +157,11 @@ spatial smoothing 处理相干源。
 
 ### 4.1 Bartlett 常规波束扫描
 
-\[
+$$
 P_B(\theta)=
 \frac{\mathbf{a}^H(\theta)\mathbf{R}_x\mathbf{a}(\theta)}
 {\left(\mathbf{a}^H(\theta)\mathbf{a}(\theta)\right)^2} .
-\]
+$$
 
 它不做特征子空间分解，分辨率较低，用作“不使用 MUSIC、也不解相干”的基线。
 
@@ -173,10 +173,10 @@ P_B(\theta)=
 
 先做圆阵相位模态变换和 FBSS，再使用 MVDR/Capon：
 
-\[
+$$
 P_{\mathrm{MVDR}}(\theta)=
 \frac{1}{\mathbf{a}^H(\theta)\mathbf{R}_{FB}^{-1}\mathbf{a}(\theta)} .
-\]
+$$
 
 MVDR 的含义是：保持候选方向单位增益，同时最小化其他方向输出功率。它不是 MUSIC，
 但仍依赖平滑后的满秩协方差。
@@ -191,7 +191,7 @@ MVDR 的含义是：保持候选方向单位增益，同时最小化其他方向
 
 - 10 阵元、半波长间距 ULA；
 - 3 个重叠的 8 阵元子阵；
-- 四个完全相干方向：\(30^\circ,-60^\circ,-30^\circ,5^\circ\)；
+- 四个完全相干方向：$30^\circ,-60^\circ,-30^\circ,5^\circ$；
 - 原始协方差信号秩为 1，FBSS 后恢复为 4；
 - FBSS-MUSIC 恢复四个真值角度。
 
@@ -203,7 +203,7 @@ SNR `-5/0/5/10/15 dB` 下成功率为 `0/1/4/1/2%`，FBSS-MUSIC 为
 
 - 发射天线：`(-10,0)m` 与 `(10,0)m`，间距 20 m；
 - 接收点：两天线正中、正中偏移 5 m、两天线外侧、紧邻一侧、远侧；
-- L5 圆阵相邻阵元间距：\(0.5\lambda\)，\(\lambda\approx0.255\,m\)；
+- L5 圆阵相邻阵元间距：$0.5\lambda$，$\lambda\approx0.255\,\mathrm{m}$；
 - 阵元数：4、6、8；
 - 两源完全相干，第二源功率 -6 dB；
 - 阵列 SNR 15 dB，2048 快拍；
@@ -215,7 +215,7 @@ SNR `-5/0/5/10/15 dB` 下成功率为 `0/1/4/1/2%`，FBSS-MUSIC 为
 
 ### 6.1 四阵元圆阵
 
-四阵元在当前 PM-FBSS 实现中只能可靠保留 \(n=-1,0,1\) 三个模态。若还要用两个
+四阵元在当前 PM-FBSS 实现中只能可靠保留 $n=-1,0,1$ 三个模态。若还要用两个
 平移子阵解相干，平滑后没有足够维度同时容纳“两维信号子空间 + 至少一维噪声子空间”。
 因此 `PM-FBSS-MUSIC/MVDR` 标记为 `N/A`，不是把算法强行跑出数字。
 
@@ -244,9 +244,9 @@ SNR `-5/0/5/10/15 dB` 下成功率为 `0/1/4/1/2%`，FBSS-MUSIC 为
 “两发射天线外侧且共线”时，两路方位差为 0°，所有方法均按 0% 记录。此时无论圆阵
 还是线阵，两路具有相同空间导向矢量：
 
-\[
+$$
 \mathbf{a}(\theta_0)=\mathbf{a}(\theta_1),
-\]
+$$
 
 空间域没有信息可用，只能依靠码延迟、运动、不同频率或先验几何等其他维度。
 
@@ -273,7 +273,7 @@ SNR `-5/0/5/10/15 dB` 下成功率为 `0/1/4/1/2%`，FBSS-MUSIC 为
 - 四通道是值得做的最低硬件原型，但优先形态应是 `2×2` 平面阵，不建议把四阵元
   圆阵 + PM-FBSS 当最终方案。
 - 若明确采用圆阵相位模态 + 空间平滑，阵元数应从 8 起做算法验证；六阵元余量偏小。
-- 圆阵相邻弦长可先取 \(0.5\lambda\)。GPS L5 上约为 12.7 cm；八阵元圆阵半径约
+- 圆阵相邻弦长可先取 $0.5\lambda$。GPS L5 上约为 12.7 cm；八阵元圆阵半径约
   16.7 cm、直径约 33.3 cm。
 - 四路必须共采样时钟、共本振、同时启动、固定增益，并校准每路的复增益和群时延。
 
@@ -281,7 +281,7 @@ SNR `-5/0/5/10/15 dB` 下成功率为 `0/1/4/1/2%`，FBSS-MUSIC 为
 
 - 不能仅凭理想远场仿真决定 4/6/8/12 阵元最终数量；
 - 不能声称圆阵在整个停车场都能分离两路；
-- 不能用本 DOA 仿真替代最终的每路延迟、伪距、\(C/N_0\) 跟踪验证；
+- 不能用本 DOA 仿真替代最终的每路延迟、伪距、$C/N_0$ 跟踪验证；
 - 不能忽略发射天线与接收阵列距离较近时的球面波、天线互耦和停车场反射。
 
 ## 8. 下一步最小闭环
