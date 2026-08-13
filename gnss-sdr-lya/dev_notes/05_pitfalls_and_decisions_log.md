@@ -25,10 +25,10 @@ FBSS 后同时保留噪声子空间，故不应强行运行；八阵元在接收
 空间域严格不可分，统一记为 0%，修复了早期评分把重合真值误算为成功的问题。
 
 决策：四通道优先用于 2x2 平面阵和联合空间-时延原型；若采用圆阵相位模态平滑，
-从八阵元起验证，但当前不能冻结最终阵元数。下一步先加入校准残差、互耦/近场模型，
-再比较 2x2 与 UCA，并接入 dense correlator 做每路 DOA-延迟联合估计。
+从八阵元起验证，但当前不能冻结最终阵元数。现有证据只覆盖理想远场 DOA 仿真，
+不包含校准残差、互耦、近场和每路 DOA-延迟联合跟踪性能。
 
-详细公式、结果和运行命令见 `23_coherent_music_spatial_smoothing_reproduction.md`。
+详细公式、结果和天线选型结论见 `23_停车场圆阵MUSIC与空间平滑仿真及天线选型.md`。
 
 -- Codex (GPT-5), 2026-08-12
 
@@ -60,7 +60,7 @@ adding near-field/3-D geometry, array rotation, calibration errors, source-count
 growth, and measured-manifold processing. Existing dense space-delay work is
 retained; DOA separation is the front end, not the final per-path tracker.
 
-Details and runnable artifacts: `23_coherent_music_spatial_smoothing_reproduction.md`.
+Details and runnable artifacts: `23_停车场圆阵MUSIC与空间平滑仿真及天线选型.md`.
 
 -- Codex (GPT-5), 2026-08-12
 
