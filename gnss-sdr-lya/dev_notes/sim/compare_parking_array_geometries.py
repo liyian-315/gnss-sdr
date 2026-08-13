@@ -20,21 +20,29 @@ import simulate_coherent_music_parking as core
 
 # ======================== 用户常改参数 ========================
 # 这些值也是命令行参数的默认值。坐标单位为 m，角度为全局方位角 deg。
-# 两个发射天线默认沿 X 轴对称放置，间距 20 m；接收机默认站在中点上方 5 m。
+# 接收机的全局 X 坐标。增大表示接收机向停车场平面右侧移动。
 DEFAULT_RECEIVER_X_M = 0.0
+# 接收机的全局 Y 坐标。正值表示接收机位于两发射天线连线的上方。
 DEFAULT_RECEIVER_Y_M = 5.0
+# 两根发射天线连线中点的全局 X 坐标。
 DEFAULT_TX_CENTER_X_M = 0.0
+# 两根发射天线连线中点的全局 Y 坐标。
 DEFAULT_TX_CENTER_Y_M = 0.0
+# 两根发射天线的物理间距，单位 m；程序将 A/B 沿 X 轴对称放在中点两侧。
 DEFAULT_TX_SEPARATION_M = 20.0
-# 1.0=完全相干（停车场同源同钟重点场景），0.0=互不相关。
+# 两路基带信号的相关系数，范围 0.0~1.0；1.0=完全相干，0.0=互不相关。
 DEFAULT_SOURCE_CORRELATION = 1.0
-# 第二路比第一路弱 6 dB；改成 0 表示两路等功率。
-DEFAULT_SOURCE_RATIO_DB = -6.0
+# B 路相对 A 路的功率，单位 dB；0=等功率，-6=B 比 A 弱 6 dB。
+DEFAULT_SOURCE_RATIO_DB = 0
+# B 路相对 A 路的初始载波相位，单位 deg；改变它会改变相干叠加的峰形。
 DEFAULT_RELATIVE_PHASE_DEG = 60.0
+# 阵列接收信噪比，单位 dB；越低时空间谱越嘈杂、角度估计越不稳定。
 DEFAULT_SNR_DB = 15.0
+# 用于估计协方差矩阵的时间快拍数；越多越稳定，但计算时间越长。
 DEFAULT_SNAPSHOTS = 4096
-# 阵元间距，以波长为单位；0.5 即半波长。L5 上约为 12.7 cm。
+# 相邻阵元间距，以载波波长为单位；0.5=半波长，L5 上约为 12.7 cm。
 DEFAULT_SPACING_WL = 0.5
+# 阵列相对全局 X 轴逆时针旋转角，单位 deg；用于测试安装朝向敏感性。
 DEFAULT_ARRAY_ORIENTATION_DEG = 0.0
 
 
