@@ -4,6 +4,8 @@
 *.png
 !results/coherent_music_parking/停车场四阵元单点几何示意图.png
 !results/coherent_music_parking/停车场四阵元单点空间谱对比.png
+!results/coherent_music_parking/方阵相干双源四种处理方法对比.png
+!results/coherent_music_parking/方阵空间时延联合似然三维图.png
 *.jpg
 *.nmea
 PVT*

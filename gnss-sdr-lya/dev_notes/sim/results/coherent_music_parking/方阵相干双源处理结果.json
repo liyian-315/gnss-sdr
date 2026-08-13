@@ -1,0 +1,65 @@
+{
+  "configuration": {
+    "angle_a_deg": -30.0,
+    "angle_b_deg": 30.0,
+    "delay_b_chips": 0.5,
+    "chip_m": 29.3,
+    "ratio_db": -6.0,
+    "phase_deg": 60.0,
+    "correlation": 1.0,
+    "emit_second_source": true,
+    "noise_sigma": 0.05,
+    "n_blocks": 64,
+    "seed": 20260813,
+    "spacing_wl": 0.5,
+    "orientation_deg": 0.0,
+    "tap_start": -1.5,
+    "tap_stop": 1.5,
+    "tap_step": 0.1,
+    "search_angle_min": -90.0,
+    "search_angle_max": 90.0,
+    "search_angle_step": 5.0,
+    "search_delay_min": 0.1,
+    "search_delay_max": 1.2,
+    "search_delay_step": 0.05
+  },
+  "raw_music": {
+    "estimated_rank": 1,
+    "peaks_deg": [
+      -20.75,
+      88.5
+    ],
+    "reliable": false
+  },
+  "standard_square_smoothing": {
+    "subarray_dimension": 2,
+    "source_count": 2,
+    "noise_subspace_dimension": 0,
+    "translated_subarrays": 2,
+    "eigenvalues": [
+      2.4894146405012236,
+      0.0023914526618946663
+    ],
+    "usable_for_two_source_music": false,
+    "reason": "1x2 子阵维数等于源数，噪声子空间维数为 0；2x2 整阵又只有一个子阵，无法平滑。"
+  },
+  "space_delay_glrt_ml": {
+    "state": "RELIABLE",
+    "angle_a_deg": -30.0,
+    "angle_b_deg": 30.0,
+    "delay_b_chips": 0.5000000000000001,
+    "delay_b_m": 14.650000000000004,
+    "ratio_db": -6.000472849830176,
+    "improvement_db": 15.301008462702798,
+    "residual_h1": 665.4928868716424,
+    "residual_h2": 19.635527441498198
+  },
+  "reconstructed_music": {
+    "estimated_rank": 2,
+    "peaks_deg": [
+      -30.0,
+      30.0
+    ],
+    "note": "角度支撑来自空间-时延 GLRT/ML；重构本身不是独立发现器。"
+  }
+}
