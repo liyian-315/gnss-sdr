@@ -11,24 +11,21 @@
 
 ## 2026-08-12 - Codex - Coherent MUSIC reproduction and parking-array first pass
 
-### 2026-08-12 补充：停车场圆阵 PM-FBSS 对比
+### 2026-08-13 补充：停车场三种四阵元几何公平对比
 
-按 20 m 双 DAS 停车场几何补齐圆阵算法链：Bartlett、原始 UCA 直接 MUSIC、
-相位模态变换后的 FBSS-MVDR，以及 PM-FBSS-MUSIC。空间平滑是协方差预处理，
-不是独立 DOA 估计器；“不用 MUSIC”组因此使用 MVDR。
+撤回上一版未经同阵元数公平比较的八阵元圆阵推荐。固定四阵元、半波长间距、同一
+20 m 双 DAS 几何、12 个安装旋转角、5 个代表位置和每条件 40 次随机相位，比较
+ULA、四元 UCA 与 2×2 方阵。三种阵列的原始相干双源协方差都为秩 1，直接 MUSIC
+总成功率仅 6.3%/5.9%/5.1%。标准一维 FBSS 只有 ULA 可合法运行，但 360° 停车场
+方位平均成功率仍为 4.5%，因为平滑不能解除 ULA 的前后镜像。
 
-40 次随机相位 Monte Carlo 显示：四阵元圆阵仅有 3 个可靠相位模态，无法在两源
-FBSS 后同时保留噪声子空间，故不应强行运行；八阵元在接收机位于两发射天线之间的
-两个代表点上，PM-FBSS-MVDR/MUSIC 均为 100%，原始 Bartlett/直接 MUSIC 为
-57--62%/45--50%。侧方位置 PM-FBSS 仍低至 0--15%，原因是有限阵元相位模态截断和
-模态混叠造成阵列流形失配，不能靠放松峰值阈值解决。两源从接收机看来同方向时，
-空间域严格不可分，统一记为 0%，修复了早期评分把重合真值误算为成功的问题。
+全停车场网格和安装角扫描显示：ULA 的严重盲区(mu>0.95)为 18.0%，方形四阵元为
+13.0%。四元 UCA 与 2×2 方阵本质上是同一个正方形旋转 45°，其统计完全一致。
+决策：四通道、姿态不固定的停车场试验样机采用边长约 0.5 lambda_L5=12.7 cm 的
+正方形四阵元几何；这只是几何选型，不表示普通 MUSIC 或标准空间平滑已解决相干双源，
+后端仍需空间-时延联合估计或其他解相干结构。
 
-决策：四通道优先用于 2x2 平面阵和联合空间-时延原型；若采用圆阵相位模态平滑，
-从八阵元起验证，但当前不能冻结最终阵元数。现有证据只覆盖理想远场 DOA 仿真，
-不包含校准残差、互耦、近场和每路 DOA-延迟联合跟踪性能。
-
-详细公式、结果和天线选型结论见 `23_停车场圆阵MUSIC与空间平滑仿真及天线选型.md`。
+详细公式、结果和选型结论见 `23_停车场四阵元线阵圆阵方阵对比与选型.md`。
 
 -- Codex (GPT-5), 2026-08-12
 
@@ -60,7 +57,7 @@ adding near-field/3-D geometry, array rotation, calibration errors, source-count
 growth, and measured-manifold processing. Existing dense space-delay work is
 retained; DOA separation is the front end, not the final per-path tracker.
 
-Details and runnable artifacts: `23_停车场圆阵MUSIC与空间平滑仿真及天线选型.md`.
+Details and runnable artifacts: `23_停车场四阵元线阵圆阵方阵对比与选型.md`.
 
 -- Codex (GPT-5), 2026-08-12
 
