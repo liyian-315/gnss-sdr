@@ -2,6 +2,8 @@
 *.mat
 *.dat
 *.png
+!results/coherent_music_parking/停车场四阵元单点几何示意图.png
+!results/coherent_music_parking/停车场四阵元单点空间谱对比.png
 *.jpg
 *.nmea
 PVT*

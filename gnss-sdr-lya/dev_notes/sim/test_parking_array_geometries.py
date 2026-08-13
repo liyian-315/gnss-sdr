@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
+import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -53,6 +55,23 @@ class ParkingArrayGeometryTest(unittest.TestCase):
         # Point ordering differs, so compare sorted coordinate sets.
         sort_rows = lambda values: values[np.lexsort((values[:, 1], values[:, 0]))]
         np.testing.assert_allclose(sort_rows(uca), sort_rows(square), atol=1e-12)
+
+    def test_single_point_lab_writes_two_figures_and_summary(self):
+        with tempfile.TemporaryDirectory() as directory:
+            _, geometry, spectrum, summary = comparison.run_single_point(
+                Path(directory), 3, (0.0, 5.0), (0.0, 0.0), 20.0,
+                correlation=1.0, source_ratio_db=-6.0,
+                relative_phase_deg=60.0, snr_db=15.0, snapshots=512,
+                spacing_wl=0.5, orientation_deg=0.0, show=False,
+            )
+            self.assertTrue(geometry.is_file())
+            self.assertTrue(spectrum.is_file())
+            self.assertTrue(summary.is_file())
+            self.assertEqual(
+                json.loads(summary.read_text(encoding="utf-8"))["configuration"]
+                ["tx_separation_m"],
+                20.0,
+            )
 
 
 if __name__ == "__main__":

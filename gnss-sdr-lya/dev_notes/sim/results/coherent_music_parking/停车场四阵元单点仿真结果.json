@@ -1,0 +1,110 @@
+{
+  "configuration": {
+    "receiver_xy_m": [
+      0.0,
+      5.0
+    ],
+    "transmitters_xy_m": [
+      [
+        -10.0,
+        0.0
+      ],
+      [
+        10.0,
+        0.0
+      ]
+    ],
+    "tx_separation_m": 20.0,
+    "source_correlation": 1.0,
+    "source_ratio_db": -6.0,
+    "relative_phase_deg": 60.0,
+    "snr_db": 15.0,
+    "snapshots": 4096,
+    "spacing_wavelengths": 0.5,
+    "array_orientation_deg": 0.0
+  },
+  "arrays": {
+    "ULA": {
+      "name": "四阵元线阵 ULA",
+      "truth_bearings_deg": [
+        206.565051177078,
+        333.434948822922
+      ],
+      "spatial_coherence": 0.7450017895175945,
+      "raw_covariance_rank": 1,
+      "methods": {
+        "bartlett": {
+          "estimated_peaks_deg": [
+            151.25,
+            208.75
+          ],
+          "status": "仅一路成峰（融合或漏检）"
+        },
+        "direct_music": {
+          "estimated_peaks_deg": [
+            153.0,
+            207.0
+          ],
+          "status": "仅一路成峰（融合或漏检）"
+        },
+        "smooth_music": {
+          "estimated_peaks_deg": [
+            153.5,
+            206.5
+          ],
+          "status": "仅一路成峰（融合或漏检）"
+        }
+      }
+    },
+    "UCA": {
+      "name": "四阵元圆阵 UCA",
+      "truth_bearings_deg": [
+        206.565051177078,
+        333.434948822922
+      ],
+      "spatial_coherence": 0.16339042974231308,
+      "raw_covariance_rank": 1,
+      "methods": {
+        "bartlett": {
+          "estimated_peaks_deg": [
+            68.25,
+            204.75
+          ],
+          "status": "仅一路成峰（融合或漏检）"
+        },
+        "direct_music": {
+          "estimated_peaks_deg": [
+            166.0,
+            290.25
+          ],
+          "status": "未分离（峰位置错误）"
+        }
+      }
+    },
+    "UPA": {
+      "name": "2x2 方阵 UPA",
+      "truth_bearings_deg": [
+        206.565051177078,
+        333.434948822922
+      ],
+      "spatial_coherence": 0.9455009273437782,
+      "raw_covariance_rank": 1,
+      "methods": {
+        "bartlett": {
+          "estimated_peaks_deg": [
+            206.75,
+            338.0
+          ],
+          "status": "双峰正确分离"
+        },
+        "direct_music": {
+          "estimated_peaks_deg": [
+            205.25,
+            338.25
+          ],
+          "status": "峰位命中，但秩塌缩，不可作可靠结论"
+        }
+      }
+    }
+  }
+}
