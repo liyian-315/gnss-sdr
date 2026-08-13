@@ -1,0 +1,344 @@
+{
+  "SAGE_2x2": {
+    "success_rate": 0.8552083333333333,
+    "angle_rmse_median_deg": 0.6900675259797708,
+    "delay_rmse_median_m": 0.0
+  },
+  "ULA_FBSS_blind": {
+    "success_rate": 0.0,
+    "angle_rmse_median_deg": 62.64995790852144,
+    "delay_rmse_median_m": 0.0
+  },
+  "ULA_FBSS_halfplane": {
+    "success_rate": 1.0,
+    "angle_rmse_median_deg": 0.30993247402022917,
+    "delay_rmse_median_m": 0.0
+  },
+  "kernel_source": "ideal_rectangular_chip",
+  "conditions": [
+    {
+      "method": "SAGE_2x2",
+      "delay_chips": 0.1,
+      "delay_m": 2.93,
+      "ratio_db": 0.0,
+      "success_rate": 0.1625,
+      "angle_rmse_median_deg": 12.51310041750654,
+      "delay_rmse_median_m": 1.5538671516574385
+    },
+    {
+      "method": "SAGE_2x2",
+      "delay_chips": 0.1,
+      "delay_m": 2.93,
+      "ratio_db": -6.0,
+      "success_rate": 0.5,
+      "angle_rmse_median_deg": 4.951708702426508,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "SAGE_2x2",
+      "delay_chips": 0.1,
+      "delay_m": 2.93,
+      "ratio_db": -10.0,
+      "success_rate": 0.6,
+      "angle_rmse_median_deg": 4.125322857386328,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "SAGE_2x2",
+      "delay_chips": 0.3,
+      "delay_m": 8.79,
+      "ratio_db": 0.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 2.7633063996875915,
+      "delay_rmse_median_m": 0.5179557172191466
+    },
+    {
+      "method": "SAGE_2x2",
+      "delay_chips": 0.3,
+      "delay_m": 8.79,
+      "ratio_db": -6.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 2.1434995309728033,
+      "delay_rmse_median_m": 1.0359114344382931
+    },
+    {
+      "method": "SAGE_2x2",
+      "delay_chips": 0.3,
+      "delay_m": 8.79,
+      "ratio_db": -10.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 2.176716930426632,
+      "delay_rmse_median_m": 1.0359114344382931
+    },
+    {
+      "method": "SAGE_2x2",
+      "delay_chips": 0.5,
+      "delay_m": 14.65,
+      "ratio_db": 0.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 0.461450125009475,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "SAGE_2x2",
+      "delay_chips": 0.5,
+      "delay_m": 14.65,
+      "ratio_db": -6.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 0.461450125009475,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "SAGE_2x2",
+      "delay_chips": 0.5,
+      "delay_m": 14.65,
+      "ratio_db": -10.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 0.461450125009475,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "SAGE_2x2",
+      "delay_chips": 1.0,
+      "delay_m": 29.3,
+      "ratio_db": 0.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 0.461450125009475,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "SAGE_2x2",
+      "delay_chips": 1.0,
+      "delay_m": 29.3,
+      "ratio_db": -6.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 0.461450125009475,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "SAGE_2x2",
+      "delay_chips": 1.0,
+      "delay_m": 29.3,
+      "ratio_db": -10.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 0.461450125009475,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_blind",
+      "delay_chips": 0.1,
+      "delay_m": 2.93,
+      "ratio_db": 0.0,
+      "success_rate": 0.0,
+      "angle_rmse_median_deg": 62.65639591502051,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_blind",
+      "delay_chips": 0.1,
+      "delay_m": 2.93,
+      "ratio_db": -6.0,
+      "success_rate": 0.0,
+      "angle_rmse_median_deg": 62.90899387480053,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_blind",
+      "delay_chips": 0.1,
+      "delay_m": 2.93,
+      "ratio_db": -10.0,
+      "success_rate": 0.0,
+      "angle_rmse_median_deg": 62.646939673203846,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_blind",
+      "delay_chips": 0.3,
+      "delay_m": 8.79,
+      "ratio_db": 0.0,
+      "success_rate": 0.0,
+      "angle_rmse_median_deg": 62.65639591502051,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_blind",
+      "delay_chips": 0.3,
+      "delay_m": 8.79,
+      "ratio_db": -6.0,
+      "success_rate": 0.0,
+      "angle_rmse_median_deg": 62.7748753292461,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_blind",
+      "delay_chips": 0.3,
+      "delay_m": 8.79,
+      "ratio_db": -10.0,
+      "success_rate": 0.0,
+      "angle_rmse_median_deg": 62.7748753292461,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_blind",
+      "delay_chips": 0.5,
+      "delay_m": 14.65,
+      "ratio_db": 0.0,
+      "success_rate": 0.0,
+      "angle_rmse_median_deg": 62.65639591502051,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_blind",
+      "delay_chips": 0.5,
+      "delay_m": 14.65,
+      "ratio_db": -6.0,
+      "success_rate": 0.0,
+      "angle_rmse_median_deg": 62.90899387480053,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_blind",
+      "delay_chips": 0.5,
+      "delay_m": 14.65,
+      "ratio_db": -10.0,
+      "success_rate": 0.0,
+      "angle_rmse_median_deg": 62.7748753292461,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_blind",
+      "delay_chips": 1.0,
+      "delay_m": 29.3,
+      "ratio_db": 0.0,
+      "success_rate": 0.0,
+      "angle_rmse_median_deg": 62.65639591502051,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_blind",
+      "delay_chips": 1.0,
+      "delay_m": 29.3,
+      "ratio_db": -6.0,
+      "success_rate": 0.0,
+      "angle_rmse_median_deg": 62.52529560478368,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_blind",
+      "delay_chips": 1.0,
+      "delay_m": 29.3,
+      "ratio_db": -10.0,
+      "success_rate": 0.0,
+      "angle_rmse_median_deg": 62.52666317794763,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_halfplane",
+      "delay_chips": 0.1,
+      "delay_m": 2.93,
+      "ratio_db": 0.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 0.30993247402022917,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_halfplane",
+      "delay_chips": 0.1,
+      "delay_m": 2.93,
+      "ratio_db": -6.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 0.3995515190292774,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_halfplane",
+      "delay_chips": 0.1,
+      "delay_m": 2.93,
+      "ratio_db": -10.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 0.3995515190292774,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_halfplane",
+      "delay_chips": 0.3,
+      "delay_m": 8.79,
+      "ratio_db": 0.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 0.30993247402022917,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_halfplane",
+      "delay_chips": 0.3,
+      "delay_m": 8.79,
+      "ratio_db": -6.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 0.35474199652475324,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_halfplane",
+      "delay_chips": 0.3,
+      "delay_m": 8.79,
+      "ratio_db": -10.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 0.3995515190292774,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_halfplane",
+      "delay_chips": 0.5,
+      "delay_m": 14.65,
+      "ratio_db": 0.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 0.30993247402022917,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_halfplane",
+      "delay_chips": 0.5,
+      "delay_m": 14.65,
+      "ratio_db": -6.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 0.30993247402022917,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_halfplane",
+      "delay_chips": 0.5,
+      "delay_m": 14.65,
+      "ratio_db": -10.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 0.3995515190292774,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_halfplane",
+      "delay_chips": 1.0,
+      "delay_m": 29.3,
+      "ratio_db": 0.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 0.30993247402022917,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_halfplane",
+      "delay_chips": 1.0,
+      "delay_m": 29.3,
+      "ratio_db": -6.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 0.3995515190292774,
+      "delay_rmse_median_m": 0.0
+    },
+    {
+      "method": "ULA_FBSS_halfplane",
+      "delay_chips": 1.0,
+      "delay_m": 29.3,
+      "ratio_db": -10.0,
+      "success_rate": 1.0,
+      "angle_rmse_median_deg": 0.3995515190292774,
+      "delay_rmse_median_m": 0.0
+    }
+  ]
+}

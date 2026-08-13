@@ -1,0 +1,50 @@
+{
+  "truth": [
+    {
+      "bearing_deg": 131.0,
+      "delay_chips": 0.0,
+      "doppler_hz": 0.0,
+      "ratio_db": 0.0,
+      "phase_deg": 0.0
+    },
+    {
+      "bearing_deg": -65.0,
+      "delay_chips": 0.1,
+      "doppler_hz": 5.0,
+      "ratio_db": -3.0,
+      "phase_deg": 0.0
+    }
+  ],
+  "estimates": [
+    {
+      "bearing_deg": 135.0,
+      "delay_chips": 0.0,
+      "doppler_hz": 0.0,
+      "amplitude": 0.9449125210892526
+    },
+    {
+      "bearing_deg": -59.0,
+      "delay_chips": 0.1,
+      "doppler_hz": 5.0,
+      "amplitude": 0.6661320041995641
+    }
+  ],
+  "residual_history": [
+    34.092629925770254,
+    11.464020678488415,
+    11.207413494079786,
+    11.206299516434285,
+    11.206294680458242,
+    11.206294659464408
+  ],
+  "kernel_source": "ideal_rectangular_chip",
+  "monte_carlo": {
+    "trials": 100,
+    "los_angle_rmse_deg": 3.8314488121336034,
+    "mp_angle_rmse_deg": 5.793099343184096,
+    "mp_delay_rmse_chips": 0.0,
+    "mp_delay_rmse_m": 0.0,
+    "mp_doppler_rmse_hz": 0.0,
+    "residual_reduction_median_db": 4.886443203235992
+  }
+}

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""四阵元 2x2 方阵：相干双源的 MUSIC、空间平滑、空间-时延 GLRT/ML 对照。"""
+"""四阵元 2x2 方阵方法对照。
+
+联合 GLRT/ML 是 SAGE/STAP 空间-相关域模型启发的简化研究原型，
+不是 Rougerie et al. (2012) 的完整 SAGE/STAP 复现。
+"""
 
 from pathlib import Path
 import json
