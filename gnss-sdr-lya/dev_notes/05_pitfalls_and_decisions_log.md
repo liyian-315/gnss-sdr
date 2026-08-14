@@ -2073,3 +2073,28 @@ Decision:
 The corrected replay configuration prints the exact site banner and completes
 a construction smoke test. Invalid geometry prints `TUNNEL_CONFIG_ERROR` and
 disables Tunnel output.
+
+## 2026-08-14 - Codex - ULA waveform baseline changes from GPS L1 to BDS B2a
+
+The parking-array waveform simulator was incorrectly implemented with GPS L1
+C/A although the intended signal is BeiDou B2a. The baseline now generates the
+B2a pilot primary code and the 100 ms truncated-Weil secondary code. PRN11 is
+checked against the ICD first/last 24-chip octal values for both codes.
+
+Decision:
+
+- use B2a pilot at 1176.45 MHz and 10.23 Mcps for this array experiment;
+- wipe the known pilot secondary code after each 1 ms primary-code correlation;
+- retain complex correlator values through delay fitting and take magnitude
+  only for plots;
+- keep simulated channel gain/phase errors in the received data while the
+  separator uses the ideal manifold, explicitly treating this as an
+  uncalibrated-array mismatch test;
+- do not assign a 20 m delay merely because the transmitters are 20 m apart.
+  The default receiver is on their perpendicular bisector and has zero free-
+  space range difference. In 2-D a receiver at transmitter A has 20 m range
+  difference; with vertical separation `h`, the 3-D difference is
+  `sqrt(20^2 + h^2) - h`.
+
+The implementation and derivation are recorded in
+`26_四阵元线阵真实GNSS波形与FBSS仿真报告.md`.

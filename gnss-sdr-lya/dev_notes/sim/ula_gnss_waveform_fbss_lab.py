@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""四阵元 ULA 的真实 GPS L1 C/A 波形、MUSIC、FBSS 与双路时延实验台。
+"""四阵元 ULA 的北斗 B2a pilot 波形、MUSIC、FBSS 与双路时延实验台。
 
-信号先按 GPS L1 C/A Gold 码生成原始复基带 IQ，再按 1 ms 分块执行多抽头
-相关。两路发射信号来自同一个源的功分，码、导航数据和时钟完全相同；线缆长度、
-空间传播距离和可选差分相位抖动形成两路差异。
+信号先按 BDS-SIS-ICD-B2a-1.0 生成正交 data/pilot 复基带，再按 1 ms 分块执行
+pilot 多抽头复相关。两路发射信号来自同一个源的功分，码、数据和时钟完全相同；
+线缆长度、空间传播距离和可选差分相位抖动形成两路差异。接收端已知并擦除 pilot 子码。
 """
 
 from pathlib import Path
@@ -26,16 +26,18 @@ import simulate_coherent_music_parking as array_tools
 # 实验模式："fixed" 只计算固定接收机；"random" 在圆域随机生成点；"both" 两者都做。
 EXPERIMENT_MODE = "both"
 
-# GPS L1 C/A 卫星 PRN。当前实现支持 1~32；C/A 码由 G1/G2 两个 m 序列组成 Gold 码。
-GPS_PRN = 28
-# L1 载波频率与 C/A 码速率。一般不修改。
-CARRIER_HZ = 1575.42e6
-CODE_RATE_HZ = 1.023e6
-# 采样率。20.46 MHz = 每码片 20 点，可表达 0.05 chip 的相关 tap。
-SAMPLE_RATE_HZ = 20.46e6
-# 生成多少个 1 ms C/A 周期。C/N0 越低，形成稳定空间协方差所需历元通常越多。
+# 北斗 B2a pilot PRN。主码支持 1~63；当前子码参数支持 ICD 表 5-4 的 PRN 1~32。
+B2A_PRN = 11
+# 是否在原始 IQ 中同时生成与 pilot 等功率、正交的 B-CNAV2 data 分量。
+INCLUDE_B2A_DATA_COMPONENT = True
+# B2a 载波频率与 pilot 主码速率。一般不修改。
+CARRIER_HZ = 1176.45e6
+CODE_RATE_HZ = 10.23e6
+# 采样率。102.3 MHz = 每码片 10 点，可表达 0.1 chip 的相关 tap。
+SAMPLE_RATE_HZ = 102.3e6
+# 生成多少个 1 ms B2a 主码周期。100 ms 正好覆盖一个 pilot 子码周期。
 # 例如 30 dB-Hz 时每个 1 ms 相关输出约 0 dB SNR，但 30 只是示例，不是场景边界。
-CODE_PERIODS = 300
+CODE_PERIODS = 100
 
 # 两个 DAS 发射天线坐标，单位 m。
 TX_A_X_M = -10.0
@@ -50,7 +52,7 @@ RECEIVER_Y_M = 5.0
 TX_A_POWER_DB = 0.0
 TX_B_POWER_DB = 0.0
 # 两路线缆长度与速度因子。电缆延迟 = 长度 / (速度因子*c)。线长差同时改变
-# 码时延和 L1 载波相位，不能把二者设成互不相关的自由参数。
+# 码时延和 B2a 载波相位，不能把二者设成互不相关的自由参数。
 CABLE_A_LENGTH_M = 10.0
 CABLE_B_LENGTH_M = 10.0
 CABLE_VELOCITY_FACTOR = 0.66
@@ -94,7 +96,7 @@ WIDEBAND_INR_DB = 3.0
 CHANNEL_GAIN_ERROR_DB_RMS = 0.0
 CHANNEL_PHASE_ERROR_DEG_RMS = 0.0
 
-# 四阵元均匀线阵参数。0.5 波长在 L1 约 9.51 cm，总孔径约 28.5 cm。
+# 四阵元均匀线阵参数。0.5 波长在 B2a 约 12.74 cm，总孔径约 38.2 cm。
 ULA_ELEMENT_COUNT = 4
 ULA_SPACING_WAVELENGTHS = 0.5
 # 阵列轴的全局方向。0° 表示阵元沿 X 轴排布。
@@ -107,9 +109,9 @@ KNOWN_HALF_PLANE = "negative_y"
 RANDOM_USE_KNOWN_HALF_PLANE = False
 
 # 多抽头相关器范围和间隔，单位 chip。这里就是论文中 delay estimation 的观测面。
-CORRELATOR_TAP_START_CHIPS = -0.5
-CORRELATOR_TAP_STOP_CHIPS = 0.5
-CORRELATOR_TAP_STEP_CHIPS = 0.05
+CORRELATOR_TAP_START_CHIPS = -1.0
+CORRELATOR_TAP_STOP_CHIPS = 1.0
+CORRELATOR_TAP_STEP_CHIPS = 0.1
 # 角度和时延搜索步长。更小更精细但更慢。
 DOA_GRID_STEP_DEG = 0.5
 DELAY_GRID_STEP_CHIPS = 0.01
@@ -135,14 +137,41 @@ OUTPUT_DIR = Path("dev_notes/sim/results/ula_gnss_waveform_fbss")
 C_MPS = 299792458.0
 CHIP_M = C_MPS / CODE_RATE_HZ
 
-# GPS L1 C/A PRN 的 G2 延迟抽头（1-based）。
-G2_TAPS = {
-    1: (2, 6), 2: (3, 7), 3: (4, 8), 4: (5, 9), 5: (1, 9), 6: (2, 10),
-    7: (1, 8), 8: (2, 9), 9: (3, 10), 10: (2, 3), 11: (3, 4), 12: (5, 6),
-    13: (6, 7), 14: (7, 8), 15: (8, 9), 16: (9, 10), 17: (1, 4), 18: (2, 5),
-    19: (3, 6), 20: (4, 7), 21: (5, 8), 22: (6, 9), 23: (1, 3), 24: (4, 6),
-    25: (5, 7), 26: (6, 8), 27: (7, 9), 28: (8, 10), 29: (1, 6), 30: (2, 7),
-    31: (3, 8), 32: (4, 9),
+# B2a pilot 主码寄存器 2 初值，按 ICD 表 5-3 的 s2,1 ... s2,13 排列。
+B2A_PILOT_G2_INITIAL = {
+    1: "1000000100101", 2: "1000000110100", 3: "1000010101101",
+    4: "1000101001111", 5: "1000101010101", 6: "1000110101110",
+    7: "1000111101110", 8: "1000111111011", 9: "1001100101001",
+    10: "1001111011010", 11: "1010000110101", 12: "1010001000100",
+    13: "1010001010101", 14: "1010001011011", 15: "1010001011100",
+    16: "1010010100011", 17: "1010011110111", 18: "1010100000001",
+    19: "1010100111110", 20: "1010110101011", 21: "1010110110001",
+    22: "1011001010011", 23: "1011001100010", 24: "1011010011000",
+    25: "1011010110110", 26: "1011011110010", 27: "1011011111111",
+    28: "1011100010010", 29: "1011100111100", 30: "1011110100001",
+    31: "1011111001000", 32: "1011111010100", 33: "1011111101011",
+    34: "1011111110011", 35: "1100001010001", 36: "1100010010100",
+    37: "1100010110111", 38: "1100100010001", 39: "1100100011001",
+    40: "1100110101011", 41: "1100110110001", 42: "1100111010010",
+    43: "1101001010101", 44: "1101001110100", 45: "1101011001011",
+    46: "1101101010111", 47: "1110000110100", 48: "1110010000011",
+    49: "1110010001011", 50: "1110010100011", 51: "1110010101000",
+    52: "1110100111011", 53: "1110110010111", 54: "1111001001000",
+    55: "1111010010100", 56: "1111010011001", 57: "1111011011010",
+    58: "1111011111000", 59: "1111011111111", 60: "1111110110101",
+    61: "1010010000110", 62: "0010111111000", 63: "0001101010101",
+}
+
+# B2a pilot 100-chip 截短 Weil 子码参数 (w, p)，按 ICD 表 5-4；p 为 1-based。
+B2A_PILOT_SECONDARY_PARAMETERS = {
+    1: (123, 138), 2: (55, 570), 3: (40, 351), 4: (139, 77),
+    5: (31, 885), 6: (175, 247), 7: (350, 413), 8: (450, 180),
+    9: (478, 3), 10: (8, 26), 11: (73, 17), 12: (97, 172),
+    13: (213, 30), 14: (407, 1008), 15: (476, 646), 16: (4, 158),
+    17: (15, 170), 18: (47, 99), 19: (163, 53), 20: (280, 179),
+    21: (322, 925), 22: (353, 114), 23: (375, 10), 24: (510, 584),
+    25: (332, 60), 26: (7, 3), 27: (13, 684), 28: (16, 263),
+    29: (18, 545), 30: (25, 22), 31: (50, 546), 32: (81, 190),
 }
 
 
@@ -153,24 +182,60 @@ def configure_font():
     plt.rcParams["axes.unicode_minus"] = False
 
 
-def gps_l1_ca_code(prn):
-    """生成一个 1023-chip GPS L1 C/A Gold 码，输出为复相关方便的 +/-1。"""
-    if prn not in G2_TAPS:
-        raise ValueError("GPS_PRN must be in 1..32")
-    g1 = np.ones(10, dtype=np.uint8)
-    g2 = np.ones(10, dtype=np.uint8)
-    output = np.empty(1023, dtype=float)
-    tap_a, tap_b = G2_TAPS[prn]
-    for index in range(1023):
-        bit = g1[9] ^ g2[tap_a - 1] ^ g2[tap_b - 1]
+def b2a_pilot_primary_code(prn):
+    """生成 10230-chip B2a pilot 主码，并映射为 +/-1。"""
+    if prn not in B2A_PILOT_G2_INITIAL:
+        raise ValueError("B2A_PRN must be in 1..63")
+    g1 = np.ones(13, dtype=np.uint8)
+    g2 = np.fromiter((int(bit) for bit in B2A_PILOT_G2_INITIAL[prn]), np.uint8)
+    output = np.empty(10230, dtype=float)
+    for index in range(10230):
+        bit = g1[12] ^ g2[12]
         output[index] = 1.0 if bit == 0 else -1.0
-        g1_feedback = g1[2] ^ g1[9]
-        g2_feedback = g2[1] ^ g2[2] ^ g2[5] ^ g2[7] ^ g2[8] ^ g2[9]
+        g1_feedback = g1[12] ^ g1[6] ^ g1[5] ^ g1[2]
+        g2_feedback = g2[12] ^ g2[11] ^ g2[7] ^ g2[6] ^ g2[4] ^ g2[0]
         g1[1:] = g1[:-1]
         g2[1:] = g2[:-1]
         g1[0] = g1_feedback
         g2[0] = g2_feedback
+        if index == 8189:
+            g1.fill(1)
     return output
+
+
+def b2a_data_primary_code(prn):
+    """生成 10230-chip B2a data 主码，并映射为 +/-1。"""
+    if prn not in B2A_PILOT_G2_INITIAL:
+        raise ValueError("B2A_PRN must be in 1..63")
+    g1 = np.ones(13, dtype=np.uint8)
+    g2 = np.fromiter((int(bit) for bit in B2A_PILOT_G2_INITIAL[prn]), np.uint8)
+    output = np.empty(10230, dtype=float)
+    for index in range(10230):
+        bit = g1[12] ^ g2[12]
+        output[index] = 1.0 if bit == 0 else -1.0
+        g1_feedback = g1[12] ^ g1[10] ^ g1[4] ^ g1[0]
+        g2_feedback = g2[12] ^ g2[11] ^ g2[10] ^ g2[8] ^ g2[4] ^ g2[2]
+        g1[1:] = g1[:-1]
+        g2[1:] = g2[:-1]
+        g1[0] = g1_feedback
+        g2[0] = g2_feedback
+        if index == 8189:
+            g1.fill(1)
+    return output
+
+
+def b2a_pilot_secondary_code(prn):
+    """生成 100-chip B2a pilot 截短 Weil 子码，并映射为 +/-1。"""
+    if prn not in B2A_PILOT_SECONDARY_PARAMETERS:
+        raise ValueError("B2a pilot secondary code currently supports PRN 1..32")
+    modulus = 1021
+    w, p = B2A_PILOT_SECONDARY_PARAMETERS[prn]
+    residues = {pow(index, 2, modulus) for index in range(1, modulus)}
+    legendre = np.array([0 if index == 0 or index in residues else 1
+                         for index in range(modulus)], dtype=np.uint8)
+    weil = legendre ^ np.roll(legendre, -w)
+    bits = np.array([weil[(p - 1 + index) % modulus] for index in range(100)])
+    return 1.0 - 2.0 * bits
 
 
 def sample_code(code, times_s, delay_s=0.0):
@@ -228,7 +293,10 @@ def simulate_correlators(receiver_xy, rng):
     cables = [CABLE_A_LENGTH_M, CABLE_B_LENGTH_M]
     powers_db = [TX_A_POWER_DB, TX_B_POWER_DB]
     positions = ula_positions_m()
-    code = gps_l1_ca_code(GPS_PRN)
+    code = b2a_pilot_primary_code(B2A_PRN)
+    data_code = b2a_data_primary_code(B2A_PRN)
+    secondary_code = b2a_pilot_secondary_code(B2A_PRN)
+    data_secondary_code = np.array([1.0, 1.0, 1.0, -1.0, 1.0])
     samples_per_period = int(round(SAMPLE_RATE_HZ * 0.001))
     if not np.isclose(samples_per_period / SAMPLE_RATE_HZ, 0.001, atol=1e-12):
         raise ValueError("SAMPLE_RATE_HZ must produce an integer number of samples per 1 ms")
@@ -250,8 +318,8 @@ def simulate_correlators(receiver_xy, rng):
     cn0_linear = 10.0 ** (CN0_A_AT_REFERENCE_DB_HZ / 10.0)
     noise_variance = SAMPLE_RATE_HZ / cn0_linear
     output = np.empty((CODE_PERIODS, ULA_ELEMENT_COUNT, len(taps)), complex)
-    nav_rng = np.random.default_rng(RANDOM_SEED + 17)
-    nav_bits = nav_rng.choice([-1.0, 1.0], size=(CODE_PERIODS + 19) // 20)
+    data_rng = np.random.default_rng(RANDOM_SEED + 17)
+    data_symbols = data_rng.choice([-1.0, 1.0], size=(CODE_PERIODS + 4) // 5)
     channel_gain_db = rng.normal(0.0, CHANNEL_GAIN_ERROR_DB_RMS, ULA_ELEMENT_COUNT)
     channel_phase_deg = rng.normal(0.0, CHANNEL_PHASE_ERROR_DEG_RMS, ULA_ELEMENT_COUNT)
     channel_response = 10.0 ** (channel_gain_db / 20.0) * np.exp(1j * np.radians(channel_phase_deg))
@@ -259,9 +327,15 @@ def simulate_correlators(receiver_xy, rng):
     for block in range(CODE_PERIODS):
         absolute_time = block * 0.001 + t_period
         iq = np.zeros((ULA_ELEMENT_COUNT, samples_per_period), complex)
-        nav_bit = nav_bits[block // 20]
+        secondary_symbol = secondary_code[block % len(secondary_code)]
         for source_index, transmitter in enumerate(transmitters):
-            code_wave = sample_code(code, absolute_time, relative_delays_s[source_index])
+            pilot_wave = sample_code(code, absolute_time, relative_delays_s[source_index])
+            signal_wave = 1j * secondary_symbol * pilot_wave
+            if INCLUDE_B2A_DATA_COMPONENT:
+                data_wave = sample_code(data_code, absolute_time, relative_delays_s[source_index])
+                data_symbol = data_symbols[block // 5]
+                data_secondary = data_secondary_code[block % len(data_secondary_code)]
+                signal_wave += data_symbol * data_secondary * data_wave
             jitter = (rng.normal(0.0, DIFFERENTIAL_PHASE_JITTER_DEG_RMS)
                       if source_index == 1 else 0.0)
             extra_phase = TX_B_EXTRA_PHASE_DEG if source_index == 1 else 0.0
@@ -273,7 +347,7 @@ def simulate_correlators(receiver_xy, rng):
                     effective_element - reference_length) / C_MPS
                 carrier_phase += np.radians(extra_phase + jitter)
                 iq[antenna_index] += (
-                    amplitudes[source_index] * nav_bit * code_wave * np.exp(1j * carrier_phase)
+                    amplitudes[source_index] * signal_wave * np.exp(1j * carrier_phase)
                 )
         if ENABLE_CW_INTERFERENCE:
             cw_amp = 10.0 ** (CW_JS_DB / 20.0)
@@ -290,7 +364,8 @@ def simulate_correlators(receiver_xy, rng):
             )
         iq += noise
         iq *= channel_response[:, None]
-        output[block] = iq @ replicas.T / samples_per_period
+        # 接收端已知 pilot 子码，1 ms 主码相关后将其擦除，再送入阵列处理。
+        output[block] = -1j * secondary_symbol * (iq @ replicas.T / samples_per_period)
 
     truth = {
         "receiver_xy_m": receiver_xy.tolist(),
@@ -309,6 +384,10 @@ def simulate_correlators(receiver_xy, rng):
         "emitted_source_coherence": 1.0 if DIFFERENTIAL_PHASE_JITTER_DEG_RMS == 0 else None,
         "channel_gain_error_db": channel_gain_db.tolist(),
         "channel_phase_error_deg": channel_phase_deg.tolist(),
+        "separation_manifold": "ideal",
+        "signal": "BDS B2a pilot",
+        "prn": B2A_PRN,
+        "data_component_included": INCLUDE_B2A_DATA_COMPONENT,
     }
     return output, taps, positions, truth
 
@@ -340,35 +419,37 @@ def scan_grid():
 
 def estimate_delays(correlators, positions, bearings, taps, code):
     manifold = steering_manifold(positions, bearings)
+    # 故意使用理想阵列流形。仿真信号可含通道幅相误差，因此这里的失配用于量化
+    # 未校准硬件对角度解混和时延估计的影响，而不是用仿真真值作弊。
     separated = np.einsum("sm,bmt->bst", np.linalg.pinv(manifold), correlators)
-    # 两路来自同一源，导航位翻转是共同的。以每个历元最强 prompt 的相位作公共
-    # 符号/相位参考，再相干平均；这保留复相关峰并比直接平均功率更适合低 C/N0。
+    # 两路来自同一源。以每个历元最强 prompt 的相位作公共参考后相干平均。
     prompt_index = int(np.argmin(abs(taps)))
     common_prompt = np.sum(separated[:, :, prompt_index], axis=1)
     common_rotation = np.exp(-1j * np.angle(common_prompt + 1e-30))
     coherent_profiles = np.mean(separated * common_rotation[:, None, None], axis=0)
-    profiles = abs(coherent_profiles)
     delay_grid = np.arange(CORRELATOR_TAP_START_CHIPS,
                            CORRELATOR_TAP_STOP_CHIPS + 0.5 * DELAY_GRID_STEP_CHIPS,
                            DELAY_GRID_STEP_CHIPS)
-    # Reference kernel is generated from the same real Gold code and sampling chain.
+    # Reference kernel is generated from the same B2a pilot code and sampling chain.
     samples_per_period = int(round(SAMPLE_RATE_HZ * 0.001))
     times = np.arange(samples_per_period) / SAMPLE_RATE_HZ
     prompt = sample_code(code, times)
     kernel = np.array([np.mean(prompt * sample_code(code, times, delay / CODE_RATE_HZ))
                        for delay in taps])
     estimates = []
-    for profile in profiles:
+    for profile in coherent_profiles:
         best = None
         for delay in delay_grid:
             template = np.interp(taps - delay, taps, kernel, left=0.0, right=0.0)
-            design = np.column_stack([template, np.ones_like(template)])
+            # 复数系数同时吸收每一路幅度和相位；只在绘图时取模，拟合不丢相位。
+            design = np.column_stack([template.astype(complex),
+                                      np.ones_like(template, dtype=complex)])
             coefficient, *_ = np.linalg.lstsq(design, profile, rcond=None)
             residual = float(np.linalg.norm(profile - design @ coefficient))
             if best is None or residual < best[0]:
                 best = (residual, float(delay))
         estimates.append(best[1])
-    return estimates, profiles, kernel
+    return estimates, coherent_profiles, kernel
 
 
 def match_estimates(estimated_bearings, estimated_delays, truth):
@@ -410,7 +491,7 @@ def process_methods(correlators, taps, positions, truth):
     smooth_manifold = steering_manifold(sub_positions, grid)
     smooth_spectrum, smooth_eigenvalues = array_tools.music_spectrum(
         smoothed, 2, grid, manifold=smooth_manifold)
-    code = gps_l1_ca_code(GPS_PRN)
+    code = b2a_pilot_primary_code(B2A_PRN)
     results = {}
     for name, spectrum in (("direct_music", direct_spectrum), ("fbss_music", smooth_spectrum)):
         bearings = strongest_peaks(grid, spectrum)
@@ -483,9 +564,11 @@ def run_fixed(output_dir):
     axes[1].set_title("直接 MUSIC 与 FBSS-MUSIC 空间谱")
     axes[1].set_xlabel("全局方位角 / deg"); axes[1].set_ylabel("归一化谱 / dB")
     for index, profile in enumerate(result["fbss_music"]["profiles"]):
-        axes[2].plot(taps, profile / max(np.max(profile), 1e-15), label=f"分离路 {index}")
+        magnitude = np.abs(profile)
+        axes[2].plot(taps, magnitude / max(np.max(magnitude), 1e-15),
+                     label=f"分离路 {index}")
     axes[2].set_title("FBSS 估角后两路相关峰")
-    axes[2].set_xlabel("相对码延迟 / chip"); axes[2].set_ylabel("归一化相关功率")
+    axes[2].set_xlabel("相对码延迟 / chip"); axes[2].set_ylabel("归一化复相关幅度")
     axes[2].grid(True)
     if len(result["fbss_music"]["profiles"]):
         axes[2].legend()

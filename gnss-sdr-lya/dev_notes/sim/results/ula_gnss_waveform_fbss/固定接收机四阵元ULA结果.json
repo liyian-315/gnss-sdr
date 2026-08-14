@@ -30,7 +30,7 @@
     ],
     "cn0_a_db_hz": 29.030899869919434,
     "cn0_b_db_hz": 29.030899869919434,
-    "raw_sample_snr_a_db": -43.10905629376141,
+    "raw_sample_snr_a_db": -50.098756337121586,
     "one_ms_correlator_snr_a_db": 0.0,
     "emitted_source_coherence": 1.0,
     "channel_gain_error_db": [
@@ -44,50 +44,61 @@
       0.0,
       0.0,
       0.0
-    ]
+    ],
+    "separation_manifold": "ideal",
+    "signal": "BDS B2a pilot",
+    "prn": 11,
+    "data_component_included": true
   },
   "direct_music": {
     "estimated_bearings_deg": [
-      228.0,
-      315.5
+      245.0,
+      307.0
     ],
     "estimated_delays_chips": [
-      4.440892098500626e-16,
-      -0.029999999999999583
+      8.881784197001252e-16,
+      -0.03999999999999915
     ],
     "angle_errors_deg": [
-      21.434948822921996,
-      17.934948822922024
+      38.434948822921996,
+      26.434948822922024
     ],
-    "angle_rmse_deg": 19.76258359023583,
+    "angle_rmse_deg": 32.98523768514591,
     "true_delta_m": 0.0,
-    "estimated_delta_m": -8.791567683284464,
-    "delay_error_m": -8.791567683284464,
+    "estimated_delta_m": -1.1722090244379286,
+    "delay_error_m": -1.1722090244379286,
     "success": false,
     "state": "WRONG_SOLUTION"
   },
   "fbss_music": {
     "estimated_bearings_deg": [
-      197.0
+      231.0,
+      313.5
     ],
-    "estimated_delays_chips": [],
-    "angle_errors_deg": [],
-    "angle_rmse_deg": Infinity,
+    "estimated_delays_chips": [
+      -0.049999999999999156,
+      -0.00999999999999912
+    ],
+    "angle_errors_deg": [
+      24.434948822921996,
+      19.934948822922024
+    ],
+    "angle_rmse_deg": 22.298754545392633,
     "true_delta_m": 0.0,
-    "estimated_delta_m": null,
-    "delay_error_m": null,
+    "estimated_delta_m": 1.1722090244379286,
+    "delay_error_m": 1.1722090244379286,
     "success": false,
-    "state": "UNRESOLVED_ONE_PEAK"
+    "state": "WRONG_SOLUTION"
   },
   "raw_eigenvalues": [
-    2.516589314191397,
-    1.1494290536752652,
-    0.9431673542027244,
-    0.8829590556606306
+    2.5102376690930486,
+    1.0246124654827795,
+    0.9480668366316146,
+    0.8431552084991886
   ],
   "smooth_eigenvalues": [
-    1.5757329391712338,
-    1.2100532303364577,
-    1.0153453939494788
+    1.653855540415757,
+    1.14558100613815,
+    0.9469811150631017
   ]
 }
