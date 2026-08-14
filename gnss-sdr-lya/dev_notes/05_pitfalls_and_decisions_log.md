@@ -2129,3 +2129,26 @@ baseline is qualified; the close-range parking deployment still requires a
 spherical-wave/finite-range or measured-manifold treatment. Equalized power
 must never be reported as deployment performance; hardware comparisons must
 use the measured received B/A power ratio and actual C/N0.
+
+## 2026-08-14 - Codex - Sweep finite-range manifold mismatch before more FBSS tuning
+
+The plane-wave FBSS chain already passed 30/30 at equal received power and
+45 dB-Hz, so further formula tuning was not justified. A controlled sweep now
+holds the two bearings, 15.616 m effective delay, received power ratio, and
+C/N0 fixed while scaling source range and generating exact spherical phases.
+
+Decision and evidence:
+
+- use 30 independent full-waveform trials per range and Wilson 95% intervals;
+- report spherical-minus-plane array-phase peak-to-peak error, not range alone;
+- treat this as a manifold-mismatch isolation experiment, not deployment
+  performance, because scaling the geometry also scales transmitter spacing;
+- observed FBSS DOA rates were 0/30 at 2/3/5 m, 7/30 at 7.5 m, 21/30 at
+  10 m, 25/30 at 15 m, and 30/30 at 20/30/50 m;
+- the corresponding A-path phase mismatch fell from 11.44 deg at 2 m to
+  0.46 deg at 50 m. The transition is conditional on the current aperture,
+  bearings, equal received power, and 45 dB-Hz; it is not a universal distance
+  threshold.
+
+The implementation and complete table are in
+`26_四阵元线阵真实GNSS波形与FBSS仿真报告.md`.
