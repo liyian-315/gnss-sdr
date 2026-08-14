@@ -1,0 +1,7 @@
+{
+  "direct_music": 0.0,
+  "fbss_music": 0.05,
+  "receiver_count": 20,
+  "radius_m": 4.0,
+  "center_mode": "midpoint"
+}

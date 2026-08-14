@@ -1,0 +1,93 @@
+{
+  "truth": {
+    "receiver_xy_m": [
+      0.0,
+      5.0
+    ],
+    "bearings_deg": [
+      206.565051177078,
+      333.434948822922
+    ],
+    "relative_delays_s": [
+      0.0,
+      0.0
+    ],
+    "relative_delays_chips": [
+      0.0,
+      0.0
+    ],
+    "relative_delays_m": [
+      0.0,
+      0.0
+    ],
+    "ranges_m": [
+      11.180339887498949,
+      11.180339887498949
+    ],
+    "amplitudes": [
+      0.8944271909999159,
+      0.8944271909999159
+    ],
+    "cn0_a_db_hz": 29.030899869919434,
+    "cn0_b_db_hz": 29.030899869919434,
+    "raw_sample_snr_a_db": -43.10905629376141,
+    "one_ms_correlator_snr_a_db": 0.0,
+    "emitted_source_coherence": 1.0,
+    "channel_gain_error_db": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "channel_phase_error_deg": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "direct_music": {
+    "estimated_bearings_deg": [
+      228.0,
+      315.5
+    ],
+    "estimated_delays_chips": [
+      4.440892098500626e-16,
+      -0.029999999999999583
+    ],
+    "angle_errors_deg": [
+      21.434948822921996,
+      17.934948822922024
+    ],
+    "angle_rmse_deg": 19.76258359023583,
+    "true_delta_m": 0.0,
+    "estimated_delta_m": -8.791567683284464,
+    "delay_error_m": -8.791567683284464,
+    "success": false,
+    "state": "WRONG_SOLUTION"
+  },
+  "fbss_music": {
+    "estimated_bearings_deg": [
+      197.0
+    ],
+    "estimated_delays_chips": [],
+    "angle_errors_deg": [],
+    "angle_rmse_deg": Infinity,
+    "true_delta_m": 0.0,
+    "estimated_delta_m": null,
+    "delay_error_m": null,
+    "success": false,
+    "state": "UNRESOLVED_ONE_PEAK"
+  },
+  "raw_eigenvalues": [
+    2.516589314191397,
+    1.1494290536752652,
+    0.9431673542027244,
+    0.8829590556606306
+  ],
+  "smooth_eigenvalues": [
+    1.5757329391712338,
+    1.2100532303364577,
+    1.0153453939494788
+  ]
+}
