@@ -2152,3 +2152,29 @@ Decision and evidence:
 
 The implementation and complete table are in
 `26_四阵元线阵真实GNSS波形与FBSS仿真报告.md`.
+
+## 2026-08-14 - Codex - Freeze the first ULA hardware-boundary pre-scan
+
+The angle, received-power, residual channel-phase, and residual channel-gain
+axes were evaluated as one controlled campaign instead of unrelated runs. All
+630 trials used the full BDS B2a waveform, exact spherical-wave generation,
+two sources at 20 m, 45 dB-Hz on path A, and a 15.616 m effective delay.
+
+Decision and evidence:
+
+- report both DOA peak success and complete DOA-plus-delay success; at 5 deg
+  separation they differ materially (18/30 versus 11/30);
+- use at least 20 deg source separation for the first hardware layout, while
+  treating 10 deg as a transition test and 5 deg as unreliable;
+- keep received path B within 10 dB of path A for the first experiment;
+- target residual channel-phase RMS at or below 3 deg; 5 deg is a stress point
+  and 10 deg is unreliable;
+- gain mismatch was not limiting up to the tested 1 dB RMS, so 1 dB is not
+  claimed as the maximum tolerance;
+- retain local-maximum-only peak selection, but reduce its artificial minimum
+  separation to 2 deg so the 5 deg experiment is not rejected by construction;
+- these are conditional broadside/half-plane results, not universal ULA or
+  parking-garage limits.
+
+The protocol, formulas, tables, and generated files are indexed in
+`27_四阵元线阵角度功率与通道误差边界报告.md`.

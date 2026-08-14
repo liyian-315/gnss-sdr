@@ -71,6 +71,7 @@ dense 相关器看到的仍是**多个 R(τ) 相关峰的叠加**。所以**信�
 | 24 | `24_方阵GNSS相干双源分离文献证据审查.md` | **方阵 GNSS 双源文献证据审查**：2×2 SAGE/STAP、MUSIC/波束形成、二维空间平滑阵元下限，以及本项目 GLRT/重构/门控的证据等级 | 决定方阵算法复现路线或制作天线前必读 | ✅ 文献边界已核对 |
 | 25 | `25_方阵SAGE_STAP与线阵FBSS公平复现报告.md` | **方阵 SAGE/STAP 与线阵 FBSS 公平复现**：逐路径迭代、论文参数 Monte Carlo、同核同噪声停车场延迟/功率阶梯、ULA 半平面镜像边界 | 比较 ULA/2×2 或继续接入实测核前必读 | 🟡 理想核完成；实测核待补 |
 | 26 | `26_四阵元线阵真实GNSS波形与FBSS仿真报告.md` | **四阵元 ULA 北斗 B2a 波形实验台**：B2a data/pilot 码、同源功分/线缆模型、C/N0 换算、直接 MUSIC 与 FBSS、复相关时延、公平 DOA 基准及 270 次球面波/有限距离失配扫描 | 制作 ULA 样机或讨论手机 C/N0 与阵列可分离性前必读 | 🟡 公平远场 DOA 30/30；有限距离容忍曲线已建立 |
+| 27 | `27_四阵元线阵角度功率与通道误差边界报告.md` | **四阵元 ULA 到货前硬件边界**：630 次真实 B2a 波形 Monte Carlo，分别扫描角度差、接收功率差、通道相位/增益残差，同时报告 DOA 双峰与 DOA+时延完整成功率 | 定发射天线角度、功率配平和四通道校准指标时必读 | ✅ 30 次预扫完成；临界点待 100 次精扫 |
 
 > 图例：✅ 已成稿可用 · 🟡 进行中 · ⚪ 历史/已被取代 · ⬜ 未开始
 
@@ -94,6 +95,8 @@ dense 相关器看到的仍是**多个 R(τ) 相关峰的叠加**。所以**信�
 > ✅ **2026-07-24 v0.1 gate 后清理**：NUC smoke test 已通过；当前算法研究线切到 `research/multipath-correlator-fit`。`build/` 已从 Git 跟踪移除并加入忽略，实验数据目录规范冻结为 `~/lya/gnss_data/{raw,logs,outputs,analysis}`，详见 `10_branch_cleanup_handoff_20260724.md`。
 
 > 🟡 **Stage 2 进行中（2026-07-17→18，详见 `07`）**：改用 **GPS L5I**（谱峰面比 B1I 更易分远距多径）做最小双跟踪原型。已落地：① `Observables.dump_extended`（每通道 7→9 个 double，加 `signal_path`+`cn0_db_hz`）；② L5 双路径 conf + `make_l5_dualpath_conf.py`（多 PRN 通用化 / `--source uhd` 实时 / `--enable-monitor`）；③ `read_observables_dump.py` 兼容新旧格式、稳定 CSV/JSONL 字段；④ monitor-only 长跑方案（`watch_dualpath_monitor.py` 免 protobuf 依赖 + `gnss_synchro_monitor.cc` 改为“始终 consume、按抽样发送”）避免实时 overflow。**⚠️ C++ 改动仅过 Python 侧自测，尚需测试机 `build-conda` 完整编译 + B210/离线实跑验证。**
+
+> 📐 **2026-08-14 四阵元 ULA 硬件边界预扫**：在 B2a、两源各距 20 m、A 路 45 dB-Hz、0.53 chip 时延、宽侧对称球面波条件下完成 630 次全波形 Monte Carlo。完整双源成功率：角差 20°为 30/30、10°为 29/30、5°为 11/30；B/A 功率差 -10 dB为 30/30、-15 dB为 18/30；相位残差 3°为 30/30、5°为 29/30、10°为 23/30；增益残差扫描至 1 dB仍为 30/30。见 `27`，所有数字均为条件化边界，不外推为全场通用指标。
 
 > 🔧 **实测根因（2026-07-15，非改造代码）**：实时失锁/overflow/无定位 = ①12个Ctrl+Z挂起进程叠罗汉 ②Firefox吃95%CPU ③增益太低欠量化(gain45→70)。清空+关扰+gain70 后单星PRN9 45s 零失锁、CN0 82。饱和已实测排除。
 > **规范**：一次只跑一个实例；停止用 Ctrl+C 不用 Ctrl+Z；跑前关 Firefox；实时增益 ~65–70。离线看谱峰走"录制→File源+dump"。

@@ -127,6 +127,9 @@ CORRELATOR_TAP_STEP_CHIPS = 0.1
 # 角度和时延搜索步长。更小更精细但更慢。
 DOA_GRID_STEP_DEG = 0.5
 DELAY_GRID_STEP_CHIPS = 0.01
+# 两个候选必须是不同局部极大值且至少相隔该角度。设为 2° 才能诚实测试 5° 双源；
+# 它不是分辨成功门限，最终仍由真值角误差与模型阶数共同判定。
+DOA_PEAK_MIN_SEPARATION_DEG = 2.0
 
 # 随机圆域开关参数。圆心可以选 "midpoint"、"tx_a" 或 "tx_b"。
 RANDOM_CENTER_MODE = "midpoint"
@@ -438,8 +441,10 @@ def simulate_correlators(receiver_xy, rng, received_power_ratio_db=None,
     return output, taps, positions, truth
 
 
-def strongest_peaks(grid, spectrum, count=2, separation_deg=10.0):
+def strongest_peaks(grid, spectrum, count=2, separation_deg=None):
     """只从局部极大值选峰，避免把同一宽峰的相邻网格误报为两路。"""
+    if separation_deg is None:
+        separation_deg = DOA_PEAK_MIN_SEPARATION_DEG
     candidates = np.where((spectrum[1:-1] > spectrum[:-2])
                           & (spectrum[1:-1] >= spectrum[2:]))[0] + 1
     if len(candidates) == 0:
