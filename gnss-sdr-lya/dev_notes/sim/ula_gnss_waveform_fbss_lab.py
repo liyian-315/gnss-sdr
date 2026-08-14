@@ -16,6 +16,7 @@ import matplotlib
 if os.name != "nt" and not os.environ.get("DISPLAY"):
     matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib import font_manager
 import numpy as np
 
 import simulate_coherent_music_parking as array_tools
@@ -24,7 +25,7 @@ import simulate_coherent_music_parking as array_tools
 # ======================== 用户可修改实验参数区 ========================
 
 # 实验模式："fixed" 只计算固定接收机；"random" 在圆域随机生成点；"both" 两者都做。
-EXPERIMENT_MODE = "both"
+EXPERIMENT_MODE = "fixed"
 
 # 北斗 B2a pilot PRN。主码支持 1~63；当前子码参数支持 ICD 表 5-4 的 PRN 1~32。
 B2A_PRN = 11
@@ -45,12 +46,18 @@ TX_A_Y_M = 0.0
 TX_B_X_M = 10.0
 TX_B_Y_M = 0.0
 # 固定接收机（四阵元阵列中心）坐标，单位 m。
-RECEIVER_X_M = 0.0
+RECEIVER_X_M = -10.0
 RECEIVER_Y_M = 5.0
 
 # 两路由同一源功分。这里是功分器、功放及天线造成的相对发射功率，单位 dB。
 TX_A_POWER_DB = 0.0
 TX_B_POWER_DB = 0.0
+# 固定点阵列中心实际收到的 B 相对 A 功率，单位 dB。0 是公平算法资格基准，不代表真实
+# 停车场；实物若测得 B 比 A 弱 6 dB，应填 -6.0。设为 None 才严格使用上面的发射功率、
+# 距离和 PATH_LOSS_EXPONENT。随机位置实验始终走 None，避免每个点暗中改变发射机。
+FIXED_RECEIVED_POWER_RATIO_DB = 0.0
+# 固定点资格基准中 A 路的实际 C/N0；B 路为本值加 FIXED_RECEIVED_POWER_RATIO_DB。
+FIXED_ACTUAL_CN0_DB_HZ = 45.0
 # 两路线缆长度与速度因子。电缆延迟 = 长度 / (速度因子*c)。线长差同时改变
 # 码时延和 B2a 载波相位，不能把二者设成互不相关的自由参数。
 CABLE_A_LENGTH_M = 10.0
@@ -63,16 +70,17 @@ DIFFERENTIAL_PHASE_JITTER_DEG_RMS = 0.0
 
 # 固定点是否额外扫描未知硬件相位。对同源静态双路，相关系数仍为 1，但相对载波
 # 相位未知；FBSS 在少数相位会退化，所以不能只展示某一个有利相位。
-ENABLE_RELATIVE_PHASE_SWEEP = True
+ENABLE_RELATIVE_PHASE_SWEEP = False
 RELATIVE_PHASE_SWEEP_DEG = tuple(range(0, 360, 30))
-# 固定相对相位后扫描 C/N0，用于判断 FBSS 的实际工作门限。90 度避开当前
+# 固定相对相位后扫描两路相同的实际 C/N0，用于判断 FBSS 的实际工作门限。90 度避开当前
 # 对称几何在 0/180 度附近的病态相位；相位扫描仍负责揭示这种退化。
-ENABLE_CN0_SWEEP = True
+ENABLE_CN0_SWEEP = False
 CN0_SWEEP_DB_HZ = (10.0, 20.0, 30.0, 35.0, 40.0, 45.0, 50.0)
 CN0_SWEEP_PHASE_DEG = 90.0
-# 每个 C/N0 条件的独立噪声重复次数。正式论文统计建议提高到 50 或 100；默认 3
-# 便于普通电脑交互运行，不能据此估计精确检测概率。
-CN0_SWEEP_RUNS = 3
+# 每个 C/N0 条件的独立噪声重复次数。30 次用于预分析；正式论文曲线建议 100 次。
+CN0_SWEEP_RUNS = 30
+# 当前先只验证 DOA。每次使用独立噪声，统计只检查两个角度，不检查后续时延估计。
+FIXED_DOA_MONTE_CARLO_RUNS = 30
 
 # 手机 GNSS Logger 通常显示 C/N0，单位 dB-Hz，不是带内 SNR。
 # 本值定义：A 路在 REFERENCE_DISTANCE_M 处、无阵列增益时的 C/N0。
@@ -101,6 +109,10 @@ ULA_ELEMENT_COUNT = 4
 ULA_SPACING_WAVELENGTHS = 0.5
 # 阵列轴的全局方向。0° 表示阵元沿 X 轴排布。
 ULA_AXIS_DEG = 0.0
+# "plane" 与经典远场 MUSIC/FBSS 的平移不变阵列模型一致，用于先验证 DOA 算法；
+# "spherical" 按每个阵元到发射机的精确距离生成球面波，用于有限距离停车场压力测试。
+# 几度的球面波流形误差就可能破坏超分辨 FBSS 的 Vandermonde/平移不变假设。
+SPATIAL_WAVE_MODEL = "plane"
 # ULA 有前后镜像。"negative_y" 表示已知两发射天线位于接收机 Y 负半平面；
 # None 表示不使用该停车场先验，此时同一空间相位对应两个镜像方向。
 KNOWN_HALF_PLANE = "negative_y"
@@ -176,9 +188,16 @@ B2A_PILOT_SECONDARY_PARAMETERS = {
 
 
 def configure_font():
-    plt.rcParams["font.sans-serif"] = [
-        "Microsoft YaHei", "SimHei", "Noto Sans CJK SC", "DejaVu Sans"
-    ]
+    windows_font = Path("C:/Windows/Fonts/msyh.ttc")
+    if windows_font.exists():
+        font_manager.fontManager.addfont(windows_font)
+        plt.rcParams["font.sans-serif"] = [
+            font_manager.FontProperties(fname=windows_font).get_name(), "DejaVu Sans"
+        ]
+    else:
+        plt.rcParams["font.sans-serif"] = [
+            "Microsoft YaHei", "SimHei", "Noto Sans CJK SC", "DejaVu Sans"
+        ]
     plt.rcParams["axes.unicode_minus"] = False
 
 
@@ -286,7 +305,8 @@ def local_replicas(code, times_one_period, taps):
     ])
 
 
-def simulate_correlators(receiver_xy, rng):
+def simulate_correlators(receiver_xy, rng, received_power_ratio_db=None,
+                         actual_cn0_a_db_hz=None):
     """生成原始 IQ 并执行 1 ms 多抽头相关，返回 (block, antenna, tap)。"""
     receiver_xy = np.asarray(receiver_xy, dtype=float)
     transmitters = [np.array([TX_A_X_M, TX_A_Y_M]), np.array([TX_B_X_M, TX_B_Y_M])]
@@ -309,14 +329,26 @@ def simulate_correlators(receiver_xy, rng):
     reference_length = center_lengths[0]
     relative_delays_s = [(length - reference_length) / C_MPS for length in center_lengths]
     ranges = [float(np.linalg.norm(tx - receiver_xy)) for tx in transmitters]
+    if received_power_ratio_db is not None:
+        powers_db[1] = (powers_db[0] + float(received_power_ratio_db)
+                        + 10.0 * PATH_LOSS_EXPONENT * np.log10(
+                            max(ranges[1], 0.1) / max(ranges[0], 0.1)))
     amplitudes = [path_amplitude(distance, power) for distance, power in zip(ranges, powers_db)]
     bearings = [bearing_deg(receiver_xy, tx) for tx in transmitters]
 
     # C/N0 convention: reference A carrier power C=1. N0=C/(C/N0), and sampled
     # complex AWGN has E|n[k]|^2=N0*fs. Therefore after T seconds correlation,
     # SNR = (C/N0)*T, exactly matching the dB-Hz definition.
-    cn0_linear = 10.0 ** (CN0_A_AT_REFERENCE_DB_HZ / 10.0)
-    noise_variance = SAMPLE_RATE_HZ / cn0_linear
+    if actual_cn0_a_db_hz is None:
+        cn0_a_db_hz = (CN0_A_AT_REFERENCE_DB_HZ
+                       - 10.0 * PATH_LOSS_EXPONENT
+                       * np.log10(max(ranges[0], 0.1) / REFERENCE_DISTANCE_M))
+    else:
+        cn0_a_db_hz = float(actual_cn0_a_db_hz)
+    cn0_b_db_hz = cn0_a_db_hz + 20.0 * np.log10(
+        max(amplitudes[1], 1e-30) / max(amplitudes[0], 1e-30))
+    cn0_linear = 10.0 ** (cn0_a_db_hz / 10.0)
+    noise_variance = amplitudes[0] ** 2 * SAMPLE_RATE_HZ / cn0_linear
     output = np.empty((CODE_PERIODS, ULA_ELEMENT_COUNT, len(taps)), complex)
     data_rng = np.random.default_rng(RANDOM_SEED + 17)
     data_symbols = data_rng.choice([-1.0, 1.0], size=(CODE_PERIODS + 4) // 5)
@@ -340,11 +372,20 @@ def simulate_correlators(receiver_xy, rng):
                       if source_index == 1 else 0.0)
             extra_phase = TX_B_EXTRA_PHASE_DEG if source_index == 1 else 0.0
             for antenna_index, offset in enumerate(positions):
-                antenna_xy = receiver_xy + offset
-                range_element = float(np.linalg.norm(transmitter - antenna_xy))
-                effective_element = range_element + cables[source_index] / CABLE_VELOCITY_FACTOR
-                carrier_phase = -2.0 * np.pi * CARRIER_HZ * (
-                    effective_element - reference_length) / C_MPS
+                if SPATIAL_WAVE_MODEL == "plane":
+                    direction = (transmitter - receiver_xy) / ranges[source_index]
+                    spatial_phase = 2.0 * np.pi * CARRIER_HZ * np.dot(offset, direction) / C_MPS
+                    carrier_phase = -2.0 * np.pi * CARRIER_HZ * (
+                        center_lengths[source_index] - reference_length) / C_MPS
+                    carrier_phase += spatial_phase
+                elif SPATIAL_WAVE_MODEL == "spherical":
+                    antenna_xy = receiver_xy + offset
+                    range_element = float(np.linalg.norm(transmitter - antenna_xy))
+                    effective_element = range_element + cables[source_index] / CABLE_VELOCITY_FACTOR
+                    carrier_phase = -2.0 * np.pi * CARRIER_HZ * (
+                        effective_element - reference_length) / C_MPS
+                else:
+                    raise ValueError("SPATIAL_WAVE_MODEL must be plane or spherical")
                 carrier_phase += np.radians(extra_phase + jitter)
                 iq[antenna_index] += (
                     amplitudes[source_index] * signal_wave * np.exp(1j * carrier_phase)
@@ -375,16 +416,21 @@ def simulate_correlators(receiver_xy, rng):
         "relative_delays_m": [delay * C_MPS for delay in relative_delays_s],
         "ranges_m": ranges,
         "amplitudes": amplitudes,
-        "cn0_a_db_hz": CN0_A_AT_REFERENCE_DB_HZ
-            - 10.0 * PATH_LOSS_EXPONENT * np.log10(max(ranges[0], 0.1) / REFERENCE_DISTANCE_M),
-        "cn0_b_db_hz": CN0_A_AT_REFERENCE_DB_HZ + TX_B_POWER_DB - TX_A_POWER_DB
-            - 10.0 * PATH_LOSS_EXPONENT * np.log10(max(ranges[1], 0.1) / REFERENCE_DISTANCE_M),
-        "raw_sample_snr_a_db": CN0_A_AT_REFERENCE_DB_HZ - 10.0 * np.log10(SAMPLE_RATE_HZ),
-        "one_ms_correlator_snr_a_db": CN0_A_AT_REFERENCE_DB_HZ + 10.0 * np.log10(0.001),
+        "effective_transmitter_powers_db": powers_db,
+        "received_power_ratio_db": 20.0 * np.log10(
+            max(amplitudes[1], 1e-30) / max(amplitudes[0], 1e-30)),
+        "cn0_a_db_hz": cn0_a_db_hz,
+        "cn0_b_db_hz": cn0_b_db_hz,
+        "raw_sample_snr_a_db": cn0_a_db_hz - 10.0 * np.log10(SAMPLE_RATE_HZ),
+        "one_ms_correlator_snr_a_db": cn0_a_db_hz + 10.0 * np.log10(0.001),
         "emitted_source_coherence": 1.0 if DIFFERENTIAL_PHASE_JITTER_DEG_RMS == 0 else None,
         "channel_gain_error_db": channel_gain_db.tolist(),
         "channel_phase_error_deg": channel_phase_deg.tolist(),
         "separation_manifold": "ideal",
+        "spatial_wave_model": SPATIAL_WAVE_MODEL,
+        "experiment_purpose": ("FAIR_ALGORITHM_QUALIFICATION"
+                               if received_power_ratio_db == 0.0
+                               else "USER_SPECIFIED_POWER_CONDITION"),
         "signal": "BDS B2a pilot",
         "prn": B2A_PRN,
         "data_component_included": INCLUDE_B2A_DATA_COMPONENT,
@@ -538,7 +584,9 @@ def serializable_result(result):
 def run_fixed(output_dir):
     receiver = np.array([RECEIVER_X_M, RECEIVER_Y_M])
     correlators, taps, positions, truth = simulate_correlators(
-        receiver, np.random.default_rng(RANDOM_SEED))
+        receiver, np.random.default_rng(RANDOM_SEED),
+        received_power_ratio_db=FIXED_RECEIVED_POWER_RATIO_DB,
+        actual_cn0_a_db_hz=FIXED_ACTUAL_CN0_DB_HZ)
     result = process_methods(correlators, taps, positions, truth)
     summary = {"truth": truth,
                "direct_music": serializable_result(result["direct_music"]),
@@ -578,6 +626,39 @@ def run_fixed(output_dir):
     else:
         plt.close(fig)
     return summary
+
+
+def run_fixed_doa_monte_carlo(output_dir):
+    """固定等接收功率基准，只统计 DOA；时延留到两个角度稳定后再评价。"""
+    receiver = np.array([RECEIVER_X_M, RECEIVER_Y_M])
+    rows = []
+    for run in range(FIXED_DOA_MONTE_CARLO_RUNS):
+        correlators, taps, positions, truth = simulate_correlators(
+            receiver, np.random.default_rng(RANDOM_SEED + 10000 + run),
+            received_power_ratio_db=FIXED_RECEIVED_POWER_RATIO_DB,
+            actual_cn0_a_db_hz=FIXED_ACTUAL_CN0_DB_HZ)
+        result = process_methods(correlators, taps, positions, truth)
+        row = {"run": run + 1,
+               "true_bearing_a_deg": truth["bearings_deg"][0],
+               "true_bearing_b_deg": truth["bearings_deg"][1],
+               "cn0_a_db_hz": truth["cn0_a_db_hz"],
+               "cn0_b_db_hz": truth["cn0_b_db_hz"]}
+        for method in ("direct_music", "fbss_music"):
+            item = result[method]
+            estimates = item["estimated_bearings_deg"]
+            row[f"{method}_bearing_a_deg"] = estimates[0] if len(estimates) == 2 else None
+            row[f"{method}_bearing_b_deg"] = estimates[1] if len(estimates) == 2 else None
+            row[f"{method}_angle_rmse_deg"] = item["angle_rmse_deg"]
+            row[f"{method}_doa_success"] = int(
+                len(item["angle_errors_deg"]) == 2
+                and max(item["angle_errors_deg"]) <= ANGLE_TOLERANCE_DEG)
+        rows.append(row)
+    path = output_dir / "固定点等功率DOA基准.csv"
+    with path.open("w", newline="", encoding="utf-8-sig") as handle:
+        writer = csv.DictWriter(handle, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+    return rows
 
 
 def run_phase_sweep(output_dir):
@@ -626,23 +707,24 @@ def run_phase_sweep(output_dir):
 
 
 def run_cn0_sweep(output_dir):
-    """固定几何和相对相位，扫描参考距离处的 C/N0。"""
-    global CN0_A_AT_REFERENCE_DB_HZ, TX_B_EXTRA_PHASE_DEG
-    original_cn0 = CN0_A_AT_REFERENCE_DB_HZ
+    """固定几何、等接收功率和相对相位，扫描两路实际 C/N0。"""
+    global TX_B_EXTRA_PHASE_DEG
     original_phase = TX_B_EXTRA_PHASE_DEG
     rows = []
     try:
         TX_B_EXTRA_PHASE_DEG = CN0_SWEEP_PHASE_DEG
         for cn0_index, cn0 in enumerate(CN0_SWEEP_DB_HZ):
-            CN0_A_AT_REFERENCE_DB_HZ = float(cn0)
             for run in range(CN0_SWEEP_RUNS):
                 correlators, taps, positions, truth = simulate_correlators(
                     [RECEIVER_X_M, RECEIVER_Y_M],
-                    np.random.default_rng(RANDOM_SEED + 7000 + 100 * cn0_index + run))
+                    np.random.default_rng(RANDOM_SEED + 7000 + 100 * cn0_index + run),
+                    received_power_ratio_db=FIXED_RECEIVED_POWER_RATIO_DB,
+                    actual_cn0_a_db_hz=float(cn0))
                 result = process_methods(correlators, taps, positions, truth)
                 rows.append({
-                    "reference_cn0_db_hz": cn0,
+                    "target_cn0_db_hz": cn0,
                     "actual_cn0_a_db_hz": truth["cn0_a_db_hz"],
+                    "actual_cn0_b_db_hz": truth["cn0_b_db_hz"],
                     "run": run + 1,
                     "direct_music_success": int(result["direct_music"]["success"]),
                     "direct_music_angle_rmse_deg": result["direct_music"]["angle_rmse_deg"],
@@ -651,7 +733,6 @@ def run_cn0_sweep(output_dir):
                     "fbss_music_state": result["fbss_music"]["state"],
                 })
     finally:
-        CN0_A_AT_REFERENCE_DB_HZ = original_cn0
         TX_B_EXTRA_PHASE_DEG = original_phase
 
     path = output_dir / "固定点CN0扫描.csv"
@@ -665,14 +746,27 @@ def run_cn0_sweep(output_dir):
     for method, color in (("direct_music", "#D1495B"), ("fbss_music", "#276FBF")):
         medians = []
         rates = []
+        lower_errors = []
+        upper_errors = []
         for level in actual_levels:
             selected = [row for row in rows if row["actual_cn0_a_db_hz"] == level]
             values = [row[f"{method}_angle_rmse_deg"] for row in selected]
             values = [value if np.isfinite(value) else 180.0 for value in values]
             medians.append(float(np.median(values)))
-            rates.append(float(np.mean([row[f"{method}_success"] for row in selected])))
+            success_count = sum(row[f"{method}_success"] for row in selected)
+            rate = success_count / len(selected)
+            # Wilson 95% interval remains meaningful at 0% and 100%, unlike normal error bars.
+            z = 1.959963984540054
+            denominator = 1.0 + z * z / len(selected)
+            center = (rate + z * z / (2.0 * len(selected))) / denominator
+            half = z * np.sqrt(rate * (1.0 - rate) / len(selected)
+                               + z * z / (4.0 * len(selected) ** 2)) / denominator
+            rates.append(rate)
+            lower_errors.append(rate - max(0.0, center - half))
+            upper_errors.append(min(1.0, center + half) - rate)
         ax.plot(actual_levels, medians, marker="o", label=method, color=color)
-        rate_axis.plot(actual_levels, rates, marker="o", label=method, color=color)
+        rate_axis.errorbar(actual_levels, rates, yerr=[lower_errors, upper_errors],
+                           marker="o", capsize=3, label=method, color=color)
     ax.axhline(ANGLE_TOLERANCE_DEG, color="black", linestyle="--", label="角度门限")
     ax.set_xlabel("A 路实际 C/N0 / dB-Hz")
     ax.set_ylabel("两路角度 RMSE / deg")
@@ -777,10 +871,18 @@ def main():
     configure_font()
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     if EXPERIMENT_MODE in ("fixed", "both"):
+        print("固定点用途: FAIR_ALGORITHM_QUALIFICATION（公平条件算法资格测试，非真实停车场性能）"
+              if FIXED_RECEIVED_POWER_RATIO_DB == 0.0 else
+              "固定点用途: USER_SPECIFIED_POWER_CONDITION（用户指定接收功率条件）")
         fixed = run_fixed(OUTPUT_DIR)
         print("固定点 direct MUSIC:", fixed["direct_music"])
         print("固定点 FBSS-MUSIC:", fixed["fbss_music"])
         print("物理量:", fixed["truth"])
+        doa_rows = run_fixed_doa_monte_carlo(OUTPUT_DIR)
+        for method in ("direct_music", "fbss_music"):
+            rate = np.mean([row[f"{method}_doa_success"] for row in doa_rows])
+            print(f"固定点等功率 {method} DOA-only success "
+                  f"({FIXED_DOA_MONTE_CARLO_RUNS} runs): {rate:.1%}")
         if ENABLE_RELATIVE_PHASE_SWEEP:
             phase_rows = run_phase_sweep(OUTPUT_DIR)
             print("相位扫描 FBSS 成功率:",

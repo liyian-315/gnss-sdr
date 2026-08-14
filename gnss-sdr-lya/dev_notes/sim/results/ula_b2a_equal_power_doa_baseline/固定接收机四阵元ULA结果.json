@@ -1,0 +1,111 @@
+{
+  "truth": {
+    "receiver_xy_m": [
+      -10.0,
+      5.0
+    ],
+    "bearings_deg": [
+      270.0,
+      345.96375653207355
+    ],
+    "relative_delays_s": [
+      0.0,
+      5.208779511087069e-08
+    ],
+    "relative_delays_chips": [
+      0.0,
+      0.5328581439842072
+    ],
+    "relative_delays_m": [
+      0.0,
+      15.615528128088307
+    ],
+    "ranges_m": [
+      5.0,
+      20.615528128088304
+    ],
+    "amplitudes": [
+      2.0,
+      2.0
+    ],
+    "effective_transmitter_powers_db": [
+      0.0,
+      12.30448921378274
+    ],
+    "received_power_ratio_db": 0.0,
+    "cn0_a_db_hz": 45.0,
+    "cn0_b_db_hz": 45.0,
+    "raw_sample_snr_a_db": -35.098756337121586,
+    "one_ms_correlator_snr_a_db": 15.0,
+    "emitted_source_coherence": 1.0,
+    "channel_gain_error_db": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "channel_phase_error_deg": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "separation_manifold": "ideal",
+    "spatial_wave_model": "plane",
+    "experiment_purpose": "FAIR_ALGORITHM_QUALIFICATION",
+    "signal": "BDS B2a pilot",
+    "prn": 11,
+    "data_component_included": true
+  },
+  "direct_music": {
+    "estimated_bearings_deg": [
+      271.0,
+      299.0
+    ],
+    "estimated_delays_chips": [
+      0.010000000000000897,
+      0.3300000000000012
+    ],
+    "angle_errors_deg": [
+      1.0,
+      46.963756532073546
+    ],
+    "angle_rmse_deg": 33.21591807856499,
+    "true_delta_m": 15.615528128088307,
+    "estimated_delta_m": 9.377672195503429,
+    "delay_error_m": -6.237855932584878,
+    "success": false,
+    "state": "WRONG_SOLUTION"
+  },
+  "fbss_music": {
+    "estimated_bearings_deg": [
+      270.0,
+      345.5
+    ],
+    "estimated_delays_chips": [
+      8.881784197001252e-16,
+      0.5900000000000014
+    ],
+    "angle_errors_deg": [
+      0.0,
+      0.46375653207354617
+    ],
+    "angle_rmse_deg": 0.32792538864876114,
+    "true_delta_m": 15.615528128088307,
+    "estimated_delta_m": 17.29008311045945,
+    "delay_error_m": 1.6745549823711414,
+    "success": true,
+    "state": "RESOLVED"
+  },
+  "raw_eigenvalues": [
+    18.48142988251808,
+    0.14572101552826952,
+    0.12067114857687944,
+    0.10537537981575551
+  ],
+  "smooth_eigenvalues": [
+    12.155705276448407,
+    1.7884746982164292,
+    0.13077551281598393
+  ]
+}

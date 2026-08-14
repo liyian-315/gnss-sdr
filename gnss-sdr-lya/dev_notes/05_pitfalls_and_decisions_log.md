@@ -2098,3 +2098,34 @@ Decision:
 
 The implementation and derivation are recorded in
 `26_四阵元线阵真实GNSS波形与FBSS仿真报告.md`.
+
+## 2026-08-14 - Codex - Qualify FBSS DOA before delay and C/N0 sweeps
+
+The fixed receiver was moved to `(-10, 5)` m, giving true bearings
+`270/345.964 deg` and a 15.616 m propagation-delay difference. Equal
+transmitter powers are not an equal received-power test at this point: the
+farther source arrives 12.304 dB weaker.
+
+Decision:
+
+- disable phase and C/N0 sweeps until an equal-received-power DOA baseline
+  resolves both bearings;
+- use 30 Monte Carlo runs for preliminary probabilities and 100 for formal
+  curves; never infer monotonic behavior from three trials;
+- evaluate DOA only at this gate, before using the separated profiles for
+  delay estimation;
+- state the ULA front/back ambiguity explicitly and use a half-plane prior
+  only where the parking geometry genuinely provides it;
+- separate the standard far-field FBSS baseline from the exact spherical-wave
+  stress test.
+
+At equal received amplitudes and 45 dB-Hz per path, explicitly labeled
+`FAIR_ALGORITHM_QUALIFICATION`, the plane-wave baseline
+gave direct MUSIC 0/30 and FBSS-MUSIC 30/30 DOA successes (FBSS median/p95
+angle RMSE 0.53/1.44 deg). With the exact spherical wavefront at the same
+operating point, a five-run diagnostic gave FBSS 0/5 because the source only
+5 m away violates translated-subarray shift invariance. The far-field
+baseline is qualified; the close-range parking deployment still requires a
+spherical-wave/finite-range or measured-manifold treatment. Equalized power
+must never be reported as deployment performance; hardware comparisons must
+use the measured received B/A power ratio and actual C/N0.

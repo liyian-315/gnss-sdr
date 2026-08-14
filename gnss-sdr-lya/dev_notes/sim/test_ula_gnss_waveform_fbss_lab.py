@@ -116,6 +116,41 @@ class UlaGnssWaveformFbssLabTest(unittest.TestCase):
             self.assertLess(min(lab.array_tools.circular_angle_difference(truth, peak)
                                 for peak in peaks), 1.0)
 
+    def test_ula_front_back_mirror_and_half_plane_prior(self):
+        positions = lab.ula_positions_m()
+        first = lab.steering_manifold(positions, [206.565051177078])[:, 0]
+        mirror = lab.steering_manifold(positions, [153.434948822922])[:, 0]
+        np.testing.assert_allclose(first, mirror, atol=1e-12)
+
+        old = lab.KNOWN_HALF_PLANE
+        try:
+            lab.KNOWN_HALF_PLANE = "negative_y"
+            grid = lab.scan_grid()
+            self.assertTrue(np.all((grid >= 180.0) & (grid <= 360.0)))
+            self.assertFalse(np.any(np.isclose(grid, 153.5)))
+        finally:
+            lab.KNOWN_HALF_PLANE = old
+
+    def test_fixed_equalization_produces_equal_received_power(self):
+        old_periods = lab.CODE_PERIODS
+        old_rate = lab.SAMPLE_RATE_HZ
+        old_wave_model = lab.SPATIAL_WAVE_MODEL
+        try:
+            lab.CODE_PERIODS = 2
+            lab.SAMPLE_RATE_HZ = 20.46e6
+            lab.SPATIAL_WAVE_MODEL = "plane"
+            _, _, _, truth = lab.simulate_correlators(
+                [lab.RECEIVER_X_M, lab.RECEIVER_Y_M], np.random.default_rng(2),
+                received_power_ratio_db=0.0, actual_cn0_a_db_hz=45.0)
+            self.assertAlmostEqual(truth["amplitudes"][0], truth["amplitudes"][1])
+            self.assertAlmostEqual(truth["cn0_a_db_hz"], 45.0)
+            self.assertAlmostEqual(truth["cn0_b_db_hz"], 45.0)
+            self.assertEqual(truth["experiment_purpose"], "FAIR_ALGORITHM_QUALIFICATION")
+        finally:
+            lab.CODE_PERIODS = old_periods
+            lab.SAMPLE_RATE_HZ = old_rate
+            lab.SPATIAL_WAVE_MODEL = old_wave_model
+
 
 if __name__ == "__main__":
     unittest.main()
