@@ -70,6 +70,7 @@ gps_l5_telemetry_decoder_gs::gps_l5_telemetry_decoder_gs(
                          d_remove_dat(conf.remove_dat),
                          d_enable_navdata_monitor(conf.enable_navdata_monitor),
                          d_dump_crc_stats(conf.dump_crc_stats),
+                         d_signal_status_stdout(conf.signal_status_stdout),
                          d_tow_to_trk(conf.tow_to_trk)
 {
     configure_basic_outputs();
@@ -402,6 +403,24 @@ int gps_l5_telemetry_decoder_gs::general_work(int noutput_items __attribute__((u
             // 3. Make the output (move the object contents to the GNURadio reserved memory)
             out[0] = std::move(current_synchro_data);
             return 1;
+        }
+    else if (d_signal_status_stdout && (d_sample_counter % 100U) == 0U)
+        {
+            const bool has_tow = d_TOW_at_current_symbol_ms != 0U;
+            std::cout << "L5_SIGNAL_STATUS"
+                      << " ch=" << d_channel
+                      << " prn=" << current_synchro_data.PRN
+                      << " path=" << current_synchro_data.Signal_Path
+                      << " tracking_lock=" << current_synchro_data.Flag_valid_symbol_output
+                      << " secondary_code_lock=" << current_synchro_data.Flag_valid_symbol_output
+                      << " cnav_tow=" << has_tow
+                      << " valid_word=0"
+                      << " interpolated=0"
+                      << " valid_pseudorange=0"
+                      << " cn0_db_hz=" << std::fixed << std::setprecision(2) << current_synchro_data.CN0_dB_hz
+                      << " pseudorange_m=N/A"
+                      << " waiting_for=" << (has_tow ? "valid_word" : "cnav_tow")
+                      << std::defaultfloat << '\n';
         }
     return 0;
 }

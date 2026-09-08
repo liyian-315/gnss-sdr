@@ -348,6 +348,56 @@ void hybrid_observables_gs::report_dual_path_observables(const std::vector<Gnss_
     if (d_conf.stdout)
         {
             std::cout << std::fixed << std::setprecision(3);
+            for (uint32_t channel = 0; channel < data.size(); ++channel)
+                {
+                    const bool current_present = data[channel].PRN != 0U && data[channel].fs != 0LL;
+                    if (!current_present || signal_id(data[channel]) != "L5")
+                        {
+                            continue;
+                        }
+                    const auto& status = data[channel];
+                    const bool tracking_locked = current_present && status.Flag_valid_symbol_output;
+                    const bool secondary_locked = tracking_locked;  // L5 tracking emits symbols only after NH-code lock.
+                    const bool has_tow = current_present && status.TOW_at_current_symbol_ms != 0U;
+                    const bool valid_word = current_present && status.Flag_valid_word;
+                    const bool interpolated = current_present;
+                    const bool valid_pseudorange = current_present && status.Flag_valid_pseudorange;
+                    const char* waiting_for = !tracking_locked ? "tracking_lock" :
+                                              !secondary_locked ? "secondary_code_lock" :
+                                              !has_tow ? "cnav_tow" :
+                                              !valid_word ? "valid_word" :
+                                              !interpolated ? "interpolation" :
+                                              !valid_pseudorange ? "valid_pseudorange" : "none";
+                    std::cout << "L5_SIGNAL_STATUS"
+                              << " ch=" << status.Channel_ID
+                              << " prn=" << status.PRN
+                              << " path=" << status.Signal_Path
+                              << " tracking_lock=" << tracking_locked
+                              << " secondary_code_lock=" << secondary_locked
+                              << " cnav_tow=" << has_tow
+                              << " valid_word=" << valid_word
+                              << " interpolated=" << interpolated
+                              << " valid_pseudorange=" << valid_pseudorange
+                              << " cn0_db_hz=";
+                    if (tracking_locked)
+                        {
+                            std::cout << std::setprecision(2) << status.CN0_dB_hz;
+                        }
+                    else
+                        {
+                            std::cout << "N/A";
+                        }
+                    std::cout << " pseudorange_m=";
+                    if (valid_pseudorange)
+                        {
+                            std::cout << std::setprecision(3) << status.Pseudorange_m;
+                        }
+                    else
+                        {
+                            std::cout << "N/A";
+                        }
+                    std::cout << " waiting_for=" << waiting_for << '\n';
+                }
             for (const auto& obs : data)
                 {
                     if (!obs.Flag_valid_pseudorange)
@@ -1097,7 +1147,7 @@ int hybrid_observables_gs::general_work(int noutput_items __attribute__((unused)
                 {
                     detect_cycle_slips(epoch_data, d_Rx_clock_buffer.front());
                 }
-            if ((d_conf.stdout || d_conf.dual_path_csv) && n_valid > 0)
+            if (d_conf.stdout || d_conf.dual_path_csv)
                 {
                     d_T_stdout_report_timer_ms += d_T_rx_step_ms;
                     if (d_T_stdout_report_timer_ms >= d_conf.dual_path_interval_ms)

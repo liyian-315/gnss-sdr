@@ -145,6 +145,7 @@ void Dll_Pll_Conf::SetFromConfiguration(const ConfigurationInterface *configurat
     max_carrier_lock_fail = configuration->property(role + ".max_carrier_lock_fail", max_carrier_lock_fail);
     carrier_lock_th = configuration->property(role + ".carrier_lock_th", carrier_lock_th);
     carrier_aiding = configuration->property(role + ".carrier_aiding", carrier_aiding);
+    signal_status_stdout = configuration->property(role + ".signal_status_stdout", signal_status_stdout);
 
     // tracking lock tests smoother parameters
     cn0_smoother_samples = configuration->property(role + ".cn0_smoother_samples", cn0_smoother_samples);

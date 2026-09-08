@@ -32,12 +32,15 @@ bash scripts/check_runtime.sh ./bin/gnss-sdr conf/l5_dualpath_b210_20msps.conf -
 
 ## 输出
 
+- `L5_SIGNAL_STATUS`：每通道逐级诊断，持续打印 tracking、L5Q secondary code、CNAV TOW、有效字、插值和伪距状态；`waiting_for` 指出当前未通过的第一级；
 - `DUALPATH_OBS`：兼容输出，每条有效 tracking 路径的瞬时观测；
 - `DUALPATH_PAIR`：同 system/signal/PRN 且接收时间对齐时的兼容配对；
 - `DUALPATH_STATUS version=1`：产品状态，包含 `SEARCHING`、`CANDIDATE`、`RELIABLE`、`DEGRADED`、`NO_SECOND_SOURCE`、`LOST`；
 - `dual_path_status.csv`：可选的低频 C++ CSV，不是原始 IQ 或大体量 dump。
 
 第二径不存在时正式字段输出 `N/A`。`reacquisition_count` 表示管理器观察到 path1 从 LOST 恢复成功的次数，不是 acquisition 内部每次搜索尝试的总数。
+
+`L5_SIGNAL_STATUS` 中载噪比和伪距尚不可用时输出 `N/A`。GPS L5 的 tracking block 只有在 NH secondary code 锁定后才向 telemetry 输出符号，因此 observables 阶段的 `tracking_lock` 和 `secondary_code_lock` 会同时为 1；锁定前的差异由 tracking 阶段诊断行显示。
 
 ## 默认行为
 

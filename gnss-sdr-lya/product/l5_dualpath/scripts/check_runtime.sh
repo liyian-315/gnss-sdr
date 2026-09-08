@@ -19,7 +19,7 @@ fi
 [[ -f $config ]] || { echo "ERROR: config not found: $config" >&2; exit 1; }
 
 "$binary" --version
-required=("Observables.stdout=true" "Acquisition_L5.dump=false" "Tracking_L5.dump=false" "Observables.dump=false" "SignalSource.dump=false")
+required=("Observables.stdout=true" "Acquisition_L5.dump=false" "Tracking_L5.dump=false" "Tracking_L5.signal_status_stdout=true" "TelemetryDecoder_L5.signal_status_stdout=true" "Observables.dump=false" "SignalSource.dump=false")
 for setting in "${required[@]}"; do
     grep -Fqx "$setting" "$config" || { echo "ERROR: missing safe product setting: $setting" >&2; exit 1; }
 done

@@ -16,6 +16,8 @@ Validate a package and optionally run it for 60 seconds:
 bash scripts/check_runtime.sh ./bin/gnss-sdr conf/l5_dualpath_b210_20msps.conf --run-seconds 60
 ```
 
+`L5_SIGNAL_STATUS` reports each channel's staged tracking, L5Q secondary-code, CNAV TOW, valid-word, interpolation, and pseudorange state. Its `waiting_for` field identifies the first unmet stage, while unavailable CN0 and pseudorange values are printed as `N/A`.
+
 `DUALPATH_OBS` and `DUALPATH_PAIR` remain compatibility outputs. `DUALPATH_STATUS version=1` is the stable product interface. Missing path-1 values are printed as `N/A`. Optional low-rate CSV is written directly by C++.
 
 20 Msps is recommended. The 10 Msps configuration reduces realtime load but is bandwidth-limited. All research dumps and raw-IQ recording are disabled. PVT continues to consume path 0 only.

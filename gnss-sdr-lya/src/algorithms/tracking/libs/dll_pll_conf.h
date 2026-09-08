@@ -88,6 +88,7 @@ public:
     bool dump{false};
     bool dump_mat{true};
     bool dense_correlator_dump{false};
+    bool signal_status_stdout{false};
     bool tow_to_trk{false};
     bool bs_use_phase_dot_detector{true};
 };

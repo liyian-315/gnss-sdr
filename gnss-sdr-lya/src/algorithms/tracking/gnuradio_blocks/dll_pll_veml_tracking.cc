@@ -62,6 +62,7 @@
 #include <array>
 #include <cmath>      // for fmod, round, floor
 #include <exception>  // for exception
+#include <iomanip>    // for fixed, setprecision
 #include <iostream>   // for cout, cerr
 #include <map>
 #include <memory>
@@ -220,6 +221,7 @@ dll_pll_veml_tracking::dll_pll_veml_tracking(const Dll_Pll_Conf &conf_)
       d_rem_code_phase_samples(0.0),  // Residual code phase (in chips)
       d_acq_sample_stamp(0ULL),
       d_dense_correlator_epoch_counter(0ULL),
+      d_last_signal_status_sample(0ULL),
       d_rem_carr_phase_rad(0.0),  // Residual carrier phase
       d_state(0),                 // initial state: standby
       d_current_prn_length_samples(static_cast<int32_t>(d_trk_parameters.vector_length)),
@@ -2285,6 +2287,44 @@ void dll_pll_veml_tracking::stop_tracking()
 }
 
 
+void dll_pll_veml_tracking::report_signal_status(uint64_t sample_count)
+{
+    if (!d_trk_parameters.signal_status_stdout || d_signal_type != "L5" || d_acquisition_gnss_synchro == nullptr || d_state >= 3)
+        {
+            return;
+        }
+    const auto interval_samples = static_cast<uint64_t>(d_trk_parameters.fs_in);
+    if (sample_count < d_last_signal_status_sample || sample_count - d_last_signal_status_sample < interval_samples)
+        {
+            return;
+        }
+    d_last_signal_status_sample = sample_count;
+    const bool tracking_locked = d_state == 2;
+    std::cout << "L5_SIGNAL_STATUS"
+              << " ch=" << d_channel
+              << " prn=" << d_acquisition_gnss_synchro->PRN
+              << " path=" << d_acquisition_gnss_synchro->Signal_Path
+              << " tracking_lock=" << tracking_locked
+              << " secondary_code_lock=0"
+              << " cnav_tow=0"
+              << " valid_word=0"
+              << " interpolated=0"
+              << " valid_pseudorange=0"
+              << " cn0_db_hz=";
+    if (tracking_locked && d_CN0_SNV_dB_Hz > 0.0)
+        {
+            std::cout << std::fixed << std::setprecision(2) << d_CN0_SNV_dB_Hz;
+        }
+    else
+        {
+            std::cout << "N/A";
+        }
+    std::cout << " pseudorange_m=N/A"
+              << " waiting_for=" << (tracking_locked ? "secondary_code_lock" : "tracking_lock")
+              << std::defaultfloat << '\n';
+}
+
+
 int64_t dll_pll_veml_tracking::uint64diff(uint64_t first, uint64_t second)
 {
     uint64_t abs_diff = (first > second) ? (first - second) : (second - first);
@@ -2338,6 +2378,7 @@ int dll_pll_veml_tracking::general_work(int noutput_items __attribute__((unused)
         {
         case 0:  // Standby - Consume samples at full throttle, do nothing
             {
+                report_signal_status(this->nitems_read(0) + static_cast<uint64_t>(ninput_items[0]));
                 // d_sample_counter += static_cast<uint64_t>(ninput_items[0]);
                 consume_each(ninput_items[0]);
                 return 0;
@@ -2683,6 +2724,7 @@ int dll_pll_veml_tracking::general_work(int noutput_items __attribute__((unused)
         }
 
     consume_each(d_current_prn_length_samples);
+    report_signal_status(this->nitems_read(0) + static_cast<uint64_t>(d_current_prn_length_samples));
     // d_sample_counter += static_cast<uint64_t>(d_current_prn_length_samples);
     if (current_synchro_data.Flag_valid_symbol_output || loss_of_lock)
         {

@@ -90,6 +90,7 @@ private:
     void configure_dense_correlator_taps();
     void log_dense_correlator_data();
     void write_dense_correlator_metadata() const;
+    void report_signal_status(uint64_t sample_count);
     bool cn0_and_tracking_lock_status(double coh_integration_time_s);
     bool acquire_secondary();
     int64_t uint64diff(uint64_t first, uint64_t second);
@@ -186,6 +187,7 @@ private:
     // uint64_t d_sample_counter;
     uint64_t d_acq_sample_stamp;
     uint64_t d_dense_correlator_epoch_counter;
+    uint64_t d_last_signal_status_sample;
     GnssTime d_last_timetag{};
     std::shared_ptr<TOW_to_trk> d_last_tow_received;
     uint64_t d_last_timetag_samplecounter;
