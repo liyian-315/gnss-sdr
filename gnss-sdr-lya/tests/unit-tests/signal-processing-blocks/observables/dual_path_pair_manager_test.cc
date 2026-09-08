@@ -117,6 +117,7 @@ TEST(DualPathPairManager, SuddenDelayJumpDegradesReliablePair)
     EXPECT_EQ(manager.update({make_observation(0U, 1000.0), make_observation(1U, 1060.0)}).front().state, DualPathState::RELIABLE);
     const auto status = manager.update({make_observation(0U, 1001.0), make_observation(1U, 1101.0)}).front();
     EXPECT_EQ(status.state, DualPathState::DEGRADED);
+    EXPECT_DOUBLE_EQ(status.delta_m, 100.0);
     EXPECT_EQ(status.window_samples, 1U);
 }
 

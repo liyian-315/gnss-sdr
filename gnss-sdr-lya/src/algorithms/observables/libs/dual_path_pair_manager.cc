@@ -286,11 +286,11 @@ std::vector<DualPathPairStatus> DualPathPairManager::update(const std::vector<Du
             status.second_cn0_db_hz = formal_second_valid ? pair.second.cn0_db_hz : 0.0;
             status.primary_doppler_hz = primary_valid ? pair.primary.doppler_hz : 0.0;
             status.second_doppler_hz = formal_second_valid ? pair.second.doppler_hz : 0.0;
-            status.doppler_delta_hz = pair_valid && record.state != DualPathState::LOST ? pair.second.doppler_hz - pair.primary.doppler_hz : 0.0;
+            status.doppler_delta_hz = primary_valid && formal_second_valid ? pair.second.doppler_hz - pair.primary.doppler_hz : 0.0;
             status.track_age_s = record.state != DualPathState::LOST && record.has_seen_second && primary_valid ? std::max(0.0, pair.primary.rx_time_s - record.pair_start_time_s) : 0.0;
             status.primary_age_s = primary_age_s;
             status.second_age_s = second_age_s;
-            status.delta_m = pair_valid && record.state != DualPathState::LOST ? current_delta_m : 0.0;
+            status.delta_m = primary_valid && formal_second_valid ? current_delta_m : 0.0;
             status.delta_median_m = median(record.deltas_m);
             status.delta_mad_m = median_absolute_deviation(record.deltas_m);
             status.primary_cn0_median_db_hz = median(record.primary_cn0_db_hz);

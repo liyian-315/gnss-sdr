@@ -355,35 +355,53 @@ void hybrid_observables_gs::report_dual_path_observables(const std::vector<Gnss_
                 (static_cast<uint64_t>(d_conf.dual_path_auto_reacquire_cooldown_ms) + d_conf.dual_path_interval_ms - 1U) /
                     d_conf.dual_path_interval_ms);
             const uint32_t required = std::max(1U, d_conf.dual_path_auto_reacquire_confirmations);
-            for (const auto& status : statuses)
+            std::vector<uint32_t> observed_second_channels;
+
+            // Use current raw observations here, not DualPathPairStatus. Once a
+            // pair is LOST the quality manager intentionally hides path 1, but
+            // that is exactly when a DLL stuck on path 0 must still be detected.
+            for (const auto& second : observations)
                 {
-                    if (!status.primary_valid || !status.second_valid || !status.pair_time_aligned)
+                    if (second.path != 1U)
                         {
                             continue;
                         }
-
-                    // A valid path-1 pseudorange inside the main-peak exclusion
-                    // distance means that its DLL has captured path 0.
-                    const double raw_delta_m = status.second_pseudorange_m - status.primary_pseudorange_m;
-                    const bool collapsed_to_primary =
-                        std::abs(raw_delta_m) < d_conf.dual_path_min_abs_delta_m;
-                    auto& collapsed_count = d_dual_path_collapsed_count[status.second_channel];
+                    observed_second_channels.push_back(second.channel);
+                    const auto primary_it = std::find_if(observations.begin(), observations.end(),
+                        [&second](const DualPathObservation& candidate) {
+                            return candidate.path == 0U &&
+                                   !(candidate.key < second.key) && !(second.key < candidate.key);
+                        });
+                    const bool comparable = primary_it != observations.end() && primary_it->valid && second.valid &&
+                                            std::abs(primary_it->rx_time_s - second.rx_time_s) <= d_conf.dual_path_max_time_difference_s;
+                    const double raw_delta_m = comparable ? second.pseudorange_m - primary_it->pseudorange_m : 0.0;
+                    const bool collapsed_to_primary = comparable &&
+                                                      std::abs(raw_delta_m) < d_conf.dual_path_min_abs_delta_m;
+                    auto& collapsed_count = d_dual_path_collapsed_count[second.channel];
                     collapsed_count = collapsed_to_primary ? collapsed_count + 1U : 0U;
-                    const uint64_t last_request = d_dual_path_last_reacquire_report[status.second_channel];
+                    const uint64_t last_request = d_dual_path_last_reacquire_report[second.channel];
                     const bool cooldown_elapsed = last_request == 0U ||
                                                   d_dual_path_report_count - last_request >= cooldown_reports;
                     if (collapsed_count >= required && cooldown_elapsed)
                         {
                             this->message_port_pub(pmt::mp("dual_path_reacquire"),
-                                pmt::from_long(static_cast<long>(status.second_channel)));
-                            d_dual_path_last_reacquire_report[status.second_channel] = d_dual_path_report_count;
+                                pmt::from_long(static_cast<long>(second.channel)));
+                            d_dual_path_last_reacquire_report[second.channel] = d_dual_path_report_count;
                             collapsed_count = 0U;
                             std::cout << "DUALPATH_REACQUIRE"
-                                      << " ch=" << status.second_channel
-                                      << " prn=" << status.key.prn
+                                      << " ch=" << second.channel
+                                      << " prn=" << second.key.prn
                                       << " reason=collapsed_to_primary"
                                       << " delta_m=" << std::fixed << std::setprecision(3) << raw_delta_m
                                       << '\n' << std::defaultfloat;
+                        }
+                }
+
+            for (auto& item : d_dual_path_collapsed_count)
+                {
+                    if (std::find(observed_second_channels.begin(), observed_second_channels.end(), item.first) == observed_second_channels.end())
+                        {
+                            item.second = 0U;
                         }
                 }
         }
@@ -465,13 +483,14 @@ void hybrid_observables_gs::report_dual_path_observables(const std::vector<Gnss_
                     const bool pair_valid = status.primary_valid && status.second_valid && status.pair_time_aligned;
                     if (pair_valid)
                         {
+                            const double raw_delta_m = status.second_pseudorange_m - status.primary_pseudorange_m;
                             std::cout << "DUALPATH_PAIR"
                                       << " prn=" << status.key.prn
                                       << " primary_ch=" << status.primary_channel
                                       << " second_ch=" << status.second_channel
                                       << " primary_pseudorange_m=" << std::setprecision(3) << status.primary_pseudorange_m
                                       << " second_pseudorange_m=" << status.second_pseudorange_m
-                                      << " delta_m=" << status.delta_m
+                                      << " delta_m=" << raw_delta_m
                                       << " primary_cn0_db_hz=" << std::setprecision(2) << status.primary_cn0_db_hz
                                       << " second_cn0_db_hz=" << status.second_cn0_db_hz
                                       << '\n';
