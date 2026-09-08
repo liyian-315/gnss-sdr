@@ -34,6 +34,7 @@
 #include <queue>                      // for std::queue
 #include <string>                     // for std::string
 #include <typeinfo>                   // for typeid
+#include <unordered_map>
 #include <vector>                     // for std::vector
 
 /** \addtogroup Observables
@@ -109,6 +110,10 @@ private:
 
     std::ofstream d_dump_file;
     std::ofstream d_dual_path_csv_file;
+
+    std::unordered_map<uint32_t, uint32_t> d_dual_path_collapsed_count;
+    std::unordered_map<uint32_t, uint64_t> d_dual_path_last_reacquire_report;
+    uint64_t d_dual_path_report_count{0U};
 
     double d_smooth_filter_M;
     double d_T_rx_step_s;

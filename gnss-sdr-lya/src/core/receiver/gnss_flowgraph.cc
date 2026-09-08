@@ -1290,6 +1290,11 @@ int GNSSFlowgraph::connect_observables_to_pvt()
                                     top_block_->msg_connect(pvt_->get_left_block(), pmt::mp("pvt_to_trk"), channels_.at(i)->get_left_block_trk(), pmt::mp("pvt_to_trk"));
                                     LOG(INFO) << "pvt_to_trk message port connected in " << channels_.at(i)->implementation();
                                 }
+                            if (pmt::symbol_to_string(pmt::vector_ref(ports_in, n)) == "dual_path_reacquire")
+                                {
+                                    top_block_->msg_connect(observables_->get_right_block(), pmt::mp("dual_path_reacquire"), channels_.at(i)->get_left_block_trk(), pmt::mp("dual_path_reacquire"));
+                                    LOG(INFO) << "dual_path_reacquire message port connected to channel " << i;
+                                }
                         }
                 }
 

@@ -36,6 +36,7 @@ bash scripts/check_runtime.sh ./bin/gnss-sdr conf/l5_dualpath_b210_20msps.conf -
 - `DUALPATH_OBS`：兼容输出，每条有效 tracking 路径的瞬时观测；
 - `DUALPATH_PAIR`：同 system/signal/PRN 且接收时间对齐时的兼容配对；
 - `DUALPATH_STATUS version=1`：产品状态，包含 `SEARCHING`、`CANDIDATE`、`RELIABLE`、`DEGRADED`、`NO_SECOND_SOURCE`、`LOST`；
+- `DUALPATH_REACQUIRE`：第二路连续塌到主路后，看门狗已主动清锁并重新搜索第二峰；
 - `dual_path_status.csv`：可选的低频 C++ CSV，不是原始 IQ 或大体量 dump。
 
 第二径不存在时正式字段输出 `N/A`。`reacquisition_count` 表示管理器观察到 path1 从 LOST 恢复成功的次数，不是 acquisition 内部每次搜索尝试的总数。
@@ -47,9 +48,12 @@ bash scripts/check_runtime.sh ./bin/gnss-sdr conf/l5_dualpath_b210_20msps.conf -
 - 推荐 20 Msps；10 Msps 仅用于 CPU/USB 压力较大的长跑场景；
 - L5Q pilot tracking，CNAV 仍由 L5 数据通道解码；
 - acquisition 为 realtime nonblocking，避免捕获计算停止消费 UHD 数据；
+- B210 双路径配置默认开启 path1 自动重捕获；第二峰暂时消失时通道 1 持续搜索，移回有效距离后可自行恢复；
 - acquisition/tracking/dense/observables/raw-IQ dump 全部关闭；
 - PVT 只消费 `Signal_Path=0`，第二径不会进入定位解算；
 - 所有产品门限都有静态配置，但当前数值仍需正式回放矩阵校准。
+
+自动重捕获默认在两路有效伪距差连续 3 次小于 `dual_path_min_abs_delta_m` 时触发，触发冷却时间为 5 秒。它只重启 `Signal_Path=1`，不会中断主路径。若已超过物理检测极限，状态保持搜索；这不是伪距计算卡死。
 
 ## 构建与打包
 

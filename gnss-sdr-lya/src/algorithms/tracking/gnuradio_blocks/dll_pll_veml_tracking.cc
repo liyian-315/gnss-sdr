@@ -271,6 +271,21 @@ dll_pll_veml_tracking::dll_pll_veml_tracking(const Dll_Pll_Conf &conf_)
 #endif
 #endif
 
+    // Commands from the dual-path observables watchdog. Every tracking block
+    // receives them; only the addressed path-1 channel acts on the command.
+    this->message_port_register_in(pmt::mp("dual_path_reacquire"));
+    this->set_msg_handler(
+        pmt::mp("dual_path_reacquire"),
+#if HAS_GENERIC_LAMBDA
+        [this](auto &&PH1) { msg_handler_dual_path_reacquire(PH1); });
+#else
+#if USE_BOOST_BIND_PLACEHOLDERS
+        boost::bind(&dll_pll_veml_tracking::msg_handler_dual_path_reacquire, this, boost::placeholders::_1));
+#else
+        boost::bind(&dll_pll_veml_tracking::msg_handler_dual_path_reacquire, this, _1));
+#endif
+#endif
+
     // initialize internal vars
     d_dll_filt_history.set_capacity(1000);
     d_signal_type = std::string(d_trk_parameters.signal);
@@ -953,6 +968,30 @@ void dll_pll_veml_tracking::msg_handler_telemetry_to_trk(const pmt::pmt_t &msg)
         {
             LOG(WARNING) << "msg_handler_telemetry_to_trk Bad any_cast: " << ex.what();
         }
+}
+
+
+void dll_pll_veml_tracking::msg_handler_dual_path_reacquire(const pmt::pmt_t &msg)
+{
+    if (!pmt::is_integer(msg))
+        {
+            return;
+        }
+
+    const auto requested_channel = static_cast<uint32_t>(pmt::to_long(msg));
+    if (requested_channel != d_channel || d_acquisition_gnss_synchro == nullptr ||
+        d_acquisition_gnss_synchro->Signal_Path != 1U)
+        {
+            return;
+        }
+
+    gr::thread::scoped_lock lock(d_setlock);
+    // Use the ordinary tracking-loss path so all tracking, telemetry and
+    // observables state is reset consistently before acquisition restarts.
+    d_carrier_lock_fail_counter = std::max(1, d_trk_parameters.max_carrier_lock_fail + 1);
+    d_code_lock_fail_counter = std::max(1, d_trk_parameters.max_code_lock_fail + 1);
+    LOG(INFO) << "Dual-path watchdog requested reacquisition in channel " << d_channel
+              << " for satellite " << Gnss_Satellite(d_systemName, d_acquisition_gnss_synchro->PRN);
 }
 
 

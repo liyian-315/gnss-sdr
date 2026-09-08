@@ -79,6 +79,7 @@ private:
     explicit dll_pll_veml_tracking(const Dll_Pll_Conf &conf_);
 
     void msg_handler_telemetry_to_trk(const pmt::pmt_t &msg);
+    void msg_handler_dual_path_reacquire(const pmt::pmt_t &msg);
     void do_correlation_step(const gr_complex *input_samples);
     void run_dll_pll();
     void check_carrier_phase_coherent_initialization();

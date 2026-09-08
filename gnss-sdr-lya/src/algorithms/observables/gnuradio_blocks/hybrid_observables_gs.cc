@@ -144,6 +144,9 @@ hybrid_observables_gs::hybrid_observables_gs(const Obs_Conf &conf_)
     // Send Channel status to gnss_flowgraph
     this->message_port_register_out(pmt::mp("status"));
 
+    // Request a fresh acquisition when path 1 has silently converged to path 0.
+    this->message_port_register_out(pmt::mp("dual_path_reacquire"));
+
     d_gnss_synchro_history = std::make_unique<Gnss_circular_deque<Gnss_Synchro>>(1000, d_nchannels_out);
 
     d_Rx_clock_buffer.set_capacity(std::min(std::max(300U / d_T_rx_step_ms, 3U), 20U));
@@ -325,6 +328,7 @@ void hybrid_observables_gs::msg_handler_pvt_to_observables(const pmt::pmt_t &msg
 
 void hybrid_observables_gs::report_dual_path_observables(const std::vector<Gnss_Synchro> &data)
 {
+    ++d_dual_path_report_count;
     std::vector<DualPathObservation> observations;
     observations.reserve(data.size());
     for (const auto& obs : data)
@@ -344,6 +348,45 @@ void hybrid_observables_gs::report_dual_path_observables(const std::vector<Gnss_
         }
 
     const auto statuses = d_dual_path_pair_manager.update(observations);
+
+    if (d_conf.dual_path_auto_reacquire)
+        {
+            const uint64_t cooldown_reports = std::max<uint64_t>(1U,
+                (static_cast<uint64_t>(d_conf.dual_path_auto_reacquire_cooldown_ms) + d_conf.dual_path_interval_ms - 1U) /
+                    d_conf.dual_path_interval_ms);
+            const uint32_t required = std::max(1U, d_conf.dual_path_auto_reacquire_confirmations);
+            for (const auto& status : statuses)
+                {
+                    if (!status.primary_valid || !status.second_valid || !status.pair_time_aligned)
+                        {
+                            continue;
+                        }
+
+                    // A valid path-1 pseudorange inside the main-peak exclusion
+                    // distance means that its DLL has captured path 0.
+                    const double raw_delta_m = status.second_pseudorange_m - status.primary_pseudorange_m;
+                    const bool collapsed_to_primary =
+                        std::abs(raw_delta_m) < d_conf.dual_path_min_abs_delta_m;
+                    auto& collapsed_count = d_dual_path_collapsed_count[status.second_channel];
+                    collapsed_count = collapsed_to_primary ? collapsed_count + 1U : 0U;
+                    const uint64_t last_request = d_dual_path_last_reacquire_report[status.second_channel];
+                    const bool cooldown_elapsed = last_request == 0U ||
+                                                  d_dual_path_report_count - last_request >= cooldown_reports;
+                    if (collapsed_count >= required && cooldown_elapsed)
+                        {
+                            this->message_port_pub(pmt::mp("dual_path_reacquire"),
+                                pmt::from_long(static_cast<long>(status.second_channel)));
+                            d_dual_path_last_reacquire_report[status.second_channel] = d_dual_path_report_count;
+                            collapsed_count = 0U;
+                            std::cout << "DUALPATH_REACQUIRE"
+                                      << " ch=" << status.second_channel
+                                      << " prn=" << status.key.prn
+                                      << " reason=collapsed_to_primary"
+                                      << " delta_m=" << std::fixed << std::setprecision(3) << raw_delta_m
+                                      << '\n' << std::defaultfloat;
+                        }
+                }
+        }
 
     if (d_conf.stdout)
         {

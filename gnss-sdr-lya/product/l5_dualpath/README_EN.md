@@ -20,6 +20,8 @@ bash scripts/check_runtime.sh ./bin/gnss-sdr conf/l5_dualpath_b210_20msps.conf -
 
 `DUALPATH_OBS` and `DUALPATH_PAIR` remain compatibility outputs. `DUALPATH_STATUS version=1` is the stable product interface. Missing path-1 values are printed as `N/A`. Optional low-rate CSV is written directly by C++.
 
+The B210 configurations enable a path-1 watchdog. If three consecutive valid observations collapse inside the configured main-peak exclusion distance, `DUALPATH_REACQUIRE` is printed and only path 1 is reset. Failed second-peak acquisitions repeat, so moving the antenna back inside the detectable range can recover without restarting the receiver.
+
 20 Msps is recommended. The 10 Msps configuration reduces realtime load but is bandwidth-limited. All research dumps and raw-IQ recording are disabled. PVT continues to consume path 0 only.
 
 Build from the source root with:

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Added a path-1 watchdog that forces reacquisition when its valid pseudorange repeatedly collapses onto path 0.
+- Enabled continuous second-peak acquisition retries in the realtime B210 configurations, allowing recovery after the antenna moves back inside detection range.
+
 ## 1.0.0-code-complete - 2026-08-05
 
 - Froze the v1 scope around already-separated GPS L5 dual peaks.
