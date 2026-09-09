@@ -7,6 +7,6 @@
 5. More than two sources, antenna arrays, receiver-motion trajectory estimation, and research MEDLL/delay-Doppler Python fitters are outside v1.
 6. Peak-quality and state thresholds are provisional until the complete negative/positive file-replay matrix and B210 tests are run.
 7. `RELIABLE` means the configured online quality gates passed. It does not prove which physical transmitter is LOS or that the reported delay is unbiased.
-8. Independent simulators can have relative clock/Doppler drift. The default 500 Hz pair gate allows the previously observed test-rig drift but must be reviewed for deployment.
+8. Independent simulators can have relative clock/Doppler drift. The provisional 1000 Hz pair gate admits the approximately 800 Hz offset reported by the current hardware test, but still requires B210 positive- and negative-control validation before release.
 9. A target PRN must carry usable L5 and remain trackable. Phone CN0 is not interchangeable with B210/GNSS-SDR CN0.
 10. No minimum separable distance, detection probability, or false-alarm rate is claimed until independent validation supports it.

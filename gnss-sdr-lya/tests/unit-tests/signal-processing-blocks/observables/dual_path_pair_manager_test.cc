@@ -107,6 +107,24 @@ TEST(DualPathPairManager, RejectsWeakSecondAndExcessiveDopplerDifference)
     EXPECT_NE(manager.update({make_observation(0U, 1000.0), wrong_doppler}).front().state, DualPathState::RELIABLE);
 }
 
+TEST(DualPathPairManager, ProductDopplerGateAccepts800HzAndRejectsAbove1000Hz)
+{
+    DualPathPairConfig config;
+    config.reliable_confirmations = 1U;
+    config.max_doppler_difference_hz = 1000.0;
+
+    auto second = make_observation(1U, 1060.0);
+    second.doppler_hz = -200.0;  // 800 Hz from the -1000 Hz primary.
+    DualPathPairManager accepted_manager(config);
+    EXPECT_EQ(accepted_manager.update({make_observation(0U, 1000.0), second}).front().state,
+        DualPathState::RELIABLE);
+
+    second.doppler_hz = 1.0;  // 1001 Hz from the primary.
+    DualPathPairManager rejected_manager(config);
+    EXPECT_NE(rejected_manager.update({make_observation(0U, 1000.0), second}).front().state,
+        DualPathState::RELIABLE);
+}
+
 TEST(DualPathPairManager, SuddenDelayJumpDegradesReliablePair)
 {
     DualPathPairConfig config;

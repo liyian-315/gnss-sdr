@@ -1943,3 +1943,22 @@ Decision:
 - treat target-host tests, negative controls, and clean-directory package verification as evidence, not a successful compile alone.
 
 The code blockers are closed, but existing dual-source 30 s IQ loses tracking before a positive product status is established. Product level remains `CODE_COMPLETE`, not `OFFLINE_VALIDATED`. See `19_l5_dualpath_release_blocking_fix_round1.md`.
+
+## 2026-09-09 - Codex - L5 product Doppler pair gate widened for hardware trial
+
+Hardware testing reported valid-looking path observables whose relative
+Doppler reached about 800 Hz. The product's 500 Hz observables gate rejected
+those observations before a formal pair could be produced, even though each
+path could still print its own pseudorange.
+
+Decision:
+
+- raise only the L5 product configuration gate from 500 Hz to 1000 Hz;
+- keep the core default and pairing algorithm unchanged;
+- cover 800 Hz acceptance and greater-than-1000 Hz rejection in a unit test;
+- require B210 dual-source and single-source negative-control evidence before
+  treating 1000 Hz as a released hardware threshold.
+
+This change accommodates test-rig clock/frequency offset. It does not claim
+that an 800 Hz difference is normal physical multipath, and it does not extend
+the product's minimum delay-separation capability.
